@@ -23,8 +23,10 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
-import { crearCliente, actualizarCliente, ClienteWithStats } from '@/lib/storage-adapter';
-import { Loader2, Plus, Phone, Mail, FileText, Calendar, ExternalLink } from 'lucide-react';
+import { crearCliente, actualizarCliente, crearVehiculo, ClienteWithStats } from '@/lib/storage-adapter';
+import { Loader2, Plus, Phone, Mail, FileText, Calendar, ExternalLink, Car, Search } from 'lucide-react';
+import { consultarPatenteGetAPI, isGetAPIConfigured } from '@/lib/getapi-service';
+import { buscarVehiculoPorPatente } from '@/lib/storage-adapter';
 
 interface ClienteModalProps {
     isOpen: boolean;
@@ -48,9 +50,34 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
     const [direccion, setDireccion] = useState('');
     const [notas, setNotas] = useState('');
 
+    // Vehicle Form State
+    const [showAddVehicle, setShowAddVehicle] = useState(false);
+    const [newVehicle, setNewVehicle] = useState({
+        patente: '',
+        marca: '',
+        modelo: '',
+        anio: '',
+        motor: ''
+    });
+
+    // Autocomplete State
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchStatus, setSearchStatus] = useState('');
+    const [optimisticVehicles, setOptimisticVehicles] = useState<any[]>([]); // UI Hack for speed
+
+
+
     useEffect(() => {
         if (isOpen) {
             setActiveTab(defaultTab || 'datos');
+            // If defaultTab is vehicles, we assume user might want to add one if the list is empty or explicitly requested
+            // But relying solely on 'vehicles' tab might be aggressive. 
+            // However, based on user request "takes me direct to add vehicle", let's open the form if tab is vehicles.
+            if (defaultTab === 'vehiculos') {
+                setShowAddVehicle(true);
+            } else {
+                setShowAddVehicle(false);
+            }
         }
     }, [isOpen, defaultTab]);
 
@@ -63,7 +90,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
             setTipo((cliente.tipo as 'persona' | 'empresa') || 'persona');
             setDireccion(cliente.direccion || '');
             setNotas(cliente.notas || '');
-            setActiveTab('datos'); // Default to datos when opening
+            // REMOVED: setActiveTab('datos'); // This was overriding defaultTab
         } else {
             // Reset for new client
             setNombre('');
@@ -73,9 +100,120 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
             setTipo('persona');
             setDireccion('');
             setNotas('');
-            setActiveTab('datos');
+            // REMOVED: setActiveTab('datos');
         }
     }, [cliente, isOpen]);
+
+    // Sync optimistic vehicles with real data when it loads
+    useEffect(() => {
+        if (cliente?.vehiculos) {
+            setOptimisticVehicles(cliente.vehiculos);
+        } else {
+            setOptimisticVehicles([]);
+        }
+    }, [cliente]);
+
+    const handlePatenteBlur = async () => {
+        const patente = newVehicle.patente.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        if (patente.length < 4) return;
+
+        // Update normalized patente
+        setNewVehicle(prev => ({ ...prev, patente }));
+
+        setIsSearching(true);
+        setSearchStatus('🔍 Buscando información...');
+
+        try {
+            // 1. Check GetAPI first if configured (since it's a new vehicle context, we might prefer fresh data, 
+            // but checking local DB to avoid duplicates or pre-fill is also good. 
+            // However, since we are adding a vehicle to a client, maybe we want to see if it exists elsewhere?)
+
+            // Let's check GetAPI primarily for autocomplete
+            if (isGetAPIConfigured()) {
+                const data = await consultarPatenteGetAPI(patente);
+                if (data) {
+                    setNewVehicle(prev => ({
+                        ...prev,
+                        marca: data.marca,
+                        modelo: data.modelo,
+                        anio: data.anio,
+                        motor: data.motor || prev.motor
+                    }));
+                    setSearchStatus(`✅ Vehículo encontrado: ${data.marca} ${data.modelo}`);
+                    setIsSearching(false);
+                    return;
+                }
+            }
+
+            // 2. Fallback to local DB check? 
+            // If it exists in local DB, it might already belong to someone.
+            const local = await buscarVehiculoPorPatente(patente);
+            if (local) {
+                setNewVehicle(prev => ({
+                    ...prev,
+                    marca: local.marca,
+                    modelo: local.modelo,
+                    anio: local.anio || prev.anio,
+                    motor: local.motor || prev.motor
+                }));
+                // Notify usage
+                if (local.clientes) {
+                    setSearchStatus(`⚠️ Vehículo ya existe (Cliente: ${local.clientes.nombre_completo})`);
+                } else {
+                    setSearchStatus(`✅ Vehículo encontrado en registro local`);
+                }
+            } else {
+                // Not found
+                setSearchStatus('❌ No encontrado. Completa manualmente.');
+            }
+
+        } catch (err) {
+            console.error(err);
+            setSearchStatus('Error en búsqueda');
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleAddVehicle = async () => {
+        if (!cliente?.id) {
+            alert('Debes guardar el cliente primero antes de agregar vehículos.');
+            return;
+        }
+        if (!newVehicle.patente || !newVehicle.marca || !newVehicle.modelo) {
+            alert('Por favor completa la patente, marca y modelo.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await crearVehiculo({
+                ...newVehicle,
+                cliente_id: cliente.id,
+                anio: newVehicle.anio || undefined,
+                motor: newVehicle.motor || undefined
+            });
+
+            // Update parent list
+            onSave();
+
+            // Allow time for parent refresh or just optimistically close
+            setShowAddVehicle(false);
+            setNewVehicle({
+                patente: '',
+                marca: '',
+                modelo: '',
+                anio: '',
+                motor: ''
+            });
+            setSearchStatus('');
+        } catch (error) {
+            console.error('Error creating vehicle:', error);
+            alert('Error al guardar el vehículo. Verifique si la patente ya existe.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -295,23 +433,126 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                     </TabsContent>
 
                     <TabsContent value="vehiculos" className="py-4">
-                        <div className="rounded-md border border-slate-800">
-                            <Table>
-                                <TableHeader className="bg-slate-900">
-                                    <TableRow>
-                                        <TableHead>Patente</TableHead>
-                                        <TableHead>Vehículo</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {cliente?.vehiculos?.map((v: any) => (
-                                        <TableRow key={v.patente}>
-                                            <TableCell className="font-mono font-bold">{v.patente}</TableCell>
-                                            <TableCell>{v.marca} {v.modelo} ({v.anio})</TableCell>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-medium">Vehículos del Cliente</h3>
+                                <Button
+                                    onClick={() => setShowAddVehicle(!showAddVehicle)}
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    {showAddVehicle ? 'Cancelar' : 'Agregar Vehículo'}
+                                </Button>
+                            </div>
+
+                            {showAddVehicle && (
+                                <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-4">
+                                    <h4 className="font-medium text-slate-300">Nuevo Vehículo</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Patente</Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    value={newVehicle.patente}
+                                                    onChange={e => setNewVehicle(prev => ({ ...prev, patente: e.target.value.toUpperCase() }))}
+                                                    placeholder="AA-BB-11"
+                                                    maxLength={6}
+                                                    className="bg-slate-950 border-slate-700 font-mono uppercase"
+                                                    onBlur={handlePatenteBlur}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handlePatenteBlur();
+                                                        }
+                                                    }}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    onClick={handlePatenteBlur}
+                                                    disabled={isSearching}
+                                                >
+                                                    {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                                </Button>
+                                            </div>
+                                            {searchStatus && !isSearching && <span className="text-xs text-slate-400 mt-1 block">{searchStatus}</span>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Marca</Label>
+                                            <Input
+                                                value={newVehicle.marca}
+                                                onChange={e => setNewVehicle(prev => ({ ...prev, marca: e.target.value }))}
+                                                placeholder="Toyota"
+                                                className="bg-slate-950 border-slate-700"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Modelo</Label>
+                                            <Input
+                                                value={newVehicle.modelo}
+                                                onChange={e => setNewVehicle(prev => ({ ...prev, modelo: e.target.value }))}
+                                                placeholder="Yaris"
+                                                className="bg-slate-950 border-slate-700"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Año</Label>
+                                            <Input
+                                                value={newVehicle.anio}
+                                                onChange={e => setNewVehicle(prev => ({ ...prev, anio: e.target.value }))}
+                                                placeholder="2020"
+                                                className="bg-slate-950 border-slate-700"
+                                            />
+                                        </div>
+                                        <div className="col-span-2 space-y-2">
+                                            <Label>Motor (Opcional)</Label>
+                                            <Input
+                                                value={newVehicle.motor}
+                                                onChange={e => setNewVehicle(prev => ({ ...prev, motor: e.target.value }))}
+                                                placeholder="1.5 L"
+                                                className="bg-slate-950 border-slate-700"
+                                            />
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={handleAddVehicle}
+                                        disabled={isSubmitting || !newVehicle.patente || !newVehicle.marca || !newVehicle.modelo}
+                                        className="w-full bg-blue-600 hover:bg-blue-700"
+                                    >
+                                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar Vehículo'}
+                                    </Button>
+                                </div>
+                            )}
+
+                            <div className="rounded-md border border-slate-800">
+                                <Table>
+                                    <TableHeader className="bg-slate-900">
+                                        <TableRow>
+                                            <TableHead>Patente</TableHead>
+                                            <TableHead>Vehículo</TableHead>
+                                            <TableHead>Motor</TableHead>
+                                            <TableHead className="text-right">Acciones</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {optimisticVehicles.map((v: any) => (
+                                            <TableRow key={v.patente}>
+                                                <TableCell className="font-mono font-bold text-white">{v.patente}</TableCell>
+                                                <TableCell>{v.marca} {v.modelo} ({v.anio})</TableCell>
+                                                <TableCell>{v.motor || '-'}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {optimisticVehicles.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="text-center text-slate-500 py-8">
+                                                    No hay vehículos registrados
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     </TabsContent>
                 </Tabs>

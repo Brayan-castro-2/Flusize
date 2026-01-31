@@ -26,22 +26,41 @@ export async function buscarVehiculoPorPatente(patente: string): Promise<Vehicul
 }
 
 // Crear nuevo vehículo (o actualizar si ya existe)
-export async function crearVehiculo(vehiculo: Omit<VehiculoDB, 'fecha_creacion'>): Promise<VehiculoDB | null> {
-    const patenteUpper = vehiculo.patente.toUpperCase();
+export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_rut?: string }): Promise<VehiculoDB | null> {
+    const patenteUpper = vehiculo.patente?.toUpperCase() || '';
 
-    // Preparar datos limpios para Supabase (sin cliente_id porque no existe en la tabla)
+    console.log('🚗 Creating vehicle (Supabase):', vehiculo);
+
+    // 1. Validate cliente_id (Required)
+    let clienteId = vehiculo.cliente_id;
+
+    if (!clienteId && vehiculo.cliente_rut) {
+        // Legacy/Fallback: Try to find client by RUT
+        const cliente = await buscarClientePorRut(vehiculo.cliente_rut);
+        if (cliente) {
+            clienteId = cliente.id;
+            console.log('✅ Found client by RUT:', cliente.id);
+        }
+    }
+
+    if (!clienteId) {
+        console.error('❌ Error: cliente_id is required to create a vehicle');
+        return null;
+    }
+
+    // Prepare payload
     const vehiculoData = {
         patente: patenteUpper,
-        marca: vehiculo.marca,
-        modelo: vehiculo.modelo,
-        anio: vehiculo.anio,
+        marca: vehiculo.marca || 'Desconocida',
+        modelo: vehiculo.modelo || 'Desconocido',
+        anio: vehiculo.anio || new Date().getFullYear().toString(),
         motor: vehiculo.motor || null,
         color: vehiculo.color || '-',
+        cliente_id: clienteId
     };
 
-    console.log('📤 Enviando a Supabase:', vehiculoData);
+    console.log('📤 Sending to Supabase:', vehiculoData);
 
-    // Usar upsert para crear o actualizar
     const { data, error } = await supabase
         .from('vehiculos')
         .upsert([vehiculoData], {
@@ -52,12 +71,11 @@ export async function crearVehiculo(vehiculo: Omit<VehiculoDB, 'fecha_creacion'>
         .single();
 
     if (error) {
-        console.error('❌ Error al crear/actualizar vehículo:', error);
-        console.error('❌ Detalles del error:', JSON.stringify(error, null, 2));
-        return null;
+        console.error('❌ Error creating/updating vehicle:', error);
+        return null; // Return null instead of throwing to avoid crashing UI if not handled
     }
 
-    console.log('✅ Vehículo guardado:', data);
+    console.log('✅ Vehicle saved:', data);
     return data;
 }
 
@@ -212,6 +230,8 @@ export async function crearCliente(cliente: Omit<ClienteDB, 'id' | 'fecha_creaci
     }
     return data;
 }
+
+
 
 // ============ ÓRDENES ============
 
@@ -913,18 +933,42 @@ export async function eliminarCita(id: number): Promise<boolean> {
 }
 
 
+
+// Confirmar revisión de ingreso (Mecánico)
+export async function confirmarRevisionIngreso(checklistId: number): Promise<boolean> {
+    const { error } = await supabase
+        .from('listas_chequeo')
+        .update({ revisado_por_mecanico_at: new Date().toISOString() })
+        .eq('id', checklistId);
+
+    if (error) {
+        console.error('❌ Error al confirmar revisión:', error);
+        return false;
+    }
+
+    console.log('✅ Revisión confirmada');
+    return true;
+}
+
 // ============ CHECKLISTS ============
 
 export async function guardarChecklist(checklist: {
     orden_id: string;
     detalles: any; // Changed from items to match DB
     fotos: any;
+    comentarios_generales?: string;
+    fotos_extra?: string[];
 }): Promise<any> {
     const { data, error } = await supabase
         .from('listas_chequeo') // Changed table name
         .upsert([{
             orden_id: checklist.orden_id,
-            detalles: checklist.detalles,
+            // Merge extra fields into detalles JSON to avoid schema changes
+            detalles: {
+                ...checklist.detalles,
+                comentarios_generales: checklist.comentarios_generales,
+                fotos_extra: checklist.fotos_extra
+            },
             fotos: checklist.fotos
         }], { onConflict: 'orden_id' })
         .select()
@@ -955,6 +999,7 @@ export async function obtenerChecklist(orderId: string): Promise<any> {
         return {
             ...data,
             items: data.detalles, // Compatible alias
+            revisado_por_mecanico_at: data.revisado_por_mecanico_at
         };
     }
 
@@ -966,8 +1011,12 @@ export async function subirImagenChecklist(file: File, ordenId: string, tipo: st
     try {
         const fileExt = file.name.split('.').pop();
         const timestamp = Date.now();
-        // Path format: {orden_id}/checklist/{tipo}_timestamp.jpg
-        const filePath = `${ordenId}/checklist/${tipo}_${timestamp}.${fileExt}`;
+        // Path format: 
+        // - Mandatory (checklist): {orden_id}/checklist/{tipo}_timestamp.jpg
+        // - Extra (fotos): {orden_id}/fotos/{tipo}_timestamp.jpg
+        const isExtra = tipo.startsWith('extra');
+        const folder = isExtra ? 'fotos' : 'checklist';
+        const filePath = `${ordenId}/${folder}/${tipo}_${timestamp}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
             .from('ordenes-fotos') // Specific bucket

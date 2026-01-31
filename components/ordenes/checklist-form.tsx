@@ -24,7 +24,7 @@ import {
     Unlock,
     Lock
 } from 'lucide-react';
-import { guardarChecklist, subirImagenChecklist, obtenerChecklist } from '@/lib/storage-adapter';
+import { guardarChecklist, subirImagenChecklist, obtenerChecklist, confirmarRevisionIngreso } from '@/lib/storage-adapter';
 import { supabase } from '@/lib/supabase'; // Direct import for auth check if needed
 import { useAuth } from '@/contexts/auth-context';
 
@@ -88,9 +88,10 @@ interface ChecklistFormProps {
     orderId: string;
     onClose?: () => void;
     initialData?: any;
+    mode?: 'checklist' | 'readonly_ingreso' | 'salida';
 }
 
-export default function ChecklistForm({ orderId, onClose, initialData }: ChecklistFormProps) {
+export default function ChecklistForm({ orderId, onClose, initialData, mode = 'checklist' }: ChecklistFormProps) {
     // -- STATE --
     const [items, setItems] = useState({
         gata: false,
@@ -104,7 +105,27 @@ export default function ChecklistForm({ orderId, onClose, initialData }: Checkli
         luces_freno: false,
         neumaticos: '',
         bypass_checklist: false, // New Field
+        ...initialData?.items
     });
+
+    const [photos, setPhotos] = useState<Record<string, string>>(initialData?.photos || {});
+    // New state for comments and extra photos
+    const [comentarios, setComentarios] = useState(initialData?.items?.comentarios_generales || '');
+    const [fotosExtra, setFotosExtra] = useState<string[]>(initialData?.items?.fotos_extra || []);
+    const [isUploadingExtra, setIsUploadingExtra] = useState(false);
+
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Update state when initialData changes
+    useEffect(() => {
+        if (initialData) {
+            setItems((prev: any) => ({ ...prev, ...initialData.items }));
+            // Fix: Map DB 'fotos' column to 'photos' state if 'photos' prop is missing
+            setPhotos(initialData.photos || initialData.fotos || {});
+            setComentarios(initialData.items?.comentarios_generales || '');
+            setFotosExtra(initialData.items?.fotos_extra || []);
+        }
+    }, [initialData]);
 
     // Bypass State
     const { user } = useAuth();
@@ -113,28 +134,26 @@ export default function ChecklistForm({ orderId, onClose, initialData }: Checkli
     const [isBypassVerified, setIsBypassVerified] = useState(false);
     const [verifyingPassword, setVerifyingPassword] = useState(false);
 
-    const [photos, setPhotos] = useState<{ [key: string]: string }>({
-        combustible_url: '',
-        kilometraje_url: ''
-    });
-
     const [isUploading, setIsUploading] = useState<{ [key: string]: boolean }>({});
-    const [isSaving, setIsSaving] = useState(false);
 
     // Load initial data if exists
     useEffect(() => {
         const load = async () => {
-            if (initialData) {
-                // ... assign
-            } else {
+            // Logic merged above in separate useEffect
+            if (!initialData) {
                 const existing = await obtenerChecklist(orderId);
                 if (existing) {
-                    setItems(existing.items || items);
-                    setPhotos(existing.photos || photos);
+                    setItems((prev: any) => ({ ...prev, ...existing.items }));
+                    // Handle merging comments/extra photos from loaded data if needed
+                    // But usually initialData covers this if parent passes it. 
+                    // If parent didn't pass initialData, we load here.
                     if (existing.items?.bypass_checklist) {
                         setBypassMode(true);
                         setIsBypassVerified(true);
                     }
+                    setPhotos(existing.photos || {});
+                    setComentarios(existing.items?.comentarios_generales || '');
+                    setFotosExtra(existing.items?.fotos_extra || []);
                 }
             }
         };
@@ -144,7 +163,7 @@ export default function ChecklistForm({ orderId, onClose, initialData }: Checkli
     // -- HANDLERS --
 
     // Updates
-    const updateItem = (key: string, value: any) => setItems(prev => ({ ...prev, [key]: value }));
+    const updateItem = (key: string, value: any) => setItems((prev: any) => ({ ...prev, [key]: value }));
 
     // Verify Password Handler
     const handleVerifyPassword = async () => {
@@ -213,29 +232,66 @@ export default function ChecklistForm({ orderId, onClose, initialData }: Checkli
     // Optimistic Save
     const handleSave = () => {
         // 1. Immediate Feedback
-        toast.promise(
-            // 2. Background Process
-            guardarChecklist({
-                order_id: orderId,
-                items,
-                photos
-            }),
-            {
-                loading: 'Guardando...',
-                success: 'Checklist guardado correctamente',
-                error: (err: any) => {
-                    console.error('❌ Error detallado al guardar checklist:', err);
-                    return `Error al guardar: ${err.message || 'Error desconocido'}`;
-                }
+        const handleGuardar = async () => {
+            setIsSaving(true);
+            try {
+                await guardarChecklist({
+                    order_id: orderId,
+                    items: {
+                        ...items,
+                        // Although we pass them separately too, saving them in items (detalles) is what we decided for DB persistence
+                        comentarios_generales: comentarios,
+                        fotos_extra: fotosExtra
+                    },
+                    photos: photos,
+                    comentarios_generales: comentarios,
+                    fotos_extra: fotosExtra
+                });
+                toast.success('Checklist guardado correctamente');
+                if (onClose) onClose();
+            } catch (error) {
+                console.error('Error saving checklist:', error);
+                toast.error('Error al guardar checklist');
+            } finally {
+                setIsSaving(false);
             }
-        );
+        };
 
-        // 3. UI Update / Close (Don't wait for promise)
-        if (onClose) onClose();
+        // 2. Review Confirmation Logic
+        const handleConfirmarRevision = async () => {
+            setIsSaving(true);
+            try {
+                // Ensure we have a checklist ID to confirm
+                // If initialData was passed, it probably has the ID. If not, obtaining it might be tricky without refetching or passing it.
+                // Assuming initialData contains the full checklist object including ID if it exists.
+                if (initialData?.id) {
+                    const success = await confirmarRevisionIngreso(initialData.id);
+                    if (success) {
+                        toast.success('Revisión de ingreso confirmada');
+                        if (onClose) onClose();
+                    } else {
+                        toast.error('Error al confirmar revisión');
+                    }
+                } else {
+                    toast.error('Error: No se encontró ID del checklist');
+                }
+            } catch (err) {
+                console.error(err);
+                toast.error('Error al confirmar');
+            } finally {
+                setIsSaving(false);
+            }
+        };
+
+        if (mode === 'readonly_ingreso') {
+            handleConfirmarRevision();
+        } else {
+            handleGuardar();
+        }
     };
 
     // Validation
-    const isFormValid = isBypassVerified || (!!photos.combustible_url && !!photos.kilometraje_url);
+    const isFormValid = mode === 'readonly_ingreso' ? true : (isBypassVerified || (!!photos.combustible_url && !!photos.kilometraje_url));
 
     // Fuel Color Logic
     const getFuelColor = (val: number) => {
@@ -245,7 +301,7 @@ export default function ChecklistForm({ orderId, onClose, initialData }: Checkli
     };
 
     return (
-        <div className="space-y-8 pb-20"> {/* pb-20 for bottom safe area */}
+        <div className={`space-y-8 pb-20 ${mode === 'readonly_ingreso' ? 'pointer-events-none opacity-90' : ''}`}> {/* pb-20 for bottom safe area */}
 
             {/* -- RECEPCIÓN Y PERTENENCIAS -- */}
             <section className="space-y-4">
@@ -313,8 +369,13 @@ export default function ChecklistForm({ orderId, onClose, initialData }: Checkli
                                     <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
                                 ) : photos.combustible_url ? (
                                     <>
-                                        <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                                        <span className="text-emerald-400 font-medium">Foto cargada</span>
+                                        <div className="w-full h-32 relative rounded-lg overflow-hidden mb-2">
+                                            <img src={photos.combustible_url} alt="Combustible" className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="flex items-center gap-2 text-emerald-400">
+                                            <CheckCircle2 className="w-5 h-5" />
+                                            <span className="font-medium">Foto cargada</span>
+                                        </div>
                                     </>
                                 ) : (
                                     <>
@@ -399,6 +460,76 @@ export default function ChecklistForm({ orderId, onClose, initialData }: Checkli
                 </div>
             </section>
 
+            {/* -- COMENTARIOS Y FOTOS ADICIONALES (V3) -- */}
+            <section className="bg-slate-900/50 p-5 rounded-xl border border-slate-800">
+                <div className="flex items-center gap-2 mb-4">
+                    <FileText className="w-5 h-5 text-blue-400" />
+                    <h3 className="font-semibold text-slate-200">Notas Adicionales</h3>
+                </div>
+
+                <div className="space-y-4">
+                    <div>
+                        <Label className="text-slate-400 mb-2 block">Comentarios Generales</Label>
+                        <textarea
+                            value={comentarios}
+                            onChange={(e) => setComentarios(e.target.value)}
+                            className="w-full min-h-[100px] p-4 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-y"
+                            placeholder="Detalles adicionales, observaciones, daños preexistentes..."
+                        />
+                    </div>
+
+                    <div>
+                        <Label className="text-slate-400 mb-2 block">Fotos Adicionales (Opcional)</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {fotosExtra.map((src, idx) => (
+                                <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-700 group">
+                                    <img src={src} alt={`Extra ${idx}`} className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFotosExtra(prev => prev.filter((_, i) => i !== idx))}
+                                        className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                            ))}
+
+                            <label className={`aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${isUploadingExtra ? 'border-blue-500/50 bg-blue-500/10' : 'border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/50'
+                                }`}>
+                                {isUploadingExtra ? (
+                                    <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                                ) : (
+                                    <>
+                                        <Camera className="w-6 h-6 text-slate-500" />
+                                        <span className="text-xs text-slate-500">Agregar</span>
+                                    </>
+                                )}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    disabled={isUploadingExtra}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setIsUploadingExtra(true);
+                                        try {
+                                            const url = await subirImagenChecklist(file, orderId, `extra_${Date.now()}`);
+                                            if (url) {
+                                                setFotosExtra(prev => [...prev, url]);
+                                            }
+                                        } finally {
+                                            setIsUploadingExtra(false);
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                />
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* -- BYPASS TOGGLE -- */}
             <section className="bg-slate-900/80 p-5 rounded-xl border border-slate-700/50">
                 <div className="flex items-center justify-between">
@@ -460,19 +591,28 @@ export default function ChecklistForm({ orderId, onClose, initialData }: Checkli
                     Cancelar
                 </Button>
                 <Button
-                    className={`flex-1 h-12 text-lg font-semibold shadow-xl shadow-blue-900/20 ${!isFormValid ? 'opacity-50 cursor-not-allowed bg-slate-700 text-slate-400' : 'bg-blue-600 hover:bg-blue-500 text-white'
+                    className={`flex-1 h-12 text-lg font-semibold shadow-xl shadow-blue-900/20 pointer-events-auto ${!isFormValid ? 'opacity-50 cursor-not-allowed bg-slate-700 text-slate-400' : 'bg-blue-600 hover:bg-blue-500 text-white'
                         }`}
                     disabled={!isFormValid || isSaving}
                     onClick={handleSave}
                 >
                     {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : (
                         <>
-                            <Save className="w-5 h-5 mr-2" />
-                            Guardar Checklist
+                            {mode === 'readonly_ingreso' ? (
+                                <>
+                                    <CheckCircle2 className="w-5 h-5 mr-2" />
+                                    Confirmar Revisión
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-5 h-5 mr-2" />
+                                    Guardar Checklist
+                                </>
+                            )}
                         </>
                     )}
                 </Button>
             </div>
-        </div>
+        </div >
     );
 }

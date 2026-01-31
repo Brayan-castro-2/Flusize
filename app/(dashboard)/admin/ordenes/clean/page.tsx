@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/auth-context';
-import { actualizarOrden, buscarVehiculoPorPatente, obtenerOrdenPorId, obtenerPerfiles, type OrdenDB, type VehiculoDB, type PerfilDB } from '@/lib/storage-adapter';
+import { actualizarOrden, buscarVehiculoPorPatente, obtenerOrdenPorId, obtenerPerfiles, obtenerChecklist, type OrdenDB, type VehiculoDB, type PerfilDB } from '@/lib/storage-adapter';
+import { generateOrderPDF } from '@/lib/pdf-generator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +67,10 @@ export default function OrdenesCleanPage() {
         }
     }, [authLoading, user, router]);
 
+    const [showKm, setShowKm] = useState(false);
+
+    const [checklist, setChecklist] = useState<any>(null);
+
     useEffect(() => {
         if (!Number.isFinite(orderId)) {
             setIsLoading(false);
@@ -75,34 +80,53 @@ export default function OrdenesCleanPage() {
         }
 
         const loadData = async () => {
-            const [ordenData, perfs] = await Promise.all([
+            const [ordenData, perfs, checklistData] = await Promise.all([
                 obtenerOrdenPorId(orderId),
-                obtenerPerfiles()
+                obtenerPerfiles(),
+                obtenerChecklist(String(orderId))
             ]);
 
-            setOrder(ordenData);
-            setPerfiles(perfs);
+            setIsLoading(false); // Set loading false earlier to avoid jitter if possible, or keep at end
 
             if (ordenData) {
+                setOrder(ordenData);
+                setPerfiles(perfs);
+                setChecklist(checklistData);
                 setPrecioFinal(formatPrecio(ordenData.precio_total || 0));
-                setDescripcion(ordenData.descripcion_ingreso);
+
+                // Clean Description Logic
+                const rawDesc = ordenData.descripcion_ingreso || '';
+                // Remove "Motor: ..." prefix if present
+                const cleanedDesc = rawDesc.replace(/^Motor:.*?( - |$)/i, '').trim() || rawDesc;
+                setDescripcion(cleanedDesc);
+
                 setEstado(ordenData.estado);
                 setAsignadoA(ordenData.asignado_a || '');
                 setDetalleTrabajos(ordenData.detalle_trabajos || '');
-                setClienteNombre(ordenData.cliente_nombre || '');
-                setClienteTelefono(ordenData.cliente_telefono || '');
                 setMetodosPago(ordenData.metodos_pago || []);
 
-                const servicios = ordenData.descripcion_ingreso || '';
-                const kmMatch = servicios.match(/KM:\s*(\d+\.?\d*)/);
-                const kmSalidaMatch = servicios.match(/→\s*(\d+\.?\d*)/);
+                // KM Logic
+                const kmMatch = rawDesc.match(/KM:\s*(\d+\.?\d*)/);
+                const kmSalidaMatch = rawDesc.match(/→\s*(\d+\.?\d*)/);
+
                 if (kmMatch) setKmIngreso(kmMatch[1]);
                 if (kmSalidaMatch) setKmSalida(kmSalidaMatch[1]);
 
+                // Show KM fields only if data exists
+                if (kmMatch || kmSalidaMatch) {
+                    setShowKm(true);
+                }
+
+                // Client Info Logic (Smart Fallback)
                 const veh = await buscarVehiculoPorPatente(ordenData.patente_vehiculo);
                 setVehiculo(veh);
+
+                // Prioritize Order info, fallback to Vehicle Client info
+                setClienteNombre(ordenData.cliente_nombre || veh?.clientes?.nombre_completo || '');
+                setClienteTelefono(ordenData.cliente_telefono || veh?.clientes?.telefono || '');
+            } else {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         };
 
         setIsLoading(true);
@@ -121,104 +145,17 @@ export default function OrdenesCleanPage() {
 
     const handleDownloadPDF = async () => {
         if (!order) return;
-
         try {
-            const html2canvas = (await import('html2canvas')).default;
-            const jsPDF = (await import('jspdf')).default;
-
-            const content = document.createElement('div');
-            content.style.width = '800px';
-            content.style.padding = '40px';
-            content.style.backgroundColor = '#ffffff';
-            content.style.color = '#000000';
-            content.style.fontFamily = 'Arial, sans-serif';
-
-            content.innerHTML = `
-                <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">TALLER MECÁNICO</h1>
-                    <p style="font-size: 14px; color: #666;">Orden de Trabajo #${order.id}</p>
-                    <p style="font-size: 12px; color: #666;">${new Date(order.fecha_ingreso).toLocaleString('es-CL')}</p>
-                </div>
-
-                <div style="border: 2px solid #333; padding: 20px; margin-bottom: 20px;">
-                    <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 10px;">INFORMACIÓN DEL VEHÍCULO</h2>
-                    <div style="margin-bottom: 10px;">
-                        <strong>Patente:</strong> ${order.patente_vehiculo}
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <strong>Vehículo:</strong> ${vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-'}
-                    </div>
-                    ${vehiculo?.anio ? `<div style="margin-bottom: 10px;"><strong>Año:</strong> ${vehiculo.anio}</div>` : ''}
-                    ${vehiculo?.motor ? `<div style="margin-bottom: 10px;"><strong>Motor:</strong> ${vehiculo.motor}</div>` : ''}
-                </div>
-
-                <div style="border: 2px solid #333; padding: 20px; margin-bottom: 20px;">
-                    <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 10px;">DETALLES DE LA ORDEN</h2>
-                    <div style="margin-bottom: 10px;">
-                        <strong>Estado:</strong> ${order.estado}
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <strong>Precio Final:</strong> $${(order.precio_total || 0).toLocaleString('es-CL')}
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <strong>Motivo:</strong>
-                        <div style="margin-top: 5px; white-space: pre-wrap;">${order.descripcion_ingreso}</div>
-                    </div>
-                    ${order.detalles_vehiculo ? `
-                    <div style="margin-bottom: 10px;">
-                        <strong>Detalles del Vehículo:</strong>
-                        <div style="margin-top: 5px; white-space: pre-wrap;">${order.detalles_vehiculo}</div>
-                    </div>
-                    ` : ''}
-                </div>
-
-                ${order.fotos_urls?.length ? `
-                <div style="border: 2px solid #333; padding: 20px; margin-bottom: 20px;">
-                    <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 10px;">IMÁGENES</h2>
-                    <div id="images-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                        ${order.fotos_urls.map((src, idx) => `
-                            <div style="border: 1px solid #ddd; padding: 10px;">
-                                <img src="${src}" alt="Foto ${idx + 1}" style="width: 100%; height: auto; max-height: 300px; object-fit: contain;" crossorigin="anonymous" />
-                                <p style="text-align: center; margin-top: 5px; font-size: 12px; color: #666;">Foto ${idx + 1}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                ` : ''}
-            `;
-
-            document.body.appendChild(content);
-
-            const canvas = await html2canvas(content, {
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff',
+            await generateOrderPDF({
+                order,
+                vehicle: vehiculo,
+                checklist, // New checklist data
+                companyInfo: {
+                    name: "TALLER MECÁNICO",
+                    address: "Av. Principal 123", // TODO: Configurable?
+                    phone: "+56 9 1234 5678"
+                }
             });
-
-            document.body.removeChild(content);
-
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pdfHeight;
-
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pdfHeight;
-            }
-
-            pdf.save(`Orden_${order.id}_${order.patente_vehiculo}.pdf`);
         } catch (error) {
             console.error('Error generando PDF:', error);
             alert('Error al generar el PDF. Por favor intenta nuevamente.');
@@ -245,7 +182,7 @@ export default function OrdenesCleanPage() {
         }
 
         let descripcionActualizada = descripcion;
-        if (kmIngreso && kmSalida) {
+        if (showKm && kmIngreso && kmSalida) {
             const precioKm = precio > 0 ? precio : 15000;
             descripcionActualizada = `${descripcion}\n\nServicios:\n- KM: ${kmIngreso} KM → ${kmSalida} KM: $${precioKm.toLocaleString('es-CL')}`;
         }
@@ -444,44 +381,83 @@ export default function OrdenesCleanPage() {
                         </div>
                     )}
                     {user?.role === 'admin' ? (
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-slate-300">Estado</Label>
-                                <Select value={estado} onValueChange={setEstado}>
-                                    <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-slate-800 border-slate-700">
-                                        <SelectItem value="pendiente" className="text-slate-200">Pendiente</SelectItem>
-                                        <SelectItem value="completada" className="text-slate-200">Completada</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-slate-300">Asignado a</Label>
-                                <Select value={asignadoA || 'none'} onValueChange={(v) => setAsignadoA(v === 'none' ? '' : v)}>
-                                    <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl">
-                                        <SelectValue placeholder="Seleccionar mecánico" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-slate-800 border-slate-700">
-                                        <SelectItem value="none" className="text-slate-200">Sin asignar</SelectItem>
-                                        {perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'admin').map((perfil) => (
-                                            <SelectItem key={perfil.id} value={perfil.id} className="text-slate-200">
-                                                {perfil.nombre_completo}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">Estado</span>
-                            <Badge className="bg-slate-700/50 text-slate-200 border border-slate-600">{order.estado}</Badge>
-                        </div>
-                    )}
-                    {user?.role === 'admin' ? (
                         <>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-slate-300">Estado</Label>
+                                    <Select value={estado} onValueChange={setEstado}>
+                                        <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-800 border-slate-700">
+                                            <SelectItem value="pendiente" className="text-slate-200">Pendiente</SelectItem>
+                                            <SelectItem value="completada" className="text-slate-200">Completada</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-slate-300">Asignado a</Label>
+                                    <Select value={asignadoA || 'none'} onValueChange={(v) => setAsignadoA(v === 'none' ? '' : v)}>
+                                        <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl">
+                                            <SelectValue placeholder="Seleccionar mecánico" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-800 border-slate-700">
+                                            <SelectItem value="none" className="text-slate-200">Sin asignar</SelectItem>
+                                            {perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'admin').map((perfil) => (
+                                                <SelectItem key={perfil.id} value={perfil.id} className="text-slate-200">
+                                                    {perfil.nombre_completo}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 border-t border-slate-700/50 pt-4">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-slate-300">Control de Kilometraje</Label>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-slate-500">{showKm ? 'Activado' : 'Desactivado'}</span>
+                                        <Button
+                                            type="button"
+                                            variant={showKm ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => setShowKm(!showKm)}
+                                            className={showKm ? "bg-blue-600 hover:bg-blue-500 h-7" : "border-slate-600 text-slate-400 h-7"}
+                                        >
+                                            {showKm ? 'Ocultar' : 'Mostrar'}
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {showKm && (
+                                    <div className="grid md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300">KM Ingreso</Label>
+                                            <Input
+                                                type="number"
+                                                value={kmIngreso}
+                                                onChange={(e) => setKmIngreso(e.target.value)}
+                                                className="bg-slate-700/50 border-slate-600 text-white rounded-xl"
+                                                placeholder="150000"
+                                                min="0"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300">KM Salida</Label>
+                                            <Input
+                                                type="number"
+                                                value={kmSalida}
+                                                onChange={(e) => setKmSalida(e.target.value)}
+                                                className="bg-slate-700/50 border-slate-600 text-white rounded-xl"
+                                                placeholder="130000"
+                                                min="0"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="space-y-2">
                                 <Label className="text-slate-300">Motivo de Ingreso</Label>
                                 <Textarea
@@ -490,31 +466,6 @@ export default function OrdenesCleanPage() {
                                     className="min-h-[100px] bg-slate-700/50 border-slate-600 text-white rounded-xl"
                                     placeholder="Describe el motivo de ingreso del vehículo..."
                                 />
-                            </div>
-
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-slate-300">KM Ingreso</Label>
-                                    <Input
-                                        type="number"
-                                        value={kmIngreso}
-                                        onChange={(e) => setKmIngreso(e.target.value)}
-                                        className="bg-slate-700/50 border-slate-600 text-white rounded-xl"
-                                        placeholder="150000"
-                                        min="0"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-slate-300">KM Salida</Label>
-                                    <Input
-                                        type="number"
-                                        value={kmSalida}
-                                        onChange={(e) => setKmSalida(e.target.value)}
-                                        className="bg-slate-700/50 border-slate-600 text-white rounded-xl"
-                                        placeholder="130000"
-                                        min="0"
-                                    />
-                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -553,6 +504,7 @@ export default function OrdenesCleanPage() {
                                         + Agregar Método
                                     </Button>
                                 </div>
+
 
                                 {metodosPago.length > 0 && (
                                     <div className="space-y-2">
@@ -712,6 +664,6 @@ export default function OrdenesCleanPage() {
                     ) : null}
                 </CardContent>
             </Card>
-        </div>
+        </div >
     );
 }

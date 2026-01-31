@@ -678,8 +678,8 @@ function RecepcionContent() {
             .filter((value, index, self) => self.indexOf(value) === index)
             .join(', ');
 
-        const motorInfo = motor && motor.trim() ? `Motor: ${motor}` : '';
-        const descripcionIngreso = [motorInfo, shortDescription].filter(Boolean).join(' - ');
+        // const motorInfo = motor && motor.trim() ? `Motor: ${motor}` : '';
+        const descripcionIngreso = shortDescription; // [motorInfo, shortDescription].filter(Boolean).join(' - ');
 
         // Detalle completo con precios para el registro interno (detalle_trabajos)
         const detalleServicios = serviciosForOrder
@@ -804,7 +804,12 @@ function RecepcionContent() {
                     <ChecklistForm
                         orderId={createdOrderId}
                         onClose={() => {
-                            router.push('/admin/ordenes'); // Redirect after checklist completion
+                            if (user?.role === 'admin') {
+                                router.push('/admin/ordenes');
+                            } else {
+                                // Para mecánicos, volver al dashboard o quedarse en recepción
+                                router.push('/dashboard');
+                            }
                             limpiar(); // Clear form after redirect
                         }}
                     />

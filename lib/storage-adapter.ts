@@ -311,16 +311,20 @@ export type { OrdenDB, VehiculoDB, PerfilDB, CitaDB, ServicioDB, ClienteDB, Clie
 // ============ CHECKLISTS (Supabase Only for now) ============
 
 export async function guardarChecklist(checklist: {
-    order_id: string; // Keep this consistent for the frontend
+    order_id: string;
     items: any;
     photos: any;
+    comentarios_generales?: string;
+    fotos_extra?: string[];
 }): Promise<any> {
     if (isSupabase()) {
         // Adapt frontend structure to DB structure
         return supabaseService.guardarChecklist({
             orden_id: checklist.order_id,
             detalles: checklist.items,
-            fotos: checklist.photos
+            fotos: checklist.photos,
+            comentarios_generales: checklist.comentarios_generales,
+            fotos_extra: checklist.fotos_extra
         });
     }
     console.log('🟡 [Storage] Guardando checklist en local (Mock)...', checklist);

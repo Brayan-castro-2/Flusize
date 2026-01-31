@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo, useCallback, Fragment, useRef } from 'react';
-import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita } from '@/lib/storage-adapter';
+import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita, obtenerChecklist } from '@/lib/storage-adapter';
+import { generateOrderPDF } from '@/lib/pdf-generator';
 import { useInfiniteOrders, useOrdersCount, useDeleteOrder } from '@/hooks/use-orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { ORDERS_QUERY_KEY } from '@/hooks/use-orders';
@@ -38,8 +39,36 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    Plus,
+    Search,
+    Filter,
+    MoreVertical,
+    FileText,
+    Calendar,
+    Settings,
+    ChevronDown,
+    Download,
+    Eye,
+    Trash2,
+    Edit,
+    CheckCircle,
+    X,
+    User,
+    Wrench,
+    DollarSign,
+    ClipboardCheck,
+    Printer,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
+    Loader2,
+    ChevronRight,
+} from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import ChecklistForm from '@/components/ordenes/checklist-form';
 
-import { Search, FileText, ChevronRight, Loader2, Trash2, Edit, Download, ChevronDown, Calendar, User, Wrench, DollarSign, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown, X, Filter } from 'lucide-react';
+
 import Link from 'next/link';
 
 
@@ -84,6 +113,58 @@ export default function OrdenesPage() {
     const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
     const [sortConfig, setSortConfig] = useState<{ key: keyof OrdenDB | 'precio_total' | 'fecha_ingreso', direction: 'asc' | 'desc' }>({ key: 'fecha_ingreso', direction: 'desc' });
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+    // Checklist State
+    const [checklists, setChecklists] = useState<Record<string, any>>({});
+    const [loadingChecklists, setLoadingChecklists] = useState<Record<string, boolean>>({});
+
+    const fetchChecklist = async (orderId: number, force = false) => {
+        if (!force && checklists[orderId]) return;
+
+        setLoadingChecklists(prev => ({ ...prev, [orderId]: true }));
+        try {
+            const data = await obtenerChecklist(orderId.toString());
+            // Ensure data is not null before setting
+            if (data) {
+                setChecklists(prev => ({ ...prev, [orderId]: data }));
+            }
+        } catch (error) {
+            console.error('Error fetching checklist:', error);
+        } finally {
+            setLoadingChecklists(prev => ({ ...prev, [orderId]: false }));
+        }
+    };
+
+    // Checklist Logic
+    const [checklistModalOpen, setChecklistModalOpen] = useState(false);
+    const [checklistMode, setChecklistMode] = useState<'checklist' | 'readonly_ingreso'>('checklist');
+    const [selectedChecklistOrderId, setSelectedChecklistOrderId] = useState<string | null>(null);
+
+    const handleOpenChecklist = (orderId: number, mode: 'checklist' | 'readonly_ingreso') => {
+        setSelectedChecklistOrderId(orderId.toString());
+        setChecklistMode(mode);
+        setChecklistModalOpen(true);
+        // Ensure data is fetched
+        fetchChecklist(orderId);
+    };
+
+    const handleChecklistClose = () => {
+        setChecklistModalOpen(false);
+        // Refresh checklist data to update button state if needed
+        if (selectedChecklistOrderId) {
+            const id = parseInt(selectedChecklistOrderId);
+            // Force refresh or invalidate cache if we used react-query, but here we manually manage state.
+            // We can clear the specific checklist from state to force re-fetch next time or manually fetch now.
+            setChecklists(prev => {
+                const newState = { ...prev };
+                delete newState[id]; // Simple invalidation
+                return newState;
+            });
+            fetchChecklist(id, true);
+        }
+        setSelectedChecklistOrderId(null);
+    };
+
     const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
     const isAdmin = user?.role === 'admin';
@@ -349,6 +430,45 @@ export default function OrdenesPage() {
         return <Badge className={`${c.class} border`}>{c.icon} {c.label}</Badge>;
     };
 
+    // Helper functions for data display
+    const getClientInfo = (order: any) => {
+        const client = order.vehiculos?.clientes;
+        return {
+            nombre: client?.nombre_completo || order.cliente_nombre || 'Cliente S/R',
+            telefono: client?.telefono || order.cliente_telefono || 'S/T',
+            email: client?.email || order.cliente_email,
+            rut: client?.rut_dni || order.cliente_rut
+        };
+    };
+
+    const cleanDescription = (desc: string) => {
+        if (!desc) return 'Sin descripción';
+        // Remove "Motor: ..." prefix if present, but keep the rest
+        // Matches "Motor: [text] - " or just "Motor: [text]"
+        return desc.replace(/^Motor:.*?( - |$)/i, '').trim() || desc;
+    };
+
+    const handlePrintOrder = async (order: any) => {
+        try {
+            // Fetch checklist on demand
+            const checklist = await obtenerChecklist(String(order.id));
+
+            await generateOrderPDF({
+                order,
+                vehicle: order.vehiculos,
+                checklist,
+                companyInfo: {
+                    name: "TALLER MECÁNICO",
+                    address: "Av. Principal 123",
+                    phone: "+56 9 1234 5678"
+                }
+            });
+        } catch (error) {
+            console.error('Error printing order:', error);
+            alert('Error al generar el PDF');
+        }
+    };
+
     const handleExportPDF = () => {
         const printContent = filteredOrders.map(order => {
             const vehiculo = order.vehiculos;
@@ -356,8 +476,8 @@ export default function OrdenesPage() {
                 patente: order.patente_vehiculo,
                 vehiculo: vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-',
                 descripcion: order.descripcion_ingreso,
-                creado_por: getPerfilNombre(order),
-                asignado_a: order.asignado_a ? getPerfilNombre({ ...order, creado_por: order.asignado_a } as any) : '-',
+                creado_por: getPerfilNombre(order.creado_por),
+                asignado_a: order.asignado_a ? getPerfilNombre(order.asignado_a) : '-',
                 estado: order.estado,
                 precio: order.precio_total || 0
             };
@@ -437,8 +557,12 @@ export default function OrdenesPage() {
         );
     }
 
+    // Safety check
+    console.log('Rendering orders page');
+
     return (
         <div className="space-y-6 px-4 md:px-0">
+            {/* Header Section */}
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
                     <FileText className="w-5 h-5 text-white" />
@@ -698,7 +822,11 @@ export default function OrdenesPage() {
                                                             className="text-slate-400 hover:text-slate-300 h-8 w-8 p-0"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                setExpandedOrderId(isExpanded ? null : order.id);
+                                                                const newExpandedId = isExpanded ? null : order.id;
+                                                                setExpandedOrderId(newExpandedId);
+                                                                if (newExpandedId) {
+                                                                    fetchChecklist(newExpandedId);
+                                                                }
                                                             }}
                                                         >
                                                             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -801,24 +929,33 @@ export default function OrdenesPage() {
                                                                             Información del Cliente
                                                                         </h3>
                                                                         <div className="space-y-2 text-sm">
-                                                                            <div className="flex justify-between">
-                                                                                <span className="text-slate-400">Nombre:</span>
-                                                                                <span className="text-white">
-                                                                                    {order.vehiculos?.clientes?.nombre_completo || order.cliente_nombre || '-'}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="flex justify-between">
-                                                                                <span className="text-slate-400">Teléfono:</span>
-                                                                                <span className="text-white">
-                                                                                    {order.vehiculos?.clientes?.telefono || order.cliente_telefono || '-'}
-                                                                                </span>
-                                                                            </div>
-                                                                            {order.vehiculos?.clientes?.email && (
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-slate-400">Email:</span>
-                                                                                    <span className="text-white">{order.vehiculos?.clientes?.email}</span>
-                                                                                </div>
-                                                                            )}
+                                                                            {(() => {
+                                                                                const info = getClientInfo(order);
+                                                                                return (
+                                                                                    <>
+                                                                                        <div className="flex justify-between">
+                                                                                            <span className="text-slate-400">Nombre:</span>
+                                                                                            <span className="text-white font-medium">{info.nombre}</span>
+                                                                                        </div>
+                                                                                        <div className="flex justify-between">
+                                                                                            <span className="text-slate-400">Teléfono:</span>
+                                                                                            <span className="text-white">{info.telefono}</span>
+                                                                                        </div>
+                                                                                        {info.email && (
+                                                                                            <div className="flex justify-between">
+                                                                                                <span className="text-slate-400">Email:</span>
+                                                                                                <span className="text-white">{info.email}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {info.rut && (
+                                                                                            <div className="flex justify-between">
+                                                                                                <span className="text-slate-400">RUT:</span>
+                                                                                                <span className="text-white">{info.rut}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </>
+                                                                                );
+                                                                            })()}
                                                                         </div>
                                                                     </div>
 
@@ -831,8 +968,8 @@ export default function OrdenesPage() {
                                                                         Detalles de la Orden
                                                                     </h3>
                                                                     <div className="space-y-2 text-sm">
-                                                                        <div className="flex justify-between">
-                                                                            <span className="text-slate-400">Fecha Ingreso:</span>
+                                                                        <div className="flex items-center gap-4">
+                                                                            <span className="text-slate-400 min-w-[100px]">Fecha Ingreso:</span>
                                                                             <span className="text-white">
                                                                                 {new Date(order.fecha_ingreso).toLocaleString('es-CL', {
                                                                                     day: '2-digit',
@@ -844,8 +981,8 @@ export default function OrdenesPage() {
                                                                             </span>
                                                                         </div>
                                                                         {order.fecha_entrega && (
-                                                                            <div className="flex justify-between">
-                                                                                <span className="text-slate-400">Fecha Entrega:</span>
+                                                                            <div className="flex items-center gap-4">
+                                                                                <span className="text-slate-400 min-w-[100px]">Fecha Entrega:</span>
                                                                                 <span className="text-green-400 font-semibold">
                                                                                     {new Date(order.fecha_entrega).toLocaleString('es-CL', {
                                                                                         day: '2-digit',
@@ -857,16 +994,16 @@ export default function OrdenesPage() {
                                                                                 </span>
                                                                             </div>
                                                                         )}
-                                                                        <div className="flex justify-between">
-                                                                            <span className="text-slate-400">Creado por:</span>
+                                                                        <div className="flex items-center gap-4">
+                                                                            <span className="text-slate-400 min-w-[100px]">Creado por:</span>
                                                                             <span className="text-white">{getPerfilNombre(order.creado_por)}</span>
                                                                         </div>
-                                                                        <div className="flex justify-between">
-                                                                            <span className="text-slate-400">Asignado a:</span>
+                                                                        <div className="flex items-center gap-4">
+                                                                            <span className="text-slate-400 min-w-[100px]">Asignado a:</span>
                                                                             <span className="text-white">{order.asignado_a ? getPerfilNombre(order.asignado_a) : '-'}</span>
                                                                         </div>
-                                                                        <div className="flex justify-between">
-                                                                            <span className="text-slate-400">Estado:</span>
+                                                                        <div className="flex items-center gap-4">
+                                                                            <span className="text-slate-400 min-w-[100px]">Estado:</span>
                                                                             {getStatusBadge(order.estado, order.id, true)}
                                                                         </div>
                                                                     </div>
@@ -906,145 +1043,259 @@ export default function OrdenesPage() {
                                                             <div className="space-y-2 mt-4">
                                                                 <h3 className="text-sm font-semibold text-slate-300">Descripción del Trabajo</h3>
                                                                 <div className="bg-slate-900/50 rounded-lg p-4 text-sm text-slate-300 whitespace-pre-wrap">
-                                                                    {order.descripcion_ingreso || 'Sin descripción'}
+                                                                    {cleanDescription(order.descripcion_ingreso)}
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </TableCell>
-                                                    </TableRow>
-                                    )
-                                }
-                                        </Fragment>
-                            );
-                                })}
-                        </TableBody>
-                    </Table>
-                </div>
 
-                {/* Mobile List */}
-                <div className="md:hidden space-y-3">
-                    {filteredOrders.map((order) => {
-                        const vehiculo = order.vehiculos;
-                        return (
-                            <Card key={order.id} className={`bg-slate-700/30 border-slate-600/50 ${hasDebt(order) ? 'border-l-4 border-l-red-500 bg-red-900/10' : ''}`}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-14 h-10 bg-slate-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            <span className="text-white font-mono font-bold text-xs">
-                                                {order.patente_vehiculo}
-                                            </span>
-                                        </div>
-                                        <div className="flex-1 min-w-0 overflow-hidden">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <p className="text-white font-medium truncate text-sm flex-1">
-                                                    {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : order.patente_vehiculo}
-                                                </p>
-                                                {hasDebt(order) && <span className="text-red-400 text-xs flex-shrink-0">💳</span>}
+                                                            {/* Checklist Section Placeholder */}
+                                                            <div className="mt-6 border-t border-slate-700/50 pt-4">
+                                                                <div className="flex justify-between items-center mb-4">
+                                                                    <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                                                                        <ClipboardCheck className="w-4 h-4" />
+                                                                        Lista de Chequeo
+                                                                    </h3>
+                                                                    <div className="flex gap-2">
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="h-8 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700"
+                                                                            onClick={() => handlePrintOrder(order)}
+                                                                        >
+                                                                            <Printer className="w-3.5 h-3.5 mr-1.5" />
+                                                                            Imprimir Orden
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Checklist Content / Actions */}
+                                                                <div className="bg-slate-900/30 rounded-lg p-4 border border-dashed border-slate-800">
+                                                                    {loadingChecklists[order.id] ? (
+                                                                        <div className="flex justify-center py-2">
+                                                                            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="flex flex-col items-center justify-center gap-3">
+                                                                            {(() => {
+                                                                                const checklist = checklists[order.id];
+                                                                                // Logic: If NO checklist exists yet, create one (standard mode)
+                                                                                // If checklist exists, check 'revisado_por_mecanico_at'
+
+                                                                                if (!checklist) {
+                                                                                    // Case: No checklist created yet (Receptionist didn't do it?)
+                                                                                    // Mechanic or Admin can create it.
+                                                                                    return (
+                                                                                        <Button
+                                                                                            onClick={() => handleOpenChecklist(order.id, 'checklist')}
+                                                                                            className="bg-slate-800 hover:bg-slate-700 text-slate-300"
+                                                                                        >
+                                                                                            <Plus className="w-4 h-4 mr-2" />
+                                                                                            Crear Checklist Ingreso
+                                                                                        </Button>
+                                                                                    );
+                                                                                }
+
+                                                                                const isReviewed = !!checklist.revisado_por_mecanico_at;
+
+                                                                                if (isReviewed) {
+                                                                                    // State 2: Informed -> Exit Checklist
+                                                                                    return (
+                                                                                        <div className="text-center space-y-2">
+                                                                                            <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-1">
+                                                                                                <CheckCircle className="w-4 h-4" />
+                                                                                                Ingreso Revisado
+                                                                                            </div>
+                                                                                            <Button
+                                                                                                onClick={() => handleOpenChecklist(order.id, 'checklist')}
+                                                                                                className="bg-emerald-600 hover:bg-emerald-500 text-white w-full sm:w-auto"
+                                                                                            >
+                                                                                                ✅ Checklist Salida / Editar
+                                                                                            </Button>
+                                                                                        </div>
+                                                                                    );
+                                                                                } else {
+                                                                                    // State 1: Blind -> Readonly Review
+                                                                                    return (
+                                                                                        <div className="text-center space-y-2">
+                                                                                            <div className="text-xs text-orange-400 mb-1">
+                                                                                                ⚠️ Confirmación Pendiente
+                                                                                            </div>
+                                                                                            <Button
+                                                                                                onClick={() => handleOpenChecklist(order.id, 'readonly_ingreso')}
+                                                                                                className="bg-blue-600 hover:bg-blue-500 text-white w-full sm:w-auto animate-pulse"
+                                                                                            >
+                                                                                                👁️ Ver Ingreso para Confirmar
+                                                                                            </Button>
+                                                                                        </div>
+                                                                                    );
+                                                                                }
+                                                                            })()}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )
+                                            }
+                                        </Fragment>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Mobile List */}
+                    <div className="md:hidden space-y-3">
+                        {filteredOrders.map((order) => {
+                            const vehiculo = order.vehiculos;
+                            return (
+                                <Card key={order.id} className={`bg-slate-700/30 border-slate-600/50 ${hasDebt(order) ? 'border-l-4 border-l-red-500 bg-red-900/10' : ''}`}>
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-14 h-10 bg-slate-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span className="text-white font-mono font-bold text-xs">
+                                                    {order.patente_vehiculo}
+                                                </span>
                                             </div>
-                                            {order.cliente_nombre && (
-                                                <p className="text-xs text-blue-400 truncate">
-                                                    {order.cliente_nombre}
-                                                </p>
-                                            )}
-                                            {order.cliente_telefono && (
+                                            <div className="flex-1 min-w-0 overflow-hidden">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <p className="text-white font-medium truncate text-sm flex-1">
+                                                        {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : order.patente_vehiculo}
+                                                    </p>
+                                                    {hasDebt(order) && <span className="text-red-400 text-xs flex-shrink-0">💳</span>}
+                                                </div>
+                                                {order.cliente_nombre && (
+                                                    <p className="text-xs text-blue-400 truncate">
+                                                        {order.cliente_nombre}
+                                                    </p>
+                                                )}
+                                                {order.cliente_telefono && (
+                                                    <p className="text-xs text-slate-500 truncate">
+                                                        {order.cliente_telefono}
+                                                    </p>
+                                                )}
                                                 <p className="text-xs text-slate-500 truncate">
-                                                    {order.cliente_telefono}
+                                                    {new Date(order.fecha_ingreso).toLocaleDateString('es-CL', {
+                                                        day: '2-digit',
+                                                        month: '2-digit'
+                                                    })} {new Date(order.fecha_ingreso).toLocaleTimeString('es-CL', {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
                                                 </p>
-                                            )}
-                                            <p className="text-xs text-slate-500 truncate">
-                                                {new Date(order.fecha_ingreso).toLocaleDateString('es-CL', {
-                                                    day: '2-digit',
-                                                    month: '2-digit'
-                                                })} {new Date(order.fecha_ingreso).toLocaleTimeString('es-CL', {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}
-                                            </p>
-                                            <p className="text-xs text-slate-400 truncate mt-1">
-                                                {getCleanMotivo(order.descripcion_ingreso)}
-                                            </p>
+                                                <p className="text-xs text-slate-400 truncate mt-1">
+                                                    {getCleanMotivo(order.descripcion_ingreso)}
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
-                                        <div className="flex-shrink-0">
-                                            {getStatusBadge(order.estado, order.id, true)}
-                                        </div>
-                                        <div className="flex items-center gap-1 flex-shrink-0">
-                                            <Link href={`/admin/ordenes/clean?id=${order.id}`}>
-                                                <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 px-2">
-                                                    <Edit className="w-3.5 h-3.5" />
-                                                </Button>
-                                            </Link>
-                                            {isAdmin && (
-                                                deleteConfirm === order.id ? (
-                                                    <div className="flex gap-1">
+                                        <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
+                                            <div className="flex-shrink-0">
+                                                {getStatusBadge(order.estado, order.id, true)}
+                                            </div>
+                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                                <Link href={`/admin/ordenes/clean?id=${order.id}`}>
+                                                    <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 px-2">
+                                                        <Edit className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </Link>
+                                                {isAdmin && (
+                                                    deleteConfirm === order.id ? (
+                                                        <div className="flex gap-1">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
+                                                                onClick={() => handleDeleteOrder(order as any)}
+                                                                disabled={deleteOrder.isPending}
+                                                            >
+                                                                ✓
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="text-slate-400 hover:text-slate-300 h-8 px-2"
+                                                                onClick={() => setDeleteConfirm(null)}
+                                                            >
+                                                                ✕
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
                                                             className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
-                                                            onClick={() => handleDeleteOrder(order as any)}
-                                                            disabled={deleteOrder.isPending}
+                                                            onClick={() => setDeleteConfirm(order.id)}
                                                         >
-                                                            ✓
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                         </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="text-slate-400 hover:text-slate-300 h-8 px-2"
-                                                            onClick={() => setDeleteConfirm(null)}
-                                                        >
-                                                            ✕
-                                                        </Button>
-                                                    </div>
-                                                ) : (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
-                                                        onClick={() => setDeleteConfirm(order.id)}
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </Button>
-                                                )
-                                            )}
+                                                    )
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
-                </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
 
-                {/* Loading Spinner & Sentinel */}
-                <div className="py-4 flex justify-center w-full">
-                    {hasNextPage && (
-                        <div
-                            className="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-white transition-colors"
-                            onClick={() => fetchNextPage()}
-                        >
-                            {isFetchingNextPage ? (
-                                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                            ) : (
-                                <div
-                                    ref={lastOrderElementRef}
-                                    className="h-4 w-full"
-                                />
-                            )}
+                    {/* Loading Spinner & Sentinel */}
+                    <div className="py-4 flex justify-center w-full">
+                        {hasNextPage && (
+                            <div
+                                className="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-white transition-colors"
+                                onClick={() => fetchNextPage()}
+                            >
+                                {isFetchingNextPage ? (
+                                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                ) : (
+                                    <div
+                                        ref={lastOrderElementRef}
+                                        className="h-4 w-full"
+                                    />
+                                )}
+                            </div>
+                        )}
+                        {!hasNextPage && orders.length > 0 && (
+                            <div className="text-xs text-slate-500 italic">No hay más órdenes para cargar</div>
+                        )}
+                    </div>
+
+                    {filteredOrders.length === 0 && !isLoadingOrders && (
+                        <div className="text-center py-12">
+                            <FileText className="w-12 h-12 mx-auto mb-3 text-slate-600" />
+                            <p className="text-slate-400">No se encontraron órdenes</p>
                         </div>
                     )}
-                    {!hasNextPage && orders.length > 0 && (
-                        <div className="text-xs text-slate-500 italic">No hay más órdenes para cargar</div>
-                    )}
-                </div>
+                </CardContent>
+            </Card>
 
-                {filteredOrders.length === 0 && !isLoadingOrders && (
-                    <div className="text-center py-12">
-                        <FileText className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-                        <p className="text-slate-400">No se encontraron órdenes</p>
+            {/* CHECKLIST MODAL */}
+            <Dialog open={checklistModalOpen} onOpenChange={(open) => !open && handleChecklistClose()}>
+                <DialogContent className="max-w-4xl bg-slate-950 border-slate-800 text-white p-0 overflow-hidden max-h-[90vh] flex flex-col">
+                    <div className="p-6 overflow-y-auto flex-1">
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <ClipboardCheck className="w-6 h-6 text-blue-500" />
+                                {checklistMode === 'readonly_ingreso' ? 'Revisión de Ingreso' : 'Checklist de Vehículo'}
+                            </h2>
+                            <p className="text-slate-400 text-sm">
+                                {checklistMode === 'readonly_ingreso'
+                                    ? 'Confirma el estado inicial del vehículo antes de comenzar.'
+                                    : 'Gestiona el estado del vehículo.'}
+                            </p>
+                        </div>
+
+                        {selectedChecklistOrderId && (
+                            <ChecklistForm
+                                orderId={selectedChecklistOrderId}
+                                onClose={handleChecklistClose}
+                                initialData={checklists[parseInt(selectedChecklistOrderId)]} // Pass loaded data
+                                mode={checklistMode}
+                            />
+                        )}
                     </div>
-                )}
-            </CardContent>
-        </Card>
-        </div >
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }
