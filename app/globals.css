@@ -223,3 +223,20 @@ select:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: #444444;
 }
+
+/* Leaflet Map Fixes */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Ensure map tiles render correctly */
+.leaflet-pane {
+  z-index: 10;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 20;
+}
