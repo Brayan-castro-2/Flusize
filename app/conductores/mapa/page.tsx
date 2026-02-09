@@ -107,9 +107,9 @@ export default function MapView() {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col md:flex-row relative h-[calc(100vh-144px)] overflow-hidden">
-                {/* Map Container */}
-                <div className="flex-1 relative h-full z-0 order-2 md:order-1">
+            <div className="flex-1 flex flex-col md:flex-row relative">
+                {/* Map Container - Sticky on desktop, fixed height on mobile */}
+                <div className="w-full md:w-1/2 lg:w-3/5 h-[50vh] md:h-[calc(100vh-144px)] md:sticky md:top-[144px] relative z-0 order-2 md:order-1">
                     <MapWrapper
                         ref={mapRef}
                         workshops={workshops} // Updated prop name
@@ -123,7 +123,7 @@ export default function MapView() {
                 </div>
 
                 {/* Workshops List / Details Panel */}
-                <div className="w-full md:w-[450px] bg-white shadow-xl overflow-y-auto z-20 border-l border-gray-200 order-1 md:order-2">
+                <div className="w-full md:w-1/2 lg:w-2/5 bg-white shadow-xl overflow-y-auto z-20 border-l border-gray-200 order-1 md:order-2 h-[50vh] md:h-[calc(100vh-144px)]">
                     <div className="p-4">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
