@@ -4,6 +4,8 @@ import { Search, MapPin, Loader2, Navigation, Wrench, Star, Calendar, Filter } f
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { workshops as mockWorkshops, Workshop } from '@/lib/mockData';
+import { getPendingCount } from '@/lib/appointmentStorage';
+import Link from 'next/link';
 
 // Dynamically import the map to avoid SSR issues
 const MapWrapper = dynamic(() => import('@/components/drivers/MapWrapper'), {
@@ -24,6 +26,7 @@ export default function MapView() {
     const [isSearching, setIsSearching] = useState(false);
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [loading, setLoading] = useState(true);
+    const [pendingCount, setPendingCount] = useState(0);
 
     useEffect(() => {
         // Simulate fetching data
@@ -31,6 +34,9 @@ export default function MapView() {
             setWorkshops(mockWorkshops);
             setLoading(false);
         }, 1000);
+
+        // Update pending count
+        setPendingCount(getPendingCount());
     }, []);
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -69,7 +75,17 @@ export default function MapView() {
                             <span className="text-[0.6rem] font-medium text-blue-600 ml-1 mt-1 tracking-wider uppercase">Drivers</span>
                         </div>
                         <div className="flex items-center gap-4">
-                            <button className="text-sm text-gray-500 hover:text-gray-900 font-medium">Mis Citas</button>
+                            <Link href="/conductores/mis-citas">
+                                <button className="text-sm text-gray-500 hover:text-gray-900 font-medium flex items-center gap-2">
+                                    <Calendar className="w-4 h-4" />
+                                    Mis Citas
+                                    {pendingCount > 0 && (
+                                        <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                            {pendingCount}
+                                        </span>
+                                    )}
+                                </button>
+                            </Link>
                             <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">
                                 J
                             </div>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MapPin, Clock, Shield, Star, Calendar, ChevronLeft, CreditCard, CheckCircle, AlertCircle, Wrench, User, Phone, Share2 } from 'lucide-react';
 import { workshops } from '@/lib/mockData';
+import { addAppointment } from '@/lib/appointmentStorage';
 import Link from 'next/link';
 
 export default function WorkshopDetail() {
@@ -15,6 +16,7 @@ export default function WorkshopDetail() {
     const [serviceType, setServiceType] = useState('Mantención General'); // Default service
     const [workshop, setWorkshop] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [showConfirmation, setShowConfirmation] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -65,9 +67,20 @@ export default function WorkshopDetail() {
             return;
         }
 
-        // For now, just show success message
-        alert(`Cita agendada con éxito en ${workshop.name}\nServicio: ${serviceType}\nFecha: ${selectedDate} a las ${selectedTime}`);
-        router.push('/conductores/mapa');
+        // Save appointment to localStorage
+        addAppointment({
+            workshopId: workshop.id,
+            workshopName: workshop.name,
+            workshopLocation: workshop.location,
+            workshopImage: workshop.image,
+            serviceType,
+            date: selectedDate,
+            time: selectedTime,
+            estimatedPrice: workshop.basePrice,
+        });
+
+        // Show confirmation modal
+        setShowConfirmation(true);
     };
 
     return (
@@ -272,6 +285,60 @@ export default function WorkshopDetail() {
                     </div>
                 </div>
             </div>
+
+            {/* Confirmation Modal */}
+            {showConfirmation && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in zoom-in duration-200">
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <CheckCircle className="w-10 h-10 text-green-600" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Cita Agendada!</h2>
+                            <p className="text-gray-600 mb-6">
+                                Tu cita ha sido registrada exitosamente. El taller confirmará tu solicitud pronto.
+                            </p>
+
+                            <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Taller:</span>
+                                        <span className="font-semibold text-gray-900">{workshop.name}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Servicio:</span>
+                                        <span className="font-semibold text-gray-900">{serviceType}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Fecha:</span>
+                                        <span className="font-semibold text-gray-900">{selectedDate}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Hora:</span>
+                                        <span className="font-semibold text-gray-900">{selectedTime}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => router.push('/conductores/mapa')}
+                                    className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors"
+                                >
+                                    Volver al Mapa
+                                </button>
+                                <button
+                                    onClick={() => router.push('/conductores/mis-citas')}
+                                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Calendar className="w-5 h-5" />
+                                    Ver Mis Citas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
