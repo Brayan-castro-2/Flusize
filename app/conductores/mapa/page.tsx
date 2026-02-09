@@ -221,7 +221,10 @@ export default function MapView() {
                             <div>
                                 <h3 className="font-bold text-sm mb-1">¿Tienes un taller?</h3>
                                 <p className="text-xs text-blue-50 mb-3">Únete a la red Flusize y consigue más clientes hoy mismo.</p>
-                                <button className="bg-white text-blue-600 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm hover:bg-blue-50 transition-colors">
+                                <button
+                                    onClick={() => router.push('/registro-taller')}
+                                    className="bg-white text-blue-600 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm hover:bg-blue-50 transition-colors"
+                                >
                                     Registrar mi Taller
                                 </button>
                             </div>
@@ -229,6 +232,5 @@ export default function MapView() {
                     </div>
                 </div>
             </div>
-        </div>
-    );
+            );
 }
