@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import MapWrapper from '@/components/drivers/MapWrapper';
+
 
 // --- DATOS MOCK ---
 
@@ -404,37 +406,18 @@ const ServiceLocator = () => {
             ))}
           </div>
         ) : (
-          <div className="relative w-full h-[500px] bg-slate-100 rounded-2xl overflow-hidden shadow-inner border border-slate-200">
-            {/* Simulación visual de mapa */}
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-40 grayscale"></div>
+          <div className="relative w-full h-[500px] rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            {/* Real Map Component */}
+            <MapWrapper />
 
-            {/* Pines Simulados */}
-            {mockWorkshops.map((ws) => (
-              <div
-                key={ws.id}
-                className="absolute cursor-pointer transform hover:scale-110 transition-transform group"
-                style={{ top: `${ws.lat}%`, left: `${ws.lng}%` }}
-                onClick={() => setActivePin(ws.id)}
-              >
-                <div className="relative">
-                  <div className="absolute -inset-2 bg-cyan-500/30 rounded-full animate-ping"></div>
-                  <div className={`p-2 rounded-full shadow-lg ${activePin === ws.id ? 'bg-slate-900 text-white z-20 scale-125' : 'bg-cyan-500 text-white hover:bg-cyan-600'}`}>
-                    <Wrench className="h-5 w-5" />
-                  </div>
-
-                  {/* Tooltip del Mapa */}
-                  <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 bg-white rounded-xl shadow-xl p-3 text-center transition-all z-30 ${activePin === ws.id ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:visible group-hover:opacity-100'}`}>
-                    <img src={ws.image} className="w-full h-24 object-cover rounded-lg mb-2" alt="" />
-                    <p className="font-bold text-slate-900 text-sm leading-tight">{ws.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">{ws.type}</p>
-                    <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <div className="absolute bottom-6 right-6 bg-white/90 backdrop-blur p-4 rounded-xl shadow-lg max-w-xs text-xs text-gray-500 z-10">
-              <p>Simulación de vista de mapa. En la versión final se integrará Google Maps API o Mapbox.</p>
+            {/* Overlay with CTA */}
+            <div className="absolute bottom-6 right-6 bg-white/95 backdrop-blur p-4 rounded-xl shadow-lg max-w-xs z-10">
+              <p className="text-sm font-semibold text-slate-900 mb-2">¿Te gusta lo que ves?</p>
+              <Link href="/conductores/mapa">
+                <button className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-lg transition-all shadow-lg">
+                  Ver Mapa Completo
+                </button>
+              </Link>
             </div>
           </div>
         )}
