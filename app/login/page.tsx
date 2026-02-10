@@ -39,7 +39,7 @@ export default function LoginPage() {
         setTimeout(() => {
             // Mock authentication logic
             if (username === 'admin' && password === '1234') {
-                router.push('/dashboard');
+                router.push('/admin');
             } else if (username === 'cliente' && password === '1234') {
                 router.push('/conductores/mapa');
             } else {

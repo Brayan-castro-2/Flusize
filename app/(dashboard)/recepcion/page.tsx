@@ -808,7 +808,7 @@ function RecepcionContent() {
                                 router.push('/admin/ordenes');
                             } else {
                                 // Para mecánicos, volver al dashboard o quedarse en recepción
-                                router.push('/dashboard');
+                                router.push('/admin');
                             }
                             limpiar(); // Clear form after redirect
                         }}
