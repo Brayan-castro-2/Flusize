@@ -248,5 +248,6 @@ export default function MapView() {
                     </div>
                 </div>
             </div>
-            );
+        </div>
+    );
 }
