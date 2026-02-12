@@ -74,7 +74,7 @@ export function Sidebar() {
     return (
         <>
             {/* Desktop Sidebar */}
-            <aside className="hidden md:flex fixed left-0 top-20 bottom-0 w-64 bg-white border-r border-gray-200 flex-col shadow-lg">
+            <aside className="hidden md:flex fixed left-0 top-20 bottom-0 w-64 bg-white border-r border-gray-200 flex-col shadow-lg z-40">
                 <nav className="flex-1 p-4 space-y-1">
                     {filteredItems.map((item) => {
                         const isActive = pathname === item.href ||

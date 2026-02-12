@@ -68,7 +68,7 @@ export function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-50 h-20 bg-white border-b border-gray-200 shadow-md">
+        <header className="sticky top-0 z-[100] h-20 bg-gradient-to-r from-blue-600 to-cyan-500 shadow-lg">
             <div className="h-full px-6 flex items-center justify-between max-w-7xl mx-auto">
                 {/* Logo FLUSIZE */}
                 <div className="flex items-center gap-4">
@@ -83,13 +83,13 @@ export function Header() {
                     {/* FLUSIZE Logo */}
                     <div className="flex items-center gap-2">
                         <div className="relative w-10 h-10">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-tr-xl rounded-bl-xl transform skew-x-[-10deg]"></div>
-                            <div className="absolute top-1/2 left-0 w-6 h-1 bg-white transform -translate-y-1/2 skew-x-[-10deg] ml-1"></div>
-                            <div className="absolute bottom-2 left-1 w-4 h-1 bg-white skew-x-[-10deg]"></div>
+                            <div className="absolute inset-0 bg-white rounded-tr-xl rounded-bl-xl transform skew-x-[-10deg]"></div>
+                            <div className="absolute top-1/2 left-0 w-6 h-1 bg-blue-600 transform -translate-y-1/2 skew-x-[-10deg] ml-1"></div>
+                            <div className="absolute bottom-2 left-1 w-4 h-1 bg-blue-600 skew-x-[-10deg]"></div>
                         </div>
                         <div className="flex flex-col leading-none">
                             <span className="font-extrabold text-2xl tracking-wide text-white">FLUSIZE</span>
-                            <span className="text-[0.6rem] font-medium text-cyan-400 tracking-wider uppercase">Orden y Control</span>
+                            <span className="text-[0.6rem] font-medium text-blue-100 tracking-wider uppercase">Orden y Control</span>
                         </div>
                     </div>
                 </div>
@@ -98,15 +98,15 @@ export function Header() {
                 {user && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white hover:bg-gray-50 border border-gray-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 touch-target shadow-sm">
-                                <Avatar className="h-8 w-8 ring-2 ring-blue-500/30">
-                                    <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-sm font-semibold">
+                            <button className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 touch-target backdrop-blur-sm">
+                                <Avatar className="h-8 w-8 ring-2 ring-white/30">
+                                    <AvatarFallback className="bg-white text-blue-600 text-sm font-semibold">
                                         {getInitials(user.name)}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="text-left hidden sm:block pr-1">
-                                    <p className="text-sm font-medium text-gray-900 leading-tight">{user.name}</p>
-                                    <p className="text-[10px] text-blue-600 capitalize">{user.role}</p>
+                                    <p className="text-sm font-medium text-white leading-tight">{user.name}</p>
+                                    <p className="text-[10px] text-blue-100 capitalize">{user.role}</p>
                                 </div>
                             </button>
                         </DropdownMenuTrigger>
