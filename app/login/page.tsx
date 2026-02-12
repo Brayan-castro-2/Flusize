@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,24 +30,34 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const { login: authLogin } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
 
-        // Simulate login delay
-        setTimeout(() => {
-            // Mock authentication logic
-            if (username === 'admin' && password === '1234') {
-                router.push('/admin');
-            } else if (username === 'cliente' && password === '1234') {
-                router.push('/conductores/mapa');
-            } else {
-                setError('Credenciales incorrectas. Intenta con las credenciales demo.');
+        try {
+            console.log('🔐 Intentando login con:', username);
+
+            // Usar la función login del AuthContext
+            const result = await authLogin(username, password);
+
+            if (!result.success) {
+                setError(result.error || 'Error al iniciar sesión');
+                setIsLoading(false);
+                return;
             }
+
+            console.log('✅ Login exitoso, redirigiendo...');
+
+            // Redirigir a /admin (el AuthContext ya guardó la sesión correctamente)
+            router.push('/admin');
+        } catch (err) {
+            console.error('Error en login:', err);
+            setError('Error de conexión. Intenta nuevamente.');
             setIsLoading(false);
-        }, 1000);
+        }
     };
 
     return (
