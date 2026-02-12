@@ -128,11 +128,11 @@ export default function AgendaPage() {
                 <div className="flex items-center gap-3">
                     <Calendar className="w-8 h-8 text-blue-500" />
                     <div>
-                        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                             Agenda Semanal
                             {FEATURE_FLAGS.showNewBadges && <NewBadge />}
                         </h1>
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-gray-600">
                             {formatDate(weekBounds.start, 'long')} - {formatDate(weekBounds.end, 'long')}
                         </p>
                     </div>
@@ -144,7 +144,7 @@ export default function AgendaPage() {
                         onClick={goToPreviousWeek}
                         variant="outline"
                         size="sm"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
                     >
                         <ChevronLeft className="w-4 h-4" />
                     </Button>
@@ -153,7 +153,7 @@ export default function AgendaPage() {
                         <Button
                             variant="outline"
                             size="sm"
-                            className="border-slate-600 text-slate-300 hover:bg-slate-700 min-w-[120px] pointer-events-none" // Disable pointer events on button so input catches all
+                            className="border-gray-300 text-gray-700 hover:bg-gray-100 min-w-[120px] pointer-events-none" // Disable pointer events on button so input catches all
                         >
                             <Calendar className="w-4 h-4 mr-2" />
                             {isToday(currentDate) ? 'Hoy' : formatDate(currentDate)}
@@ -179,7 +179,7 @@ export default function AgendaPage() {
                         onClick={goToNextWeek}
                         variant="outline"
                         size="sm"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
                     >
                         <ChevronRight className="w-4 h-4" />
                     </Button>
@@ -187,22 +187,22 @@ export default function AgendaPage() {
             </div>
 
             {/* Calendar Grid */}
-            <Card className="bg-slate-900/40 border-slate-700 overflow-hidden">
+            <Card className="bg-white border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <div className="min-w-[800px]">
                         {/* Week Header */}
-                        <div className="grid grid-cols-8 border-b border-slate-700">
-                            <div className="p-3 bg-slate-800/50 border-r border-slate-700">
-                                <Clock className="w-4 h-4 text-slate-400" />
+                        <div className="grid grid-cols-8 border-b border-gray-200">
+                            <div className="p-3 bg-gray-50 border-r border-gray-200">
+                                <Clock className="w-4 h-4 text-gray-600" />
                             </div>
                             {weekDays.map((day, index) => (
                                 <div
                                     key={index}
-                                    className={`p-3 text-center border-r border-slate-700 ${isToday(day) ? 'bg-blue-500/20' : 'bg-slate-800/50'
+                                    className={`p-3 text-center border-r border-gray-200 ${isToday(day) ? 'bg-blue-500/20' : 'bg-gray-50'
                                         }`}
                                 >
-                                    <div className="text-xs text-slate-400">{DAYS_OF_WEEK[index]}</div>
-                                    <div className={`text-sm font-semibold ${isToday(day) ? 'text-blue-400' : 'text-white'}`}>
+                                    <div className="text-xs text-gray-600">{DAYS_OF_WEEK[index]}</div>
+                                    <div className={`text-sm font-semibold ${isToday(day) ? 'text-blue-400' : 'text-gray-800'}`}>
                                         {formatDate(day)}
                                     </div>
                                 </div>
@@ -211,10 +211,10 @@ export default function AgendaPage() {
 
                         {/* Time Slots */}
                         {HOURS.map((hour) => (
-                            <div key={hour} className="grid grid-cols-8 border-b border-slate-700 relative group" style={{ minHeight: '100px' }}>
+                            <div key={hour} className="grid grid-cols-8 border-b border-gray-200 relative group" style={{ minHeight: '100px' }}>
                                 {/* Hour Label */}
-                                <div className="p-3 bg-slate-800/30 border-r border-slate-700 flex flex-col justify-between items-start sticky left-0 z-10 backdrop-blur-sm">
-                                    <span className="text-sm font-bold text-slate-300">{hour}:00</span>
+                                <div className="p-3 bg-gray-100 border-r border-gray-200 flex flex-col justify-between items-start sticky left-0 z-10 backdrop-blur-sm">
+                                    <span className="text-sm font-bold text-gray-700">{hour}:00</span>
                                     <span className="text-xs text-slate-600 hidden group-hover:block transition-opacity">{hour}:30</span>
                                 </div>
 
@@ -245,7 +245,7 @@ export default function AgendaPage() {
                                                 dateTime.setHours(hour, 0, 0, 0);
                                                 handleCreateAppointment(dateTime);
                                             }}
-                                            className={`p-1 border-r border-slate-700 hover:bg-slate-700/30 cursor-pointer transition-colors relative ${isToday(day) ? 'bg-blue-500/5' : ''
+                                            className={`p-1 border-r border-gray-200 hover:bg-gray-100/30 cursor-pointer transition-colors relative ${isToday(day) ? 'bg-blue-500/5' : ''
                                                 }`}
                                         >
                                             {/* Appointments */}
@@ -261,7 +261,7 @@ export default function AgendaPage() {
                                                             e.stopPropagation();
                                                             handleEditAppointment(cita);
                                                         }}
-                                                        className={`absolute left-1 right-1 p-2 rounded-lg border-l-4 text-xs shadow-sm hover:shadow-md transition-all z-10 ${STATUS_COLORS[cita.estado] || 'bg-slate-700 text-slate-300'}`}
+                                                        className={`absolute left-1 right-1 p-2 rounded-lg border-l-4 text-xs shadow-sm hover:shadow-md transition-all z-10 ${STATUS_COLORS[cita.estado] || 'bg-slate-700 text-gray-700'}`}
                                                         style={{
                                                             top: `${topPct}%`,
                                                             height: 'auto',
@@ -307,9 +307,9 @@ export default function AgendaPage() {
                         {citas.filter((c) => c.estado === 'completada').length}
                     </div>
                 </Card>
-                <Card className="bg-slate-700/30 border-slate-600/30 p-4">
-                    <div className="text-xs text-slate-400 mb-1">Total Semana</div>
-                    <div className="text-2xl font-bold text-white">{citas.length}</div>
+                <Card className="bg-slate-700/30 border-gray-300/30 p-4">
+                    <div className="text-xs text-gray-600 mb-1">Total Semana</div>
+                    <div className="text-2xl font-bold text-gray-800">{citas.length}</div>
                 </Card>
             </div>
 

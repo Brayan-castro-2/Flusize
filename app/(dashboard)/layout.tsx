@@ -13,7 +13,7 @@ export default function DashboardLayout({
 }) {
     return (
         <ProtectedRoute>
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-x-hidden">
+            <div className="min-h-screen bg-gray-50 overflow-x-hidden">
                 <UpdateAnnouncement />
                 <NetworkStatus />
                 <Header />
