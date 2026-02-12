@@ -74,7 +74,7 @@ export function Sidebar() {
     return (
         <>
             {/* Desktop Sidebar */}
-            <aside className="hidden md:flex fixed left-0 top-16 bottom-0 w-64 bg-[#0a0a0a] border-r border-[#333333] flex-col">
+            <aside className="hidden md:flex fixed left-0 top-20 bottom-0 w-64 bg-white border-r border-gray-200 flex-col shadow-lg">
                 <nav className="flex-1 p-4 space-y-1">
                     {filteredItems.map((item) => {
                         const isActive = pathname === item.href ||
@@ -88,8 +88,8 @@ export function Sidebar() {
                                 className={cn(
                                     "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-150",
                                     isActive
-                                        ? "bg-[#0066FF] text-white shadow-[0_0_15px_rgba(0,102,255,0.4)] border border-[#0066FF]/50"
-                                        : "text-gray-400 hover:bg-[#1a1a1a] hover:text-white"
+                                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
+                                        : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
                                 )}
                             >
                                 {item.icon}
@@ -100,10 +100,10 @@ export function Sidebar() {
                 </nav>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-[#333333]">
-                    <div className="px-4 py-3 rounded-xl bg-[#1a1a1a]">
+                <div className="p-4 border-t border-gray-200">
+                    <div className="px-4 py-3 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100">
                         <p className="text-xs text-gray-500 uppercase tracking-wider">Versión</p>
-                        <p className="text-sm text-gray-300 font-medium">2.0</p>
+                        <p className="text-sm text-gray-700 font-medium">2.0</p>
                     </div>
                 </div>
             </aside>

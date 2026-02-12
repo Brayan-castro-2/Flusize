@@ -6,8 +6,21 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOi
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // ==========================================
-// TIPOS V3 - ESQUEMA NORMALIZADO (CRM)
+// TIPOS V3 - ESQUEMA NORMALIZADO (CRM) + MULTI-TENANT
 // ==========================================
+
+export interface TallerDB {
+    id: string; // UUID
+    nombre: string;
+    rut?: string | null;
+    direccion?: string | null;
+    telefono?: string | null;
+    email?: string | null;
+    logo_url?: string | null;
+    activo: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
 
 export interface PerfilDB {
     id: string; // UUID
@@ -15,6 +28,7 @@ export interface PerfilDB {
     nombre_completo: string;
     rol: 'mecanico' | 'admin';
     activo: boolean;
+    taller_id: string; // FK -> Taller
 }
 
 export interface ClienteDB {
@@ -26,6 +40,7 @@ export interface ClienteDB {
     email?: string | null;
     direccion?: string | null;
     notas?: string | null;
+    taller_id: string; // FK -> Taller
     created_at?: string;
 }
 
@@ -45,6 +60,7 @@ export interface VehiculoDB {
     color?: string | null;
     vin?: string | null;
     cliente_id: string; // FK -> Cliente
+    taller_id: string; // FK -> Taller
 
     // Relación anidada (al hacer select *, clientes(*))
     clientes?: ClienteDB | null;
@@ -53,6 +69,7 @@ export interface VehiculoDB {
 export interface OrdenDB {
     id: number;
     patente_vehiculo: string; // FK -> Vehiculo
+    taller_id: string; // FK -> Taller
 
     descripcion_ingreso: string;
     estado: 'pendiente' | 'en_progreso' | 'completada' | 'cancelada' | 'entregada' | 'debe';
@@ -102,6 +119,7 @@ export interface CitaDB {
     fecha_inicio: string;
     fecha_fin: string;
     estado: 'pendiente' | 'confirmada' | 'completada' | 'cancelada' | 'bloqueo';
+    taller_id: string; // FK -> Taller
 
     cliente_id?: string | null;
     patente_vehiculo?: string | null;

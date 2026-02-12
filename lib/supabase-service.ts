@@ -1,11 +1,18 @@
 // Servicios de Supabase para operaciones de base de datos
 import { supabase, VehiculoDB, OrdenDB, PerfilDB, CitaDB, ClienteDB, ServicioDB, ClienteWithStats } from './supabase';
 import { createClient } from '@supabase/supabase-js';
+import { getCurrentUserTallerId } from './auth-helpers';
 
 // ============ VEHÍCULOS ============
 
-// Buscar vehículo por patente (la función "mágica")
+// Buscar vehículo por patente (la función "mágica") - MULTI-TENANT
 export async function buscarVehiculoPorPatente(patente: string): Promise<VehiculoDB | null> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) {
+        console.error('❌ Usuario sin taller asignado');
+        return null;
+    }
+
     const patenteNormalizada = patente.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     const { data, error } = await supabase
@@ -15,6 +22,7 @@ export async function buscarVehiculoPorPatente(patente: string): Promise<Vehicul
             clientes (*)
         `)
         .eq('patente', patenteNormalizada)
+        .eq('taller_id', tallerId)
         .maybeSingle();
 
     if (error || !data) {
@@ -25,8 +33,14 @@ export async function buscarVehiculoPorPatente(patente: string): Promise<Vehicul
     return data;
 }
 
-// Crear nuevo vehículo (o actualizar si ya existe)
+// Crear nuevo vehículo (o actualizar si ya existe) - MULTI-TENANT
 export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_rut?: string }): Promise<VehiculoDB | null> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) {
+        console.error('❌ Usuario sin taller asignado');
+        return null;
+    }
+
     const patenteUpper = vehiculo.patente?.toUpperCase() || '';
 
     console.log('🚗 Creating vehicle (Supabase):', vehiculo);
@@ -48,7 +62,7 @@ export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_ru
         return null;
     }
 
-    // Prepare payload
+    // Prepare payload with taller_id
     const vehiculoData = {
         patente: patenteUpper,
         marca: vehiculo.marca || 'Desconocida',
@@ -56,7 +70,8 @@ export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_ru
         anio: vehiculo.anio || new Date().getFullYear().toString(),
         motor: vehiculo.motor || null,
         color: vehiculo.color || '-',
-        cliente_id: clienteId
+        cliente_id: clienteId,
+        taller_id: tallerId
     };
 
     console.log('📤 Sending to Supabase:', vehiculoData);
@@ -79,11 +94,15 @@ export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_ru
     return data;
 }
 
-// Obtener todos los vehículos
+// Obtener todos los vehículos - MULTI-TENANT
 export async function obtenerVehiculos(): Promise<VehiculoDB[]> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return [];
+
     const { data, error } = await supabase
         .from('vehiculos')
-        .select('*');
+        .select('*')
+        .eq('taller_id', tallerId);
 
     if (error) {
         console.error('Error al obtener vehículos:', error);
@@ -125,9 +144,12 @@ export async function subirImagen(file: File, carpeta: string = 'ordenes'): Prom
 // ============ ÓRDENES ============
 
 // Obtener todas las órdenes
-// ============ CLIENTES (CRM) ============
+// ============ CLIENTES (CRM) ============ - MULTI-TENANT
 
 export async function obtenerClientes(busqueda?: string): Promise<ClienteWithStats[]> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return [];
+
     let query = supabase
         .from('clientes')
         .select(`
@@ -146,6 +168,7 @@ export async function obtenerClientes(busqueda?: string): Promise<ClienteWithSta
                 )
             )
         `)
+        .eq('taller_id', tallerId)
         .order('nombre_completo', { ascending: true });
 
     if (busqueda) {
@@ -193,34 +216,50 @@ export async function obtenerClientes(busqueda?: string): Promise<ClienteWithSta
     });
 }
 
-// Buscar cliente por Teléfono (Identificador Principal V3.1)
+// Buscar cliente por Teléfono (Identificador Principal V3.1) - MULTI-TENANT
 export async function buscarClientePorTelefono(telefono: string): Promise<ClienteDB | null> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return null;
+
     const { data, error } = await supabase
         .from('clientes')
         .select('*')
         .eq('telefono', telefono)
-        .single(); // Debería ser único ahora
-
-    if (error) return null;
-    return data;
-}
-
-export async function buscarClientePorRut(rut: string): Promise<ClienteDB | null> {
-    // Mantener por compatibilidad, pero ya no es el ID principal
-    const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .eq('rut_dni', rut)
+        .eq('taller_id', tallerId)
         .maybeSingle();
 
     if (error) return null;
     return data;
 }
 
-export async function crearCliente(cliente: Omit<ClienteDB, 'id' | 'fecha_creacion'>): Promise<ClienteDB | null> {
+// Buscar cliente por RUT - MULTI-TENANT
+export async function buscarClientePorRut(rut: string): Promise<ClienteDB | null> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return null;
+
+    // Mantener por compatibilidad, pero ya no es el ID principal
     const { data, error } = await supabase
         .from('clientes')
-        .insert([cliente])
+        .select('*')
+        .eq('rut_dni', rut)
+        .eq('taller_id', tallerId)
+        .maybeSingle();
+
+    if (error) return null;
+    return data;
+}
+
+// Crear cliente - MULTI-TENANT
+export async function crearCliente(cliente: Omit<ClienteDB, 'id' | 'fecha_creacion' | 'taller_id'>): Promise<ClienteDB | null> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) {
+        console.error('❌ Usuario sin taller asignado');
+        return null;
+    }
+
+    const { data, error } = await supabase
+        .from('clientes')
+        .insert([{ ...cliente, taller_id: tallerId }])
         .select()
         .single();
 
@@ -236,8 +275,11 @@ export async function crearCliente(cliente: Omit<ClienteDB, 'id' | 'fecha_creaci
 // ============ ÓRDENES ============
 
 // Obtener todas las órdenes
-// Obtener todas las órdenes (con paginación opcional)
+// Obtener todas las órdenes (con paginación opcional) - MULTI-TENANT
 export async function obtenerOrdenes(limit?: number, offset?: number): Promise<OrdenDB[]> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return [];
+
     let query = supabase
         .from('ordenes')
         .select(`
@@ -249,6 +291,7 @@ export async function obtenerOrdenes(limit?: number, offset?: number): Promise<O
             perfiles_creado:perfiles!creado_por (*),
             perfiles_asignado:perfiles!asignado_a (*)
         `)
+        .eq('taller_id', tallerId)
         .order('fecha_ingreso', { ascending: false });
 
     // Aplicar paginación si se proporciona
@@ -371,7 +414,7 @@ export async function obtenerOrdenPorId(id: number): Promise<OrdenDB | null> {
     return data;
 }
 
-// Crear nueva orden (Lógica V3 Inteligente)
+// Crear nueva orden (Lógica V3 Inteligente) - MULTI-TENANT
 export async function crearOrden(orden: {
     patente_vehiculo: string;
     descripcion_ingreso: string;
@@ -397,13 +440,20 @@ export async function crearOrden(orden: {
     detalles_vehiculo?: string;
     detalle_trabajos?: string;
 }): Promise<OrdenDB | null> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) {
+        console.error('❌ Usuario sin taller asignado');
+        return null;
+    }
+
     const patenteNormalizada = orden.patente_vehiculo.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-    // 1. Verificar Vehículo y Dueño
+    // 1. Verificar Vehículo y Dueño (filtrado por taller)
     let { data: vehiculo } = await supabase
         .from('vehiculos')
         .select('*, clientes(*)')
         .eq('patente', patenteNormalizada)
+        .eq('taller_id', tallerId)
         .maybeSingle();
 
     // 2. Si no existe el vehículo, necesitamos un Cliente para crearlo
@@ -450,7 +500,7 @@ export async function crearOrden(orden: {
         }
 
         if (clienteId) {
-            // Crear el vehículo vinculado al cliente
+            // Crear el vehículo vinculado al cliente (con taller_id)
             const { data: nuevoVehiculo, error: vError } = await supabase
                 .from('vehiculos')
                 .insert([{
@@ -460,7 +510,8 @@ export async function crearOrden(orden: {
                     anio: orden.vehiculo_anio || new Date().getFullYear().toString(),
                     motor: orden.vehiculo_motor || null,
                     color: orden.vehiculo_color || '-',
-                    cliente_id: clienteId
+                    cliente_id: clienteId,
+                    taller_id: tallerId
                 }])
                 .select()
                 .single();
@@ -473,7 +524,7 @@ export async function crearOrden(orden: {
         }
     }
 
-    // 3. Crear la Orden
+    // 3. Crear la Orden (con taller_id)
     const { data, error } = await supabase
         .from('ordenes')
         .insert([{
@@ -486,6 +537,7 @@ export async function crearOrden(orden: {
             precio_total: orden.precio_total || 0,
             metodo_pago: orden.metodo_pago,
             observaciones_mecanico: orden.detalle_trabajos, // Mapeo de legacy
+            taller_id: tallerId
         }])
         .select()
         .single();
@@ -496,6 +548,17 @@ export async function crearOrden(orden: {
     }
 
     console.log('✅ Orden V3 creada exitosamente:', data.id);
+
+    // Generar enlace compartible para el cliente
+    const { generarEnlaceOrden } = await import('./public-actions');
+    const enlacePublico = await generarEnlaceOrden(data.id, tallerId);
+
+    if (enlacePublico) {
+        console.log('🔗 Enlace para compartir con el cliente:', enlacePublico);
+        // Agregar el enlace a la respuesta
+        (data as any).enlace_publico = enlacePublico;
+    }
+
     return data;
 }
 
@@ -722,17 +785,12 @@ export async function crearUsuario(
 
         if (authData.user) {
             // 2. Crear perfil (Trigger should handle this, but explicit ensure)
-            // Perfiles table is typically created via trigger on auth.users
-            // but we can return success here.
+            // NOTA: El taller_id debe ser asignado después de crear el usuario
+            // por un admin, ya que el usuario nuevo no tiene contexto de taller aún
             return {
                 success: true,
-                user: {
-                    id: authData.user.id,
-                    email: email,
-                    nombre_completo: nombreCompleto,
-                    rol: rol,
-                    activo: true,
-                }
+                // No retornamos el perfil completo porque falta taller_id
+                // El admin debe asignarlo después
             };
         }
 
