@@ -46,10 +46,10 @@ function StatsSkeleton() {
     return (
         <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-[#1a1a1a] rounded-xl p-4 animate-pulse">
-                    <div className="w-8 h-8 bg-[#333] rounded mb-2" />
-                    <div className="w-12 h-8 bg-[#333] rounded mb-1" />
-                    <div className="w-20 h-4 bg-[#333] rounded" />
+                <div key={i} className="bg-white rounded-xl p-4 animate-pulse border border-gray-200">
+                    <div className="w-8 h-8 bg-gray-200 rounded mb-2" />
+                    <div className="w-12 h-8 bg-gray-200 rounded mb-1" />
+                    <div className="w-20 h-4 bg-gray-200 rounded" />
                 </div>
             ))}
         </div>
@@ -161,12 +161,12 @@ export default function AdminPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#0066FF] rounded-xl flex items-center justify-center">
-                        <LayoutDashboard className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <LayoutDashboard className="w-5 h-5 text-gray-900" />
                     </div>
                     <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-white">Dashboard</h1>
-                        <p className="text-sm text-gray-400">Resumen del taller</p>
+                        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Dashboard</h1>
+                        <p className="text-sm text-gray-500">Resumen del taller</p>
                     </div>
                 </div>
                 <Button
@@ -174,7 +174,7 @@ export default function AdminPage() {
                     size="icon"
                     variant="ghost"
                     disabled={isLoading || isRefreshing}
-                    className="w-10 h-10 rounded-xl text-gray-400 hover:text-white hover:bg-[#242424]"
+                    className="w-10 h-10 rounded-xl text-gray-600 hover:text-blue-600 hover:bg-blue-50"
                 >
                     <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
@@ -192,7 +192,7 @@ export default function AdminPage() {
                                     <Car className="w-5 h-5 sm:w-6 sm:h-6 text-blue-200" />
                                     <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-blue-200" />
                                 </div>
-                                <p className="text-xl sm:text-3xl font-bold text-white">${stats.todayRevenue.toLocaleString('es-CL')}</p>
+                                <p className="text-xl sm:text-3xl font-bold text-gray-900">${stats.todayRevenue.toLocaleString('es-CL')}</p>
                                 <p className="text-xs sm:text-sm text-blue-200">Ingresos Hoy</p>
                             </CardContent>
                         </Card>
@@ -201,17 +201,17 @@ export default function AdminPage() {
                     <Card className="bg-amber-500 border-0 shadow-xl shadow-amber-500/20">
                         <CardContent className="p-3 sm:p-4">
                             <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-200 mb-2" />
-                            <p className="text-xl sm:text-3xl font-bold text-white">{stats.pending}</p>
+                            <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.pending}</p>
                             <p className="text-xs sm:text-sm text-amber-200">Pendientes</p>
                         </CardContent>
                     </Card>
 
                     {canViewPrices && (
-                        <Card className="bg-[#1a1a1a] border border-[#333333]">
+                        <Card className="bg-white border border-gray-200">
                             <CardContent className="p-3 sm:p-4">
-                                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 mb-2" />
-                                <p className="text-xl sm:text-3xl font-bold text-white">${stats.monthlyRevenue.toLocaleString('es-CL')}</p>
-                                <p className="text-xs sm:text-sm text-gray-400">Monto Mensual</p>
+                                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mb-2" />
+                                <p className="text-xl sm:text-3xl font-bold text-gray-900">${stats.monthlyRevenue.toLocaleString('es-CL')}</p>
+                                <p className="text-xs sm:text-sm text-gray-600">Monto Mensual</p>
                             </CardContent>
                         </Card>
                     )}
@@ -219,7 +219,7 @@ export default function AdminPage() {
                     <Card className="bg-green-600 border-0 shadow-xl shadow-green-500/20">
                         <CardContent className="p-3 sm:p-4">
                             <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-200 mb-2" />
-                            <p className="text-xl sm:text-3xl font-bold text-white">{stats.completed}</p>
+                            <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.completed}</p>
                             <p className="text-xs sm:text-sm text-green-200">Completadas</p>
                         </CardContent>
                     </Card>
@@ -234,7 +234,7 @@ export default function AdminPage() {
                 FEATURE_FLAGS.showAnalytics && (
                     <div className="space-y-6">
                         <div className="flex items-center gap-2">
-                            <h2 className="text-lg font-semibold text-white">Analíticas</h2>
+                            <h2 className="text-lg font-semibold text-gray-900">Analíticas</h2>
                         </div>
 
                         {/* Charts Grid */}
@@ -252,7 +252,7 @@ export default function AdminPage() {
             {/* Today's Orders */}
             <div>
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-white">Órdenes de Hoy</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Órdenes de Hoy</h2>
                     <Link href="/admin/ordenes" prefetch>
                         <Button variant="ghost" size="sm" className="text-[#0066FF] hover:text-blue-300 hover:bg-[#0066FF]/10">
                             Ver todas
@@ -264,7 +264,7 @@ export default function AdminPage() {
                 {isLoading ? (
                     <div className="space-y-3">
                         {[1, 2, 3].map((i) => (
-                            <div key={i} className="bg-[#1a1a1a] rounded-xl p-4 animate-pulse">
+                            <div key={i} className="bg-white rounded-xl p-4 animate-pulse">
                                 <div className="flex items-center gap-4">
                                     <div className="w-16 h-12 bg-[#333] rounded-lg" />
                                     <div className="flex-1">
@@ -276,10 +276,10 @@ export default function AdminPage() {
                         ))}
                     </div>
                 ) : todaysOrders.length === 0 ? (
-                    <Card className="bg-[#1a1a1a] border-[#333333]">
+                    <Card className="bg-white border-gray-200">
                         <CardContent className="py-12 text-center">
                             <Car className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-                            <p className="text-gray-400">No hay órdenes registradas hoy</p>
+                            <p className="text-gray-600">No hay órdenes registradas hoy</p>
                             <Link href="/recepcion" prefetch>
                                 <Button className="mt-4 bg-[#0066FF] hover:bg-[#0052CC]">
                                     Registrar vehículo
@@ -293,17 +293,17 @@ export default function AdminPage() {
                             const vehiculo = order.vehiculos;
                             return (
                                 <Link key={order.id} href={`/admin/ordenes/clean?id=${order.id}`} prefetch>
-                                    <Card className="bg-[#1a1a1a] border-[#333333] hover:bg-[#242424] transition-colors duration-150 active:scale-[0.99]">
+                                    <Card className="bg-white border-gray-200 hover:bg-gray-50 transition-colors duration-150 active:scale-[0.99]">
                                         <CardContent className="p-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-16 h-12 bg-[#333333] rounded-lg flex items-center justify-center">
-                                                    <span className="text-white font-mono font-bold text-sm">
+                                                    <span className="text-gray-900 font-mono font-bold text-sm">
                                                         {order.patente_vehiculo}
                                                     </span>
                                                 </div>
 
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-white font-medium truncate">
+                                                    <p className="text-gray-900 font-medium truncate">
                                                         {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : order.patente_vehiculo}
                                                     </p>
                                                     <p className="text-xs text-blue-400 truncate">
@@ -342,13 +342,13 @@ export default function AdminPage() {
             <div>
                 <div className="flex items-center gap-3 mb-4">
                     <Users className="w-5 h-5 text-[#0066FF]" />
-                    <h2 className="text-lg font-semibold text-white">Rendimiento de Mecánicos</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Rendimiento de Mecánicos</h2>
                 </div>
 
                 {isLoading ? (
                     <div className="space-y-3">
                         {[1, 2].map((i) => (
-                            <div key={i} className="bg-[#1a1a1a] rounded-xl p-4 animate-pulse">
+                            <div key={i} className="bg-white rounded-xl p-4 animate-pulse">
                                 <div className="flex items-center justify-between">
                                     <div className="w-32 h-4 bg-[#333] rounded" />
                                     <div className="w-16 h-4 bg-[#333] rounded" />
@@ -357,35 +357,35 @@ export default function AdminPage() {
                         ))}
                     </div>
                 ) : mechanicPerformance.length === 0 ? (
-                    <Card className="bg-[#1a1a1a] border-[#333333]">
+                    <Card className="bg-white border-gray-200">
                         <CardContent className="py-8 text-center">
                             <Users className="w-10 h-10 mx-auto mb-2 text-gray-600" />
-                            <p className="text-gray-400 text-sm">No hay datos de mecánicos</p>
+                            <p className="text-gray-600 text-sm">No hay datos de mecánicos</p>
                         </CardContent>
                     </Card>
                 ) : (
                     <div className="space-y-3">
                         {mechanicPerformance.map((mechanic, index) => (
                             <Collapsible key={mechanic.id}>
-                                <Card className="bg-[#1a1a1a] border-[#333333]">
+                                <Card className="bg-white border-gray-200">
                                     <CardContent className="p-4">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
                                                     index === 1 ? 'bg-gray-400/20 text-gray-300' :
                                                         index === 2 ? 'bg-orange-500/20 text-orange-400' :
-                                                            'bg-[#333333] text-gray-400'
+                                                            'bg-[#333333] text-gray-600'
                                                     }`}>
                                                     #{index + 1}
                                                 </div>
                                                 <div>
-                                                    <p className="text-white font-medium">{mechanic.name}</p>
-                                                    <p className="text-xs text-gray-400">{mechanic.completedCount} completadas</p>
+                                                    <p className="text-gray-900 font-medium">{mechanic.name}</p>
+                                                    <p className="text-xs text-gray-600">{mechanic.completedCount} completadas</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-white font-bold">{mechanic.ordersCount}</p>
-                                                <p className="text-xs text-gray-400">órdenes</p>
+                                                <p className="text-gray-900 font-bold">{mechanic.ordersCount}</p>
+                                                <p className="text-xs text-gray-600">órdenes</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between">
@@ -400,7 +400,7 @@ export default function AdminPage() {
                                             )}
                                             {mechanic.completedOrders.length > 0 && (
                                                 <CollapsibleTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                                                    <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
                                                         Ver órdenes
                                                         <ChevronDown className="w-4 h-4 ml-1" />
                                                     </Button>
@@ -408,18 +408,18 @@ export default function AdminPage() {
                                             )}
                                         </div>
                                         <CollapsibleContent className="mt-3">
-                                            <div className="space-y-2 pt-3 border-t border-[#333333]">
+                                            <div className="space-y-2 pt-3 border-t border-gray-200">
                                                 {mechanic.completedOrders.map((order) => {
                                                     const vehiculo = order.vehiculos;
                                                     return (
                                                         <Link key={order.id} href={`/admin/ordenes/clean?id=${order.id}`}>
-                                                            <div className="bg-[#242424] rounded-lg p-3 hover:bg-[#2a2a2a] transition-colors">
+                                                            <div className="bg-gray-50 rounded-lg p-3 hover:bg-[#2a2a2a] transition-colors">
                                                                 <div className="flex items-center justify-between gap-3">
                                                                     <div className="flex-1 min-w-0">
-                                                                        <p className="text-white text-sm font-medium truncate">
+                                                                        <p className="text-gray-900 text-sm font-medium truncate">
                                                                             {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : order.patente_vehiculo}
                                                                         </p>
-                                                                        <p className="text-xs text-gray-400 truncate">
+                                                                        <p className="text-xs text-gray-600 truncate">
                                                                             {order.descripcion_ingreso}
                                                                         </p>
                                                                     </div>
@@ -451,28 +451,28 @@ export default function AdminPage() {
             {/* Quick Actions */}
             <div className="grid grid-cols-2 gap-3">
                 <Link href="/admin/ordenes" prefetch>
-                    <Card className="bg-[#1a1a1a] border-[#333333] hover:bg-[#242424] transition-colors duration-150 active:scale-[0.98]">
+                    <Card className="bg-white border-gray-200 hover:bg-gray-50 transition-colors duration-150 active:scale-[0.98]">
                         <CardContent className="p-4 flex items-center gap-3">
                             <div className="w-10 h-10 bg-[#0066FF]/20 rounded-xl flex items-center justify-center">
                                 <Car className="w-5 h-5 text-[#0066FF]" />
                             </div>
                             <div>
-                                <p className="text-white font-medium">Órdenes</p>
-                                <p className="text-xs text-gray-400">Gestionar</p>
+                                <p className="text-gray-900 font-medium">Órdenes</p>
+                                <p className="text-xs text-gray-600">Gestionar</p>
                             </div>
                         </CardContent>
                     </Card>
                 </Link>
 
                 <Link href="/admin/usuarios" prefetch>
-                    <Card className="bg-[#1a1a1a] border-[#333333] hover:bg-[#242424] transition-colors duration-150 active:scale-[0.98]">
+                    <Card className="bg-white border-gray-200 hover:bg-gray-50 transition-colors duration-150 active:scale-[0.98]">
                         <CardContent className="p-4 flex items-center gap-3">
                             <div className="w-10 h-10 bg-[#0066FF]/20 rounded-xl flex items-center justify-center">
                                 <Wrench className="w-5 h-5 text-[#0066FF]" />
                             </div>
                             <div>
-                                <p className="text-white font-medium">Usuarios</p>
-                                <p className="text-xs text-gray-400">Gestionar</p>
+                                <p className="text-gray-900 font-medium">Usuarios</p>
+                                <p className="text-xs text-gray-600">Gestionar</p>
                             </div>
                         </CardContent>
                     </Card>
