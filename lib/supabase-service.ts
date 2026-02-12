@@ -524,7 +524,10 @@ export async function crearOrden(orden: {
         }
     }
 
-    // 3. Crear la Orden (con taller_id)
+    // 3. Crear la Orden (con taller_id y access_token)
+    const { generateAccessToken, generatePublicOrderLink } = await import('./token-utils');
+    const accessToken = generateAccessToken();
+
     const { data, error } = await supabase
         .from('ordenes')
         .insert([{
@@ -537,7 +540,9 @@ export async function crearOrden(orden: {
             precio_total: orden.precio_total || 0,
             metodo_pago: orden.metodo_pago,
             observaciones_mecanico: orden.detalle_trabajos, // Mapeo de legacy
-            taller_id: tallerId
+            taller_id: tallerId,
+            access_token: accessToken,
+            token_created_at: new Date().toISOString()
         }])
         .select()
         .single();
@@ -548,6 +553,28 @@ export async function crearOrden(orden: {
     }
 
     console.log('✅ Orden V3 creada exitosamente:', data.id);
+
+    // 4. Enviar notificación por email (si el cliente tiene email)
+    if (orden.cliente_email && data.id) {
+        const publicLink = generatePublicOrderLink(data.id, accessToken);
+        console.log('📧 Enlace público generado:', publicLink);
+
+        try {
+            const { sendOrderCreatedNotification } = await import('./notification-service');
+            await sendOrderCreatedNotification(
+                data as any,
+                {
+                    email: orden.cliente_email,
+                    telefono: orden.cliente_telefono
+                },
+                publicLink
+            );
+            console.log('✅ Notificación enviada al cliente');
+        } catch (notifError) {
+            console.error('⚠️ Error enviando notificación (no crítico):', notifError);
+            // No fallar la creación de orden si falla el email
+        }
+    }
 
     // Generar enlace compartible para el cliente
     const { generarEnlaceOrden } = await import('./public-actions');
