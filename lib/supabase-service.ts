@@ -576,16 +576,6 @@ export async function crearOrden(orden: {
         }
     }
 
-    // Generar enlace compartible para el cliente
-    const { generarEnlaceOrden } = await import('./public-actions');
-    const enlacePublico = await generarEnlaceOrden(data.id, tallerId);
-
-    if (enlacePublico) {
-        console.log('🔗 Enlace para compartir con el cliente:', enlacePublico);
-        // Agregar el enlace a la respuesta
-        (data as any).enlace_publico = enlacePublico;
-    }
-
     return data;
 }
 
