@@ -1,11 +1,13 @@
-import crypto from 'crypto';
+// Token utilities using Web Crypto API
 
 /**
  * Genera un token aleatorio de 8 caracteres alfanuméricos
  * Ejemplo: "a7f3k9m2"
  */
 export function generateAccessToken(): string {
-    return crypto.randomBytes(4).toString('hex');
+    const array = new Uint8Array(4);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -13,7 +15,9 @@ export function generateAccessToken(): string {
  * Ejemplo: "a7f3k9m2b5d8e1c4"
  */
 export function generateSecureToken(): string {
-    return crypto.randomBytes(8).toString('hex');
+    const array = new Uint8Array(8);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**
