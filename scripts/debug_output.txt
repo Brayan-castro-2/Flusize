@@ -1,0 +1,11 @@
+--- START INSPECTION ---
+
+1. Testing ORDENES -> VEHICULOS
+  [No Hint] Error: NONE (Success!)
+  [Hint: vehiculo_id] Error: Could not find a relationship between 'ordenes' and 'vehiculos' in the schema cache
+  [Hint: patente_vehiculo] Error: Could not find a relationship between 'ordenes' and 'vehiculos' in the schema cache
+
+2. Testing CITAS -> VEHICULOS
+  [No Hint] Error: Could not find a relationship between 'citas' and 'vehiculos' in the schema cache
+  [Hint: vehiculo_id] Error: Could not find a relationship between 'citas' and 'vehiculos' in the schema cache
+  [Hint: patente_vehiculo] Error: Could not find a relationship between 'citas' and 'vehiculos' in the schema cache

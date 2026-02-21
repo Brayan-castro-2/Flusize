@@ -103,8 +103,8 @@ export function RevenueChart({ orders }: RevenueChartProps) {
                 .filter(order => {
                     if (order.estado !== 'completada') return false;
 
-                    // Use fecha_completada if available, otherwise fecha_ingreso
-                    const dateToCheck = order.fecha_completada || order.fecha_ingreso;
+                    // Use fecha_ingreso as the only available date
+                    const dateToCheck = order.fecha_ingreso;
                     if (!dateToCheck) return false;
 
                     const orderDate = new Date(dateToCheck);
@@ -136,15 +136,15 @@ export function RevenueChart({ orders }: RevenueChartProps) {
     };
 
     return (
-        <Card className="bg-slate-900/40 border-slate-700 p-6">
+        <Card className="bg-white border-slate-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-green-500" />
+                    <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-green-600" />
                         Ingresos por Período
                     </h3>
-                    <p className="text-sm text-slate-400 mt-1">
-                        Total: <span className="font-bold text-green-400">{formatCurrency(totalRevenue)}</span>
+                    <p className="text-sm text-slate-500 mt-1">
+                        Total: <span className="font-bold text-green-600">{formatCurrency(totalRevenue)}</span>
                     </p>
                 </div>
             </div>
@@ -162,7 +162,7 @@ export function RevenueChart({ orders }: RevenueChartProps) {
                             }}
                             variant={period === p ? 'default' : 'outline'}
                             size="sm"
-                            className={period === p ? 'bg-blue-600 text-white' : 'border-slate-600 text-slate-300'}
+                            className={period === p ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}
                         >
                             {PERIOD_CONFIG[p].label}
                         </Button>
@@ -175,7 +175,7 @@ export function RevenueChart({ orders }: RevenueChartProps) {
                         onClick={handlePrevious}
                         variant="outline"
                         size="sm"
-                        className="border-slate-600 text-slate-300"
+                        className="border-slate-200 text-slate-600 hover:bg-slate-50"
                     >
                         <ChevronLeft className="w-4 h-4" />
                     </Button>
@@ -183,7 +183,7 @@ export function RevenueChart({ orders }: RevenueChartProps) {
                         onClick={handleToday}
                         variant="outline"
                         size="sm"
-                        className="border-slate-600 text-slate-300"
+                        className="border-slate-200 text-slate-600 hover:bg-slate-50"
                         disabled={offset === 0}
                     >
                         Hoy
@@ -192,7 +192,7 @@ export function RevenueChart({ orders }: RevenueChartProps) {
                         onClick={handleNext}
                         variant="outline"
                         size="sm"
-                        className="border-slate-600 text-slate-300"
+                        className="border-slate-200 text-slate-600 hover:bg-slate-50"
                         disabled={offset === 0}
                     >
                         <ChevronRight className="w-4 h-4" />
@@ -205,23 +205,25 @@ export function RevenueChart({ orders }: RevenueChartProps) {
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis
                         dataKey="label"
-                        stroke="#94a3b8"
+                        stroke="#64748b"
                         style={{ fontSize: '12px' }}
                     />
                     <YAxis
-                        stroke="#94a3b8"
+                        stroke="#64748b"
                         style={{ fontSize: '12px' }}
                         tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                     />
                     <Tooltip
                         contentStyle={{
-                            backgroundColor: '#1e293b',
-                            border: '1px solid #475569',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #e2e8f0',
                             borderRadius: '8px',
-                            color: '#fff',
+                            color: '#0f172a',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                         }}
+                        itemStyle={{ color: '#0f172a' }}
                         formatter={(value: number | undefined) => (value !== undefined ? [formatCurrency(value), 'Ingresos'] : ['-', 'Ingresos'])}
-                        labelStyle={{ color: '#94a3b8' }}
+                        labelStyle={{ color: '#64748b' }}
                     />
                     <Bar
                         dataKey="revenue"

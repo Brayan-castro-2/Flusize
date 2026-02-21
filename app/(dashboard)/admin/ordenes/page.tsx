@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, Fragment, useRef, useEffect } from 'react';
 import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita, obtenerChecklist } from '@/lib/storage-adapter';
 import { generateOrderPDF } from '@/lib/pdf-generator';
-import { useInfiniteOrders, useOrdersCount, useDeleteOrder } from '@/hooks/use-orders';
+import { useInfiniteOrders, useOrdersCount, useDeleteOrder, useUpdateOrder } from '@/hooks/use-orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { ORDERS_QUERY_KEY } from '@/hooks/use-orders';
 import { usePerfiles } from '@/hooks/use-perfiles';
@@ -72,11 +72,13 @@ import {
     Loader2,
     ChevronRight,
 } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
 
 import Link from 'next/link';
 
 
 export default function OrdenesPage() {
+    const { toast } = useToast();
     const { user } = useAuth();
 
     const {
@@ -107,6 +109,7 @@ export default function OrdenesPage() {
     const { data: perfiles = [], isLoading: isLoadingPerfiles } = usePerfiles();
     const { data: vehiculos = [], isLoading: isLoadingVehiculos } = useVehiculos();
     const deleteOrder = useDeleteOrder();
+    const updateOrder = useUpdateOrder();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [viewFilter, setViewFilter] = useState<string>('orders'); // NEW: orders, appointments, nearby, all
@@ -116,7 +119,7 @@ export default function OrdenesPage() {
 
     const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
     const [sortConfig, setSortConfig] = useState<{ key: keyof OrdenDB | 'precio_total' | 'fecha_ingreso', direction: 'asc' | 'desc' }>({ key: 'fecha_ingreso', direction: 'desc' });
-    const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
     // Checklist State
     const [checklists, setChecklists] = useState<Record<string, any>>({});
@@ -129,12 +132,12 @@ export default function OrdenesPage() {
         mode: 'checklist' | 'readonly_ingreso' | 'salida';
     }>({ open: false, orderId: null, mode: 'checklist' });
 
-    const fetchChecklist = async (orderId: number, force = false) => {
+    const fetchChecklist = async (orderId: string, force = false) => {
         if (!force && checklists[orderId]) return;
 
         setLoadingChecklists(prev => ({ ...prev, [orderId]: true }));
         try {
-            const data = await obtenerChecklist(orderId.toString());
+            const data = await obtenerChecklist(orderId);
             // Ensure data is not null before setting
             if (data) {
                 setChecklists(prev => ({ ...prev, [orderId]: data }));
@@ -148,8 +151,8 @@ export default function OrdenesPage() {
 
 
 
-    const handleOpenChecklist = (orderId: number, mode: 'checklist' | 'readonly_ingreso' | 'salida') => {
-        setChecklistDialog({ open: true, orderId: orderId.toString(), mode });
+    const handleOpenChecklist = (orderId: string, mode: 'checklist' | 'readonly_ingreso' | 'salida') => {
+        setChecklistDialog({ open: true, orderId: orderId, mode });
         fetchChecklist(orderId);
     };
 
@@ -158,17 +161,16 @@ export default function OrdenesPage() {
         setChecklistDialog({ open: false, orderId: null, mode: 'checklist' });
         // Refresh checklist data
         if (orderId) {
-            const id = parseInt(orderId);
             setChecklists(prev => {
                 const newState = { ...prev };
-                delete newState[id];
+                delete newState[orderId];
                 return newState;
             });
-            fetchChecklist(id, true);
+            fetchChecklist(orderId, true);
         }
     };
 
-    const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
     // Auto-fetch checklist when order is expanded
     useEffect(() => {
@@ -199,8 +201,8 @@ export default function OrdenesPage() {
     }, [perfilesMap]);
 
     const hasDebt = useCallback((order: OrdenDB) => {
-        // V3: Check simple 'debe' status or method
-        return order.metodo_pago === 'debe' || order.estado === 'entregada' && !order.fecha_cierre;
+        // V3: Check simple 'debe' status or method - Soporta pagos mixtos (ej: "efectivo, debe")
+        return order.metodo_pago?.includes('debe') || (order.estado === 'entregada' && !order.fecha_cierre);
     }, []);
 
     // Extraer el motivo limpio de la descripción
@@ -286,8 +288,13 @@ export default function OrdenesPage() {
             isAppointment: true,
             // Add other required fields with defaults
             detalle_trabajos: a.notas,
-            vehiculos: a.vehiculos, // Pass nested vehicle data
+            vehiculo: a.vehiculos, // Pass nested vehicle data
             // Use nested client data from JOIN or fallback to legacy top-level
+            cliente: a.clientes || {
+                id: 'temp',
+                nombre_completo: a.cliente_nombre || 'Sin Cliente',
+                telefono: a.cliente_telefono
+            },
             cliente_nombre: a.clientes?.nombre_completo || a.cliente_nombre || 'Sin Cliente',
             cliente_telefono: a.clientes?.telefono || a.cliente_telefono || '',
         } as any;
@@ -313,16 +320,18 @@ export default function OrdenesPage() {
         }
 
         return itemsToFilter.filter(order => {
-            const vehiculo = order.vehiculos;
+            const vehiculo = order.vehiculo;
+            const cliente = order.cliente;
             const matchesSearch =
                 (order.patente_vehiculo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (vehiculo?.marca?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (vehiculo?.marca?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (vehiculo?.modelo?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 order.descripcion_ingreso.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (vehiculo?.clientes?.nombre_completo?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                (vehiculo?.clientes?.telefono?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                (cliente?.nombre_completo?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (order.cliente_nombre?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                (cliente?.telefono?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                (order.cliente_telefono?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (order.precio_total?.toString() || '').includes(searchTerm);
 
             const matchesStatus = statusFilter === 'all' || order.estado === statusFilter;
@@ -369,49 +378,47 @@ export default function OrdenesPage() {
             : <ArrowDown className="w-3 h-3 ml-1 text-blue-400" />;
     };
 
-    const handleDeleteOrder = async (item: { id: number, isAppointment?: boolean }) => {
+    const handleDeleteOrder = async (item: { id: string, isAppointment?: boolean }) => {
         try {
             if (item.isAppointment) {
                 await eliminarCita(item.id);
-                // Invalidar ambas queries por si acaso
+                // Invalidar ambas queries por si acaso (las citas no son optimistas aún)
                 queryClient.invalidateQueries({ queryKey: APPOINTMENTS_QUERY_KEY });
                 queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
             } else {
-                await deleteOrder.mutateAsync(item.id);
+                // Mutación optimista: La UI se actualiza de inmediato
+                deleteOrder.mutate(item.id);
             }
             setDeleteConfirm(null);
         } catch (error) {
             console.error('Error al eliminar:', error);
-            alert('Error al eliminar el elemento');
+            toast({
+                title: "Error",
+                description: "No se pudo eliminar el elemento",
+                variant: "destructive"
+            });
         }
     };
 
-    // Cambiar estado de orden con auto-guardado
-    const handleToggleStatus = useCallback(async (orderId: number, currentStatus: string) => {
+    const handleToggleStatus = useCallback(async (orderId: string, currentStatus: string) => {
         const newStatus = currentStatus === 'completada' ? 'pendiente' : 'completada';
 
-        try {
-            const updateData: any = { estado: newStatus };
+        const updateData: any = { estado: newStatus };
 
-            // Si se marca como completada, establecer fecha de entrega
-            if (newStatus === 'completada') {
-                updateData.fecha_entrega = new Date().toISOString();
-            }
-            // Si se revierte a pendiente, limpiar fecha de entrega
-            else if (newStatus === 'pendiente') {
-                updateData.fecha_entrega = null;
-            }
-
-            await actualizarOrden(orderId, updateData);
-            // Invalidar caché para refrescar la lista
-            queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
-        } catch (error) {
-            console.error('Error al cambiar estado:', error);
-            alert('Error al cambiar el estado de la orden');
+        // Si se marca como completada, establecer fecha de salida
+        if (newStatus === 'completada') {
+            updateData.fecha_salida = new Date().toISOString();
         }
-    }, [queryClient]);
+        // Si se revierte a pendiente, limpiar fecha de salida
+        else if (newStatus === 'pendiente') {
+            updateData.fecha_salida = null;
+        }
 
-    const getStatusBadge = (status: string, orderId?: number, interactive: boolean = false) => {
+        // Mutación optimista
+        updateOrder.mutate({ id: orderId, updates: updateData });
+    }, [updateOrder]);
+
+    const getStatusBadge = (status: string, orderId?: string, interactive: boolean = false) => {
         const config: Record<string, { class: string; label: string; icon: string }> = {
             pendiente: { class: 'bg-amber-500/20 text-amber-400 border-amber-500/30', label: 'Pendiente', icon: '⏳' },
             en_progreso: { class: 'bg-blue-500/20 text-blue-400 border-blue-500/30', label: 'En Progreso', icon: '⚙️' },
@@ -442,7 +449,7 @@ export default function OrdenesPage() {
 
     // Helper functions for data display
     const getClientInfo = (order: any) => {
-        const client = order.vehiculos?.clientes;
+        const client = order.cliente;
         return {
             nombre: client?.nombre_completo || order.cliente_nombre || 'Cliente S/R',
             telefono: client?.telefono || order.cliente_telefono || 'S/T',
@@ -456,6 +463,33 @@ export default function OrdenesPage() {
         // Remove "Motor: ..." prefix if present, but keep the rest
         // Matches "Motor: [text] - " or just "Motor: [text]"
         return desc.replace(/^Motor:.*?( - |$)/i, '').trim() || desc;
+    };
+    // -- HANDLERS --
+
+    // NEW: Handle Status Update Manual
+    const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+        try {
+            console.log(`Manually updating order ${orderId} to ${newStatus}`);
+            const result = await actualizarOrden(orderId, { estado: newStatus } as any);
+
+            if (result) {
+                // Invalidate query to refresh UI
+                queryClient.invalidateQueries({ queryKey: [ORDERS_QUERY_KEY] });
+                toast({
+                    title: "Estado actualizado",
+                    description: `La orden ha pasado a estado: ${newStatus.replace('_', ' ').toUpperCase()}`,
+                });
+            } else {
+                throw new Error("No se pudo actualizar la orden");
+            }
+        } catch (error) {
+            console.error("Failed to update status", error);
+            toast({
+                title: "Error",
+                description: "No se pudo actualizar el estado de la orden. Revisa la consola para más detalles.",
+                variant: "destructive",
+            });
+        }
     };
 
     const handlePrintOrder = async (order: any) => {
@@ -481,13 +515,13 @@ export default function OrdenesPage() {
 
     const handleExportPDF = () => {
         const printContent = filteredOrders.map(order => {
-            const vehiculo = order.vehiculos;
+            const vehiculo = order.vehiculo;
             return {
                 patente: order.patente_vehiculo,
                 vehiculo: vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-',
                 descripcion: order.descripcion_ingreso,
-                creado_por: getPerfilNombre(order.creado_por),
-                asignado_a: order.asignado_a ? getPerfilNombre(order.asignado_a) : '-',
+                creado_por: order.creado?.nombre_completo || getPerfilNombre(order.creado_por),
+                asignado_a: order.asignado?.nombre_completo || (order.asignado_a ? getPerfilNombre(order.asignado_a) : '-'),
                 estado: order.estado,
                 precio: order.precio_total || 0
             };
@@ -578,65 +612,65 @@ export default function OrdenesPage() {
                     <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                    <h1 className="text-lg md:text-2xl font-bold text-white">Órdenes de Trabajo</h1>
-                    <p className="text-xs md:text-sm text-slate-400">Gestión de órdenes del taller</p>
+                    <h1 className="text-lg md:text-2xl font-bold text-slate-900">Órdenes de Trabajo</h1>
+                    <p className="text-xs md:text-sm text-slate-500">Gestión de órdenes del taller</p>
                 </div>
             </div>
 
             {/* Filters */}
-            <Card className="bg-slate-800/50 border-slate-700/50 overflow-hidden">
+            <Card className="bg-white border-slate-200 shadow-sm overflow-hidden">
                 <CardContent className="pt-6 px-3 sm:px-6">
                     <div className="flex flex-col gap-4">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <Input
                                 placeholder="Buscar..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 rounded-xl text-sm"
+                                className="pl-10 bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 rounded-xl text-sm"
                             />
                         </div>
                         {/* View Type Filter */}
                         <div className="space-y-1.5">
                             <div className="flex items-center">
-                                <label className="text-xs text-slate-400 font-medium px-1">Tipo de Vista</label>
+                                <label className="text-xs text-slate-600 font-medium px-1">Tipo de Vista</label>
                             </div>
                             <Select value={viewFilter} onValueChange={setViewFilter}>
-                                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl text-sm h-10">
+                                <SelectTrigger className="bg-white border-slate-200 text-slate-900 rounded-xl text-sm h-10">
                                     <SelectValue placeholder="Solo Órdenes" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-slate-800 border-slate-700">
-                                    <SelectItem value="orders" className="text-slate-200">Solo Órdenes</SelectItem>
-                                    <SelectItem value="appointments" className="text-slate-200">Solo Citas</SelectItem>
-                                    <SelectItem value="nearby" className="text-slate-200">Órdenes + Citas Próximas</SelectItem>
-                                    <SelectItem value="all" className="text-slate-200">Todo</SelectItem>
+                                <SelectContent className="bg-white border-slate-200">
+                                    <SelectItem value="orders" className="text-slate-900">Solo Órdenes</SelectItem>
+                                    <SelectItem value="appointments" className="text-slate-900">Solo Citas</SelectItem>
+                                    <SelectItem value="nearby" className="text-slate-900">Órdenes + Citas Próximas</SelectItem>
+                                    <SelectItem value="all" className="text-slate-900">Todo</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="grid grid-cols-2 gap-2 sm:gap-3">
                             <div className="space-y-1.5">
-                                <label className="text-xs text-slate-400 font-medium px-1">Estado</label>
+                                <label className="text-xs text-slate-600 font-medium px-1">Estado</label>
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl text-xs sm:text-sm h-9">
+                                    <SelectTrigger className="bg-white border-slate-200 text-slate-900 rounded-xl text-xs sm:text-sm h-9">
                                         <SelectValue placeholder="Todos" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-slate-800 border-slate-700">
-                                        <SelectItem value="all" className="text-slate-200">Todos</SelectItem>
+                                    <SelectContent className="bg-white border-slate-200">
+                                        <SelectItem value="all" className="text-slate-900">Todos</SelectItem>
                                         <SelectItem value="pendiente" className="text-slate-200">⏳ Pendientes</SelectItem>
                                         <SelectItem value="completada" className="text-slate-200">✓ Completadas</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-xs text-slate-400 font-medium px-1">Mecánico</label>
+                                <label className="text-xs text-slate-600 font-medium px-1">Mecánico</label>
                                 <Select value={mechanicFilter} onValueChange={setMechanicFilter}>
-                                    <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl text-xs sm:text-sm h-9">
+                                    <SelectTrigger className="bg-white border-slate-200 text-slate-900 rounded-xl text-xs sm:text-sm h-9">
                                         <SelectValue placeholder="Todos" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-slate-800 border-slate-700">
-                                        <SelectItem value="all" className="text-slate-200">Todos</SelectItem>
+                                    <SelectContent className="bg-white border-slate-200">
+                                        <SelectItem value="all" className="text-slate-900">Todos</SelectItem>
                                         {perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'admin').map(perfil => (
-                                            <SelectItem key={perfil.id} value={perfil.id} className="text-slate-200">
+                                            <SelectItem key={perfil.id} value={perfil.id} className="text-slate-900">
                                                 {perfil.nombre_completo}
                                             </SelectItem>
                                         ))}
@@ -645,16 +679,16 @@ export default function OrdenesPage() {
                             </div>
                             <div className="space-y-1.5">
                                 <div className="flex items-center">
-                                    <label className="text-xs text-slate-400 font-medium px-1">Deuda</label>
+                                    <label className="text-xs text-slate-600 font-medium px-1">Deuda</label>
                                 </div>
                                 <Select value={debtFilter} onValueChange={setDebtFilter}>
-                                    <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl text-xs sm:text-sm h-9">
+                                    <SelectTrigger className="bg-white border-slate-200 text-slate-900 rounded-xl text-xs sm:text-sm h-9">
                                         <SelectValue placeholder="Todas" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-slate-800 border-slate-700">
-                                        <SelectItem value="all" className="text-slate-200">Todas</SelectItem>
-                                        <SelectItem value="con_deuda" className="text-slate-200">Con Deuda</SelectItem>
-                                        <SelectItem value="sin_deuda" className="text-slate-200">Sin Deuda</SelectItem>
+                                    <SelectContent className="bg-white border-slate-200">
+                                        <SelectItem value="all" className="text-slate-900">Todas</SelectItem>
+                                        <SelectItem value="con_deuda" className="text-slate-900">Con Deuda</SelectItem>
+                                        <SelectItem value="sin_deuda" className="text-slate-900">Sin Deuda</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -662,7 +696,7 @@ export default function OrdenesPage() {
                                 <label className="text-xs text-slate-400 font-medium px-1">Fecha</label>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="bg-slate-700/50 border-slate-600 text-white rounded-xl text-xs sm:text-sm h-9 w-full justify-between font-normal hover:bg-slate-700 hover:text-white">
+                                        <Button variant="outline" className="bg-white border-slate-200 text-slate-900 rounded-xl text-xs sm:text-sm h-9 w-full justify-between font-normal hover:bg-slate-50 hover:text-slate-900">
                                             <span className="truncate">
                                                 {dateRange.from ? (
                                                     dateRange.to ? `${dateRange.from} - ${dateRange.to}` : `Desde ${dateRange.from}`
@@ -671,41 +705,41 @@ export default function OrdenesPage() {
                                             <Calendar className="w-3.5 h-3.5 ml-2 opacity-50" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-auto p-4 bg-slate-800 border-slate-700" align="end">
-                                        <DropdownMenuLabel className="text-slate-200 mb-2">Filtrar por Rango</DropdownMenuLabel>
+                                    <DropdownMenuContent className="w-auto p-4 bg-white border-slate-200" align="end">
+                                        <DropdownMenuLabel className="text-slate-700 mb-2">Filtrar por Rango</DropdownMenuLabel>
                                         <div className="flex flex-col gap-3">
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div className="space-y-1">
-                                                    <label className="text-xs text-slate-400">Desde</label>
+                                                    <label className="text-xs text-slate-600">Desde</label>
                                                     <Input
                                                         type="date"
                                                         value={dateRange.from}
                                                         onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-                                                        className="bg-slate-900 border-slate-700 h-8 text-xs"
+                                                        className="bg-white border-slate-200 h-8 text-xs text-slate-900"
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-xs text-slate-400">Hasta</label>
+                                                    <label className="text-xs text-slate-600">Hasta</label>
                                                     <Input
                                                         type="date"
                                                         value={dateRange.to}
                                                         onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-                                                        className="bg-slate-900 border-slate-700 h-8 text-xs"
+                                                        className="bg-white border-slate-200 h-8 text-xs text-slate-900"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
-                                                <Button size="sm" variant="outline" className="text-xs border-slate-600 hover:bg-slate-700 h-7" onClick={() => {
+                                                <Button size="sm" variant="outline" className="text-xs border-slate-200 hover:bg-slate-100 text-slate-700 h-7" onClick={() => {
                                                     const today = new Date().toISOString().split('T')[0];
                                                     setDateRange({ from: today, to: today });
                                                 }}>Hoy</Button>
-                                                <Button size="sm" variant="outline" className="text-xs border-slate-600 hover:bg-slate-700 h-7" onClick={() => {
+                                                <Button size="sm" variant="outline" className="text-xs border-slate-200 hover:bg-slate-100 text-slate-700 h-7" onClick={() => {
                                                     const today = new Date();
                                                     const prev = new Date(today);
                                                     prev.setDate(prev.getDate() - 7);
                                                     setDateRange({ from: prev.toISOString().split('T')[0], to: today.toISOString().split('T')[0] });
                                                 }}>7 Días</Button>
-                                                <Button size="sm" variant="outline" className="text-xs border-slate-600 hover:bg-slate-700 h-7" onClick={() => {
+                                                <Button size="sm" variant="outline" className="text-xs border-slate-200 hover:bg-slate-100 text-slate-700 h-7" onClick={() => {
                                                     const today = new Date();
                                                     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
                                                     setDateRange({ from: firstDay.toISOString().split('T')[0], to: today.toISOString().split('T')[0] });
@@ -741,11 +775,11 @@ export default function OrdenesPage() {
             </Card>
 
             {/* Orders Table/List */}
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-white border-slate-200 shadow-sm">
                 <CardHeader>
-                    <CardTitle className="text-white flex justify-between items-center">
+                    <CardTitle className="text-slate-900 flex justify-between items-center">
                         <span>{filteredOrders.length} orden{filteredOrders.length !== 1 ? 'es' : ''} mostradas</span>
-                        <span className="text-sm text-slate-400 font-normal">Total: {totalOrdersCount}</span>
+                        <span className="text-sm text-slate-500 font-normal">Total: {totalOrdersCount}</span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -753,19 +787,19 @@ export default function OrdenesPage() {
                     <div className="hidden md:block">
                         <Table>
                             <TableHeader>
-                                <TableRow className="border-slate-700 hover:bg-transparent">
-                                    <TableHead className="text-slate-300 cursor-pointer hover:text-white" onClick={() => handleSort('patente_vehiculo')}>
+                                <TableRow className="border-slate-200 hover:bg-transparent">
+                                    <TableHead className="text-slate-700 font-semibold cursor-pointer hover:text-blue-600" onClick={() => handleSort('patente_vehiculo')}>
                                         <div className="flex items-center">Patente <SortIcon column="patente_vehiculo" /></div>
                                     </TableHead>
-                                    <TableHead className="text-slate-300">Vehículo</TableHead>
-                                    <TableHead className="text-slate-300">Motivo</TableHead>
-                                    <TableHead className="text-slate-300 cursor-pointer hover:text-white" onClick={() => handleSort('asignado_a')}>
+                                    <TableHead className="text-slate-700 font-semibold">Vehículo</TableHead>
+                                    <TableHead className="text-slate-700 font-semibold">Motivo</TableHead>
+                                    <TableHead className="text-slate-700 font-semibold cursor-pointer hover:text-blue-600" onClick={() => handleSort('asignado_a')}>
                                         <div className="flex items-center">Asignado <SortIcon column="asignado_a" /></div>
                                     </TableHead>
-                                    <TableHead className="text-slate-300 cursor-pointer hover:text-white" onClick={() => handleSort('estado')}>
+                                    <TableHead className="text-slate-700 font-semibold cursor-pointer hover:text-blue-600" onClick={() => handleSort('estado')}>
                                         <div className="flex items-center">Estado <SortIcon column="estado" /></div>
                                     </TableHead>
-                                    <TableHead className="text-slate-300 w-[80px]"></TableHead>
+                                    <TableHead className="text-slate-700 w-[80px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -775,35 +809,35 @@ export default function OrdenesPage() {
                                     return (
                                         <Fragment key={order.id}>
                                             <TableRow
-                                                className={`border-slate-700 hover:bg-slate-700/30 cursor-pointer ${hasDebt(order) ? 'bg-red-900/10 border-l-4 border-l-red-500' : ''} ${isExpanded ? 'bg-slate-700/50' : ''}`}
+                                                className={`border-slate-200 hover:bg-slate-50 cursor-pointer ${hasDebt(order) ? 'bg-red-50 border-l-4 border-l-red-500' : ''} ${isExpanded ? 'bg-slate-50' : ''}`}
                                                 onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
                                             >
-                                                <TableCell className="font-mono text-white">
+                                                <TableCell className="font-mono text-slate-900">
                                                     <div className="flex items-center gap-1.5">
                                                         <div className="font-bold text-sm">{order.patente_vehiculo}</div>
-                                                        {hasDebt(order) && <span className="text-red-400 text-xs">💳</span>}
+                                                        {hasDebt(order) && <span className="text-red-500 text-xs">💳</span>}
                                                     </div>
 
-                                                    <div className="text-xs text-slate-400 truncate max-w-[100px]">
-                                                        {order.vehiculos?.clientes?.nombre_completo || order.cliente_nombre || 'Cliente S/R'}
+                                                    <div className="text-xs text-slate-700 font-medium truncate max-w-[100px]">
+                                                        {order.cliente?.nombre_completo || order.cliente_nombre || 'Cliente S/R'}
                                                     </div>
-                                                    <div className="text-xs text-slate-500 truncate max-w-[100px]">
-                                                        {order.vehiculos?.clientes?.telefono || order.cliente_telefono}
+                                                    <div className="text-xs text-slate-600 truncate max-w-[100px]">
+                                                        {order.cliente?.telefono || order.cliente_telefono}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-slate-300">
+                                                <TableCell className="text-slate-700">
                                                     <div className="text-sm truncate max-w-[140px]">
                                                         {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-'}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-slate-300" title={getCleanMotivo(order.descripcion_ingreso)}>
+                                                <TableCell className="text-slate-700" title={getCleanMotivo(order.descripcion_ingreso)}>
                                                     <div className="text-sm truncate max-w-[180px]">
                                                         {getCleanMotivo(order.descripcion_ingreso)}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-slate-300">
+                                                <TableCell className="text-slate-700">
                                                     <div className="text-sm truncate max-w-[100px]">
-                                                        {order.perfiles_asignado ? order.perfiles_asignado.nombre_completo : (order.perfiles_creado ? order.perfiles_creado.nombre_completo : 'Sin asignar')}
+                                                        {order.asignado ? order.asignado.nombre_completo : 'Sin asignar'}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
@@ -1065,6 +1099,16 @@ export default function OrdenesPage() {
                                                                         Lista de Chequeo
                                                                     </h3>
                                                                     <div className="flex gap-2">
+                                                                        <Link href={`/tracking/${order.id}`} target="_blank" prefetch={false}>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                className="h-8 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700"
+                                                                            >
+                                                                                <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                                                                Ver Tracking
+                                                                            </Button>
+                                                                        </Link>
                                                                         <Button
                                                                             size="sm"
                                                                             variant="outline"
@@ -1106,20 +1150,59 @@ export default function OrdenesPage() {
 
                                                                                 const isReviewed = !!checklist.revisado_por_mecanico_at;
 
+                                                                                const isSalidaConfirmed = !!checklist.confirmado_salida_en;
+
                                                                                 if (isReviewed) {
                                                                                     // State 2: Informed -> Exit Checklist
+                                                                                    // ADDED: Logic to show 'Finish Work' if status is 'en_proceso'
+                                                                                    const isEnProceso = order.estado === 'en_proceso';
+                                                                                    // ADDED: Logic to show 'Start Work' if status is 'pendiente' (Fix for stuck orders)
+                                                                                    const isPendiente = order.estado === 'pendiente';
+
                                                                                     return (
                                                                                         <div className="text-center space-y-2">
                                                                                             <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-1">
                                                                                                 <CheckCircle className="w-4 h-4" />
-                                                                                                Ingreso Revisado
+                                                                                                {isSalidaConfirmed ? 'Salida Revisada' : 'Ingreso Revisado'}
                                                                                             </div>
-                                                                                            <Button
-                                                                                                onClick={() => handleOpenChecklist(order.id, 'salida')}
-                                                                                                className="bg-emerald-600 hover:bg-emerald-500 text-white w-full sm:w-auto"
-                                                                                            >
-                                                                                                ✅ Checklist Salida / Editar
-                                                                                            </Button>
+
+                                                                                            {isPendiente && (
+                                                                                                <Button
+                                                                                                    onClick={(e) => {
+                                                                                                        e.stopPropagation();
+                                                                                                        handleUpdateStatus(order.id, 'en_proceso');
+                                                                                                    }}
+                                                                                                    className="bg-indigo-600 hover:bg-indigo-500 text-white w-full sm:w-auto mb-2 animate-pulse"
+                                                                                                >
+                                                                                                    🛠️ Empezar Reparación
+                                                                                                </Button>
+                                                                                            )}
+
+                                                                                            {isEnProceso && (
+                                                                                                <Button
+                                                                                                    onClick={(e) => {
+                                                                                                        e.stopPropagation();
+                                                                                                        handleUpdateStatus(order.id, 'completada');
+                                                                                                    }}
+                                                                                                    className="bg-blue-600 hover:bg-blue-500 text-white w-full sm:w-auto mb-2"
+                                                                                                >
+                                                                                                    🏁 Terminar Trabajo
+                                                                                                </Button>
+                                                                                            )}
+
+                                                                                            {/* Show Checklist Salida only if NOT en_proceso (so it shows after completion or before if needed, but mainly after) 
+                                                                                                Actually, usually you do checklist BEFORE completion or AFTER? 
+                                                                                                User said "trabajaremos con el boton terminar trabajo". 
+                                                                                                So let's show it only if Completada OR if it's not en_proceso to clean up UI. 
+                                                                                            */}
+                                                                                            {!isEnProceso && !isPendiente && (
+                                                                                                <Button
+                                                                                                    onClick={() => handleOpenChecklist(order.id, 'salida')}
+                                                                                                    className="bg-emerald-600 hover:bg-emerald-500 text-white w-full sm:w-auto"
+                                                                                                >
+                                                                                                    ✅ Checklist Salida / Entrega
+                                                                                                </Button>
+                                                                                            )}
                                                                                         </div>
                                                                                     );
                                                                                 } else {
@@ -1174,14 +1257,14 @@ export default function OrdenesPage() {
                                                     </p>
                                                     {hasDebt(order) && <span className="text-red-400 text-xs flex-shrink-0">💳</span>}
                                                 </div>
-                                                {order.cliente_nombre && (
+                                                {order.cliente?.nombre_completo && (
                                                     <p className="text-xs text-blue-400 truncate">
-                                                        {order.cliente_nombre}
+                                                        {order.cliente.nombre_completo}
                                                     </p>
                                                 )}
-                                                {order.cliente_telefono && (
+                                                {order.cliente?.telefono && (
                                                     <p className="text-xs text-slate-500 truncate">
-                                                        {order.cliente_telefono}
+                                                        {order.cliente.telefono}
                                                     </p>
                                                 )}
                                                 <p className="text-xs text-slate-500 truncate">
@@ -1303,7 +1386,7 @@ export default function OrdenesPage() {
                             <ChecklistForm
                                 orderId={checklistDialog.orderId}
                                 onClose={handleChecklistClose}
-                                initialData={checklists[parseInt(checklistDialog.orderId)]}
+                                initialData={checklists[checklistDialog.orderId]}
                                 mode={checklistDialog.mode}
                             />
                         )}

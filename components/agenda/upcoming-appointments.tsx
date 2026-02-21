@@ -74,14 +74,14 @@ export function UpcomingAppointments() {
     const todayCount = upcoming.filter(c => c.minutesUntil < 1440).length; // < 24h approximation
 
     return (
-        <Card className="bg-slate-900/50 border-slate-800 p-0 overflow-hidden mb-6">
+        <Card className="bg-white border-slate-200 p-0 overflow-hidden mb-6 shadow-sm">
             <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="citas" className="border-b-0">
-                    <AccordionTrigger className="px-4 py-3 hover:bg-slate-800/50 hover:no-underline rounded-lg transition-all">
+                    <AccordionTrigger className="px-4 py-3 hover:bg-slate-50 hover:no-underline rounded-lg transition-all">
                         <div className="flex items-center gap-3 w-full">
                             <div className="flex items-center gap-2">
-                                <Clock className="w-5 h-5 text-blue-500" />
-                                <span className="font-semibold text-white">Próximas Citas</span>
+                                <Clock className="w-5 h-5 text-blue-600" />
+                                <span className="font-semibold text-slate-900">Próximas Citas</span>
                             </div>
 
                             <div className="flex gap-2 ml-auto mr-2">
@@ -97,7 +97,7 @@ export function UpcomingAppointments() {
                         </div>
                     </AccordionTrigger>
 
-                    <AccordionContent className="px-4 pb-4 pt-1 bg-slate-950/30">
+                    <AccordionContent className="px-4 pb-4 pt-1 bg-slate-50">
                         {upcoming.length === 0 ? (
                             <div className="text-center py-8 text-slate-500">
                                 No hay citas próximas
@@ -107,16 +107,16 @@ export function UpcomingAppointments() {
                                 {upcoming.slice(0, 6).map((cita) => (
                                     <div
                                         key={cita.id}
-                                        className="bg-slate-900 border border-slate-800 rounded-lg p-3 flex flex-col justify-between group hover:border-blue-500/30 transition-all"
+                                        className="bg-white border border-slate-200 rounded-lg p-3 flex flex-col justify-between group hover:border-blue-400/50 transition-all shadow-sm"
                                     >
                                         <div>
                                             <div className="flex justify-between items-start mb-1">
-                                                <span className="text-slate-200 font-medium truncate block max-w-[140px]">
+                                                <span className="text-slate-900 font-medium truncate block max-w-[140px]">
                                                     {cita.cliente_nombre}
                                                 </span>
-                                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${cita.minutesUntil < 0 ? 'bg-red-900/30 text-red-400' :
-                                                    cita.minutesUntil < 60 ? 'bg-amber-900/30 text-amber-400' :
-                                                        'bg-slate-800 text-slate-400'
+                                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${cita.minutesUntil < 0 ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                    cita.minutesUntil < 60 ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                                                        'bg-slate-100 text-slate-600'
                                                     }`}>
                                                     {cita.minutesUntil < 0 ? 'Atrasada' :
                                                         cita.minutesUntil < 60 ? `${cita.minutesUntil}min` :
@@ -125,23 +125,26 @@ export function UpcomingAppointments() {
                                             </div>
 
                                             <div className="flex items-center gap-2 mb-2">
-                                                <div className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 font-mono">
+                                                <div className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-500 font-mono">
                                                     {cita.patente_vehiculo || '---'}
                                                 </div>
-                                                <div className="text-xs text-slate-500 truncate flex-1">
+                                                <div className="text-xs text-slate-600 truncate flex-1">
                                                     {cita.titulo || 'Servicio'}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <Button
-                                            size="sm"
-                                            className="w-full h-7 text-xs bg-blue-600/90 hover:bg-blue-600 text-white mt-1"
-                                            onClick={() => router.push(`/recepcion?citaId=${cita.id}`)}
-                                        >
-                                            <CheckCircle2 className="w-3 h-3 mr-1.5" />
-                                            Recibir
-                                        </Button>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="w-full h-8 text-xs border-slate-200 hover:bg-slate-50 text-slate-600"
+                                                onClick={() => router.push(`/recepcion?citaId=${cita.id}`)}
+                                            >
+                                                <CheckCircle2 className="w-3 h-3 mr-1.5" />
+                                                Recibir
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

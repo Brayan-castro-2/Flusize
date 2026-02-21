@@ -38,14 +38,14 @@ export function StatusChart({ orders }: StatusChartProps) {
     const total = chartData.reduce((sum, item) => sum + item.value, 0);
 
     return (
-        <Card className="bg-slate-900/40 border-slate-700 p-6">
+        <Card className="bg-white border-slate-200 p-6 shadow-sm">
             <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-blue-500" />
+                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-blue-600" />
                     Distribución de Órdenes
                 </h3>
-                <p className="text-sm text-slate-400 mt-1">
-                    Total: <span className="font-bold text-white">{total}</span> órdenes
+                <p className="text-sm text-slate-500 mt-1">
+                    Total: <span className="font-bold text-slate-900">{total}</span> órdenes
                 </p>
             </div>
 
@@ -69,11 +69,13 @@ export function StatusChart({ orders }: StatusChartProps) {
                         </Pie>
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: '#1e293b',
-                                border: '1px solid #475569',
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #e2e8f0',
                                 borderRadius: '8px',
-                                color: '#fff',
+                                color: '#0f172a',
+                                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                             }}
+                            itemStyle={{ color: '#0f172a' }}
                         />
                         <Legend
                             wrapperStyle={{ fontSize: '14px' }}
@@ -82,7 +84,7 @@ export function StatusChart({ orders }: StatusChartProps) {
                     </PieChart>
                 </ResponsiveContainer>
             ) : (
-                <div className="h-[300px] flex items-center justify-center text-slate-500">
+                <div className="h-[300px] flex items-center justify-center text-slate-400">
                     No hay datos para mostrar
                 </div>
             )}

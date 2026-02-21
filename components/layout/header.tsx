@@ -68,7 +68,7 @@ export function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-[100] h-20 bg-gradient-to-r from-blue-500 to-cyan-400 shadow-md">
+        <header className="fixed top-0 left-0 z-[50] h-20 bg-gradient-to-r from-blue-500 to-cyan-400 shadow-xl w-full">
             <div className="h-full px-6 flex items-center justify-between max-w-7xl mx-auto">
                 {/* Logo FLUSIZE */}
                 <div className="flex items-center gap-4">

@@ -15,19 +15,19 @@ const isSupabase = () => getStorageMode() === 'supabase';
 
 // ============ VEHÍCULOS ============
 
-export async function buscarVehiculoPorPatente(patente: string): Promise<VehiculoDB | null> {
+export async function buscarVehiculoPorPatente(patente: string, tallerIdOverride?: string): Promise<VehiculoDB | null> {
     if (isSupabase()) {
         console.log('🔵 Usando Supabase para buscar vehículo');
-        return supabaseService.buscarVehiculoPorPatente(patente);
+        return supabaseService.buscarVehiculoPorPatente(patente, tallerIdOverride);
     }
     console.log('🟡 Usando localStorage para buscar vehículo');
     return localService.buscarVehiculoPorPatente(patente);
 }
 
-export async function crearVehiculo(vehiculo: Omit<VehiculoDB, 'fecha_creacion'>): Promise<VehiculoDB | null> {
+export async function crearVehiculo(vehiculo: Omit<VehiculoDB, 'fecha_creacion'>, tallerIdOverride?: string): Promise<VehiculoDB | null> {
     if (isSupabase()) {
         console.log('🔵 Usando Supabase para crear vehículo');
-        return supabaseService.crearVehiculo(vehiculo);
+        return supabaseService.crearVehiculo(vehiculo as any, tallerIdOverride);
     }
     console.log('🟡 Usando localStorage para crear vehículo');
     return localService.crearVehiculo(vehiculo);
@@ -74,64 +74,48 @@ export async function obtenerOrdenesHoy(): Promise<OrdenDB[]> {
     return localService.obtenerOrdenesHoy();
 }
 
-export async function obtenerOrdenPorId(id: number): Promise<OrdenDB | null> {
+export async function obtenerOrdenPorId(id: string | number): Promise<OrdenDB | null> {
     if (isSupabase()) {
         console.log('🔵 Usando Supabase para obtener orden por ID');
-        return supabaseService.obtenerOrdenPorId(id);
+        return supabaseService.obtenerOrdenPorId(String(id));
     }
     console.log('🟡 Usando localStorage para obtener orden por ID');
-    return localService.obtenerOrdenPorId(id);
+    return localService.obtenerOrdenPorId(String(id));
 }
 
-export async function crearOrden(orden: {
-    patente_vehiculo: string;
-    descripcion_ingreso: string;
-    creado_por: string;
-    estado?: 'pendiente' | 'en_progreso' | 'completada' | 'cancelada' | 'entregada' | 'debe';
-    fotos?: string[];
-    cliente_nombre?: string;
-    cliente_telefono?: string;
-    cliente_email?: string;
-    cliente_rut?: string;
-    vehiculo_marca?: string;
-    vehiculo_modelo?: string;
-    vehiculo_anio?: string;
-    vehiculo_motor?: string;
-    vehiculo_color?: string;
-    precio_total?: number;
-    metodo_pago?: string;
-    asignado_a?: string;
-    detalles_vehiculo?: string;
-    detalle_trabajos?: string;
-}): Promise<OrdenDB | null> {
+
+export async function crearOrden(orden: Omit<OrdenDB, 'id' | 'fecha_ingreso'>, tallerIdOverride?: string): Promise<OrdenDB | null> {
     if (isSupabase()) {
         console.log('🔵 Usando Supabase para crear orden');
-        return supabaseService.crearOrden(orden as any);
+        // @ts-ignore - Estructuras ligeramente diferentes entre local y supabase
+        return supabaseService.crearOrden(orden, tallerIdOverride);
     }
     console.log('🟡 Usando localStorage para crear orden');
     return localService.crearOrden(orden);
 }
 
 export async function actualizarOrden(
-    id: number,
+    id: string | number,
     updates: Partial<Omit<OrdenDB, 'id' | 'fecha_ingreso'>>
 ): Promise<OrdenDB | null> {
     if (isSupabase()) {
         console.log('🔵 Usando Supabase para actualizar orden');
-        return supabaseService.actualizarOrden(id, updates);
+        return supabaseService.actualizarOrden(String(id), updates as any);
     }
     console.log('🟡 Usando localStorage para actualizar orden');
-    return localService.actualizarOrden(id, updates);
+    return localService.actualizarOrden(String(id), updates);
 }
 
-export async function eliminarOrden(id: number): Promise<boolean> {
+export async function eliminarOrden(id: string | number): Promise<boolean> {
     if (isSupabase()) {
         console.log('🔵 Usando Supabase para eliminar orden');
-        return supabaseService.eliminarOrden(id);
+        return supabaseService.eliminarOrden(String(id));
     }
     console.log('🟡 Usando localStorage para eliminar orden');
-    return localService.eliminarOrden(id);
+    return localService.eliminarOrden(String(id));
 }
+
+
 
 // ============ PERFILES/USUARIOS ============
 
@@ -207,44 +191,44 @@ export async function obtenerSesionActual(): Promise<{
 
 export async function obtenerCitas(): Promise<CitaDB[]> {
     if (isSupabase()) {
-        return supabaseService.obtenerCitas();
+        return supabaseService.obtenerCitas() as unknown as CitaDB[];
     }
     return localService.obtenerCitas();
 }
 
 export async function obtenerCitasHoy(): Promise<CitaDB[]> {
     if (isSupabase()) {
-        return supabaseService.obtenerCitasHoy();
+        return supabaseService.obtenerCitasHoy() as unknown as CitaDB[];
     }
     return localService.obtenerCitasHoy();
 }
 
 export async function obtenerCitasSemana(startDate: Date, endDate: Date): Promise<CitaDB[]> {
     if (isSupabase()) {
-        return supabaseService.obtenerCitasSemana(startDate, endDate);
+        return supabaseService.obtenerCitasSemana(startDate, endDate) as unknown as CitaDB[];
     }
     return localService.obtenerCitasSemana(startDate, endDate);
 }
 
 export async function crearCita(cita: Omit<CitaDB, 'id' | 'creado_en' | 'actualizado_en'>): Promise<CitaDB | null> {
     if (isSupabase()) {
-        return supabaseService.crearCita(cita);
+        return supabaseService.crearCita(cita) as unknown as CitaDB;
     }
     return localService.crearCita(cita);
 }
 
-export async function actualizarCita(id: number, updates: Partial<Omit<CitaDB, 'id' | 'creado_en'>>): Promise<CitaDB | null> {
+export async function actualizarCita(id: string | number, updates: Partial<Omit<CitaDB, 'id' | 'creado_en'>>): Promise<CitaDB | null> {
     if (isSupabase()) {
-        return supabaseService.actualizarCita(id, updates);
+        return supabaseService.actualizarCita(String(id), updates) as unknown as CitaDB;
     }
-    return localService.actualizarCita(id, updates);
+    return localService.actualizarCita(String(id), updates);
 }
 
-export async function eliminarCita(id: number): Promise<boolean> {
+export async function eliminarCita(id: string | number): Promise<boolean> {
     if (isSupabase()) {
-        return supabaseService.eliminarCita(id);
+        return supabaseService.eliminarCita(String(id));
     }
-    return localService.eliminarCita(id);
+    return localService.eliminarCita(String(id));
 }
 
 // ============ INICIALIZACIÓN ============
@@ -349,7 +333,7 @@ export async function subirImagenChecklist(file: File, ordenId: string, tipo: st
 }
 
 export async function confirmarRevisionIngreso(
-    orderId: string,
+    id: string, // Can be OrderId or ChecklistId
     datosSalida?: {
         detalles_salida: any,
         fotos_salida: any,
@@ -357,32 +341,22 @@ export async function confirmarRevisionIngreso(
     }
 ): Promise<any> {
     if (isSupabase()) {
-        // En supabase-service espera el ID del checklist (number), pero aquí recibimos orderId (string).
-        // Necesitamos buscar el ID del checklist primero o asumir que orderId es el checklistID (lo cual es riesgoso).
-        // V3: `obtenerChecklist` devuelve el objeto con ID.
-        // Mejor approach: `guardarChecklist` devuelve el ID.
-        // Pero `checklist-form` probablemente tenga el ID en `initialData`.
-        // Vamos a asumir que el caller pasa el ID correcto si es number, o buscamos por orden.
+        let idChecklist = id;
 
-        // Fix: Determine if we have a checklist ID (UUID) or Order ID (Number)
-        let idChecklist = orderId;
+        // 1. Try to find if 'id' is an Order ID that has a checklist
+        // We do this by query because both are UUIDs now.
+        const checklist = await supabaseService.obtenerChecklist(id);
 
-        // If it looks like a number (Order ID) and NOT a UUID, verify/fetch correct checklist ID
-        // UUIDs contain hyphens. Order IDs are usually integers.
-        const isUuid = orderId.toString().includes('-');
-
-        if (!isUuid) {
-            // Assume it's an Order ID, find the checklist
-            const checklist = await supabaseService.obtenerChecklist(orderId);
-            if (checklist) {
-                idChecklist = checklist.id;
-            } else {
-                console.warn(`⚠️ No se encontró checklist para orden ${orderId}, intentando usar ID directo.`);
-            }
+        if (checklist && checklist.id) {
+            console.log(`✅ [Storage] ID ${id} es Order ID. Usando Checklist ID: ${checklist.id}`);
+            idChecklist = checklist.id;
+        } else {
+            console.log(`⚠️ [Storage] No se encontró checklist para Order ID ${id}. Asumiendo que ES el Checklist ID.`);
+            // Fallback: The ID passed might be the checklist ID itself
         }
 
         return supabaseService.confirmarRevisionIngreso(idChecklist, datosSalida);
     }
-    console.log('🟡 [Storage] Confirmando revisión mock:', orderId, datosSalida);
+    console.log('🟡 [Storage] Confirmando revisión mock:', id, datosSalida);
     return { success: true };
 }

@@ -4,6 +4,7 @@ import './globals.css'
 import 'leaflet/dist/leaflet.css'
 import { AuthProvider } from '@/contexts/auth-context'
 import { QueryProvider } from '@/contexts/query-provider'
+import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -58,6 +59,7 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             {children}
+            <Toaster />
           </AuthProvider>
         </QueryProvider>
       </body>

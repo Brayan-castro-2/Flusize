@@ -9,7 +9,9 @@ import {
     LayoutDashboard,
     Users,
     FileText,
-    Calendar
+
+    Calendar,
+    Database
 } from 'lucide-react';
 import { NewBadge } from '@/components/ui/new-badge';
 import { FEATURE_FLAGS } from '@/config/modules';
@@ -61,6 +63,7 @@ const navItems: NavItem[] = [
         roles: ['admin'],
         showBadge: false, // Could be true if we track new customers
     },
+
 ];
 
 export function Sidebar() {

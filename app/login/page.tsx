@@ -70,9 +70,9 @@ export default function LoginPage() {
             <div className="absolute top-6 left-6 z-10">
                 <Link
                     href="/"
-                    className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+                    className="flex items-center gap-2 text-slate-400 hover:text-cyan-400 transition-colors"
                 >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-5 h-5" />
                     <span className="text-sm font-medium">Volver al inicio</span>
                 </Link>
             </div>
@@ -188,3 +188,4 @@ export default function LoginPage() {
         </main>
     );
 }
+

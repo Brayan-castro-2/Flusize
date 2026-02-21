@@ -27,7 +27,8 @@ import {
     Crown,
     ArrowUpDown,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    AlertTriangle
 } from 'lucide-react';
 import { obtenerClientes } from '@/lib/storage-adapter';
 import type { ClienteWithStats, VehiculoDB } from '@/lib/storage-adapter';
@@ -169,7 +170,32 @@ export default function ClientesPage() {
         const active = clientes.filter(c => c.total_ordenes > 0).length;
         const totalRevenue = clientes.reduce((acc, c) => acc + c.total_gastado, 0);
 
-        return { total, active, totalRevenue };
+        // Calcular deuda total: órdenes donde metodo_pago contiene 'debe'
+        let totalDebt = 0;
+        clientes.forEach(c => {
+            if (c.vehiculos) {
+                c.vehiculos.forEach((v: any) => {
+                    if (v.ordenes) {
+                        v.ordenes.forEach((o: any) => {
+                            if (o.metodo_pago?.includes('debe')) {
+                                // New logic: try to use the detailed metodos_pago array
+                                if (o.metodos_pago && Array.isArray(o.metodos_pago)) {
+                                    const amountDebe = o.metodos_pago
+                                        .filter((mp: any) => mp.metodo === 'debe')
+                                        .reduce((sum: number, mp: any) => sum + (mp.monto || 0), 0);
+                                    totalDebt += amountDebe;
+                                } else {
+                                    // Legacy fallback
+                                    totalDebt += (o.precio_total || 0);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        return { total, active, totalRevenue, totalDebt };
     }, [clientes]);
 
     // Handle Search
@@ -207,31 +233,31 @@ export default function ClientesPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-slate-900/50 border-slate-800 p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                        <Users className="w-6 h-6 text-blue-500" />
+                <Card className="bg-slate-900/60 border-slate-800 p-4 flex items-center gap-4 hover:border-blue-500/50 transition-colors group">
+                    <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+                        <Users className="w-6 h-6 text-blue-400" />
                     </div>
                     <div>
-                        <p className="text-slate-400 text-sm">Total Clientes</p>
-                        <p className="text-2xl font-bold text-white">{kpis.total}</p>
+                        <p className="text-blue-400/80 text-xs font-semibold uppercase tracking-wider mb-0.5">Total Clientes</p>
+                        <p className="text-3xl font-bold text-white leading-none">{kpis.total}</p>
                     </div>
                 </Card>
-                <Card className="bg-slate-900/50 border-slate-800 p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                        <TrendingUp className="w-6 h-6 text-emerald-500" />
+                <Card className="bg-slate-900/60 border-slate-800 p-4 flex items-center gap-4 hover:border-emerald-500/50 transition-colors group">
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+                        <TrendingUp className="w-6 h-6 text-emerald-400" />
                     </div>
                     <div>
-                        <p className="text-slate-400 text-sm">Clientes Activos</p>
-                        <p className="text-2xl font-bold text-white">{kpis.active}</p>
+                        <p className="text-emerald-400/80 text-xs font-semibold uppercase tracking-wider mb-0.5">Clientes Activos</p>
+                        <p className="text-3xl font-bold text-white leading-none">{kpis.active}</p>
                     </div>
                 </Card>
-                <Card className="bg-slate-900/50 border-slate-800 p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                        <Wallet className="w-6 h-6 text-purple-500" />
+                <Card className="bg-slate-900/60 border-slate-800 p-4 flex items-center gap-4 hover:border-red-500/50 transition-colors group">
+                    <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center group-hover:bg-red-500/30 transition-colors">
+                        <AlertTriangle className="w-6 h-6 text-red-400" />
                     </div>
                     <div>
-                        <p className="text-slate-400 text-sm">Ingresos Totales (CRM)</p>
-                        <p className="text-2xl font-bold text-white">{formatCurrency(kpis.totalRevenue)}</p>
+                        <p className="text-red-400/80 text-xs font-semibold uppercase tracking-wider mb-0.5">Deuda Total</p>
+                        <p className="text-3xl font-bold text-red-500 leading-none">{formatCurrency(kpis.totalDebt)}</p>
                     </div>
                 </Card>
             </div>
@@ -240,12 +266,12 @@ export default function ClientesPage() {
             <Card className="bg-slate-900/50 border-slate-800 p-4">
                 <form onSubmit={handleSearch} className="flex gap-2">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500/50" />
                         <Input
-                            placeholder="Buscar por nombre, RUT, email..."
+                            placeholder="Buscar por nombre, RUT, patente o email..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-slate-950 border-slate-800 pl-9 text-white placeholder:text-slate-600 focus-visible:ring-blue-500"
+                            className="bg-slate-950 border-slate-800 pl-9 text-white placeholder:text-slate-500 focus-visible:ring-blue-500 transition-all border-b-2 focus:border-b-blue-500"
                         />
                     </div>
                     <Button type="submit" variant="secondary" className="border-slate-700 hover:bg-slate-800">
@@ -329,34 +355,34 @@ export default function ClientesPage() {
                         <div className="hidden md:block bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm text-slate-400">
-                                    <thead className="bg-[#0f172a] text-slate-200 uppercase font-medium border-b border-slate-800">
+                                    <thead className="bg-[#0f172a] text-blue-100 uppercase font-bold text-[11px] tracking-widest border-b border-slate-800">
                                         <tr>
                                             <th className="px-6 py-4 cursor-pointer hover:text-blue-400 group" onClick={() => handleSort('nombre_completo')}>
                                                 <div className="flex items-center gap-1">
-                                                    Cliente
-                                                    <ArrowUpDown className="w-3 h-3 text-slate-600 group-hover:text-blue-400" />
+                                                    CLIENTE
+                                                    <ArrowUpDown className="w-3 h-3 text-blue-500/50 group-hover:text-blue-400" />
                                                 </div>
                                             </th>
                                             <th className="px-6 py-4 cursor-pointer hover:text-blue-400 group" onClick={() => handleSort('telefono')}>
                                                 <div className="flex items-center gap-1">
-                                                    Contacto
-                                                    <ArrowUpDown className="w-3 h-3 text-slate-600 group-hover:text-blue-400" />
+                                                    CONTACTO
+                                                    <ArrowUpDown className="w-3 h-3 text-blue-500/50 group-hover:text-blue-400" />
                                                 </div>
                                             </th>
                                             <th className="px-6 py-4 cursor-pointer hover:text-blue-400 group" onClick={() => handleSort('total_gastado')}>
                                                 <div className="flex items-center gap-1">
-                                                    Estadísticas
-                                                    <ArrowUpDown className="w-3 h-3 text-slate-600 group-hover:text-blue-400" />
+                                                    ESTADÍSTICAS
+                                                    <ArrowUpDown className="w-3 h-3 text-blue-500/50 group-hover:text-blue-400" />
                                                 </div>
                                             </th>
                                             <th className="px-6 py-4 cursor-pointer hover:text-blue-400 group" onClick={() => handleSort('tipo')}>
                                                 <div className="flex items-center gap-1">
-                                                    Tipo
-                                                    <ArrowUpDown className="w-3 h-3 text-slate-600 group-hover:text-blue-400" />
+                                                    TIPO
+                                                    <ArrowUpDown className="w-3 h-3 text-blue-500/50 group-hover:text-blue-400" />
                                                 </div>
                                             </th>
-                                            <th className="px-6 py-4">Estado</th>
-                                            <th className="px-6 py-4 text-right">Acciones</th>
+                                            <th className="px-6 py-4 text-blue-100/70">ESTADO</th>
+                                            <th className="px-6 py-4 text-right text-blue-100/70">ACCIONES</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-800/50">
@@ -480,20 +506,20 @@ export default function ClientesPage() {
                                                                     <TabsContent value="datos" className="space-y-4">
                                                                         <div className="grid grid-cols-2 gap-4">
                                                                             <div>
-                                                                                <label className="text-xs text-slate-500 uppercase tracking-wider">Email</label>
-                                                                                <p className="text-slate-300">{cliente.email || 'No registrado'}</p>
+                                                                                <label className="text-[10px] text-blue-400/70 font-bold uppercase tracking-widest">Email</label>
+                                                                                <p className="text-white font-medium">{cliente.email || 'No registrado'}</p>
                                                                             </div>
                                                                             <div>
-                                                                                <label className="text-xs text-slate-500 uppercase tracking-wider">Teléfono</label>
-                                                                                <p className="text-slate-300">{cliente.telefono || 'No registrado'}</p>
+                                                                                <label className="text-[10px] text-blue-400/70 font-bold uppercase tracking-widest">Teléfono</label>
+                                                                                <p className="text-white font-medium">{cliente.telefono || 'No registrado'}</p>
                                                                             </div>
                                                                             <div>
-                                                                                <label className="text-xs text-slate-500 uppercase tracking-wider">Dirección</label>
-                                                                                <p className="text-slate-300">{cliente.direccion || 'No registrada'}</p>
+                                                                                <label className="text-[10px] text-blue-400/70 font-bold uppercase tracking-widest">Dirección</label>
+                                                                                <p className="text-white font-medium">{cliente.direccion || 'No registrada'}</p>
                                                                             </div>
                                                                             <div>
-                                                                                <label className="text-xs text-slate-500 uppercase tracking-wider">Notas</label>
-                                                                                <p className="text-slate-300">{cliente.notas || '-'}</p>
+                                                                                <label className="text-[10px] text-blue-400/70 font-bold uppercase tracking-widest">Notas</label>
+                                                                                <p className="text-slate-300 italic">{cliente.notas || '-'}</p>
                                                                             </div>
                                                                         </div>
                                                                     </TabsContent>

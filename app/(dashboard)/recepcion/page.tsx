@@ -348,7 +348,8 @@ function RecepcionContent() {
         try {
             // 1. Primero buscar en localStorage
             console.log(`[Búsqueda] Paso 1: Buscando ${p} en localStorage...`);
-            const vehiculoLocal = await buscarVehiculoPorPatente(p);
+            // Pass user.tallerId explicitly to bypass server-side cookie check
+            const vehiculoLocal = await buscarVehiculoPorPatente(p, user?.tallerId);
             if (vehiculoLocal) {
                 console.log(`[Búsqueda] ✅ Encontrado en BD:`, vehiculoLocal);
 
@@ -695,7 +696,7 @@ function RecepcionContent() {
             alert('Por favor ingresa el Modelo del vehículo.');
             return;
         }
-        if (!anio || anio.trim() === '') {
+        if (!anio || String(anio).trim() === '') {
             alert('Por favor ingresa el Año del vehículo.');
             return;
         }
@@ -722,16 +723,16 @@ function RecepcionContent() {
                 cliente_rut: clienteRut || undefined,
 
                 // Vehicle Data (for auto-creation)
-                vehiculo_marca: marca.trim(),
-                vehiculo_modelo: modelo.trim(),
-                vehiculo_anio: anio.trim(),
-                vehiculo_motor: motor?.trim() || undefined,
+                vehiculo_marca: String(marca).trim(),
+                vehiculo_modelo: String(modelo).trim(),
+                vehiculo_anio: String(anio).trim(),
+                vehiculo_motor: motor ? String(motor).trim() : undefined,
                 vehiculo_color: '-',
 
                 precio_total: total || undefined,
                 fotos: fotos.length ? fotos : undefined,
                 detalles_vehiculo: detallesVehiculo.trim() || undefined,
-            });
+            } as any, user?.tallerId);
 
             const currentCitaId = searchParams.get('citaId');
 

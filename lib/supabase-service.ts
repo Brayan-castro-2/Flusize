@@ -6,8 +6,8 @@ import { getCurrentUserTallerId } from './auth-helpers';
 // ============ VEHÍCULOS ============
 
 // Buscar vehículo por patente (la función "mágica") - MULTI-TENANT
-export async function buscarVehiculoPorPatente(patente: string): Promise<VehiculoDB | null> {
-    const tallerId = await getCurrentUserTallerId();
+export async function buscarVehiculoPorPatente(patente: string, tallerIdOverride?: string): Promise<VehiculoDB | null> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) {
         console.error('❌ Usuario sin taller asignado');
         return null;
@@ -15,10 +15,15 @@ export async function buscarVehiculoPorPatente(patente: string): Promise<Vehicul
 
     const patenteNormalizada = patente.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
+    // Estrategia: Buscar Local PRIMERO (Lectura Legacy)
+    // Si quisiéramos migrar lectura, buscaríamos en Global y luego enriqueceríamos con Local (cliente_id).
+    // Por ahora, mantenemos Lectura Local para no romper UI.
+
     const { data, error } = await supabase
         .from('vehiculos')
         .select(`
             *,
+            anio: ano,
             clientes (*)
         `)
         .eq('patente', patenteNormalizada)
@@ -26,30 +31,85 @@ export async function buscarVehiculoPorPatente(patente: string): Promise<Vehicul
         .maybeSingle();
 
     if (error || !data) {
-        console.log('Vehículo no encontrado:', error?.message);
+        console.log('Vehículo no encontrado (Local):', error?.message);
         return null;
     }
 
     return data;
 }
 
-// Crear nuevo vehículo (o actualizar si ya existe) - MULTI-TENANT
-export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_rut?: string }): Promise<VehiculoDB | null> {
-    const tallerId = await getCurrentUserTallerId();
+// INTERNAL HELPER: Ensure Hub (Global) Vehicle Exists (Spanish Schema)
+// Returns the Global ID
+async function _ensureGlobalVehicle(vehiculo: Partial<VehiculoDB>): Promise<string | null> {
+    const patenteUpper = vehiculo.patente?.toUpperCase().replace(/[^A-Z0-9]/g, '') || '';
+    if (!patenteUpper) return null;
+
+    console.log('🌍 Checking Global Vehicle (vehiculos_globales):', patenteUpper);
+
+    // 1. Check existence
+    const { data: existing, error: findError } = await supabase
+        .from('vehiculos_globales')
+        .select('id')
+        .eq('patente', patenteUpper)
+        .maybeSingle();
+
+    if (existing) {
+        console.log('🌍 Global Vehicle Found:', existing.id);
+        return existing.id;
+    }
+
+    // 2. Create if not exists
+    const anioInt = vehiculo.anio ? parseInt(vehiculo.anio.toString()) : null;
+
+    // Map to Spanish Schema
+    const payload = {
+        patente: patenteUpper,
+        marca: vehiculo.marca,
+        modelo: vehiculo.modelo,
+        anio: isNaN(anioInt!) ? null : anioInt,
+        vin: vehiculo.vin,
+        motor: vehiculo.motor,
+        // tipo_combustible: vehiculo.fuel_type, // If we had it
+        // datos_api: {},
+        // color: Not in Global Schema V4 (Spanish)
+    };
+
+    const { data: newGlobal, error: createError } = await supabase
+        .from('vehiculos_globales')
+        .insert([payload])
+        .select('id')
+        .single();
+
+    if (createError) {
+        console.error('❌ Error creating Global Vehicle:', createError);
+        return null;
+    }
+
+    console.log('🌍 Created Global Vehicle:', newGlobal.id);
+    return newGlobal.id;
+}
+
+// Crear nuevo vehículo (o actualizar si ya existe) - MULTI-TENANT (HUB & SPOKE ADAPTED)
+export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_rut?: string }, tallerIdOverride?: string): Promise<VehiculoDB | null> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) {
         console.error('❌ Usuario sin taller asignado');
         return null;
     }
 
     const patenteUpper = vehiculo.patente?.toUpperCase() || '';
+    console.log('🚗 Creating vehicle (Hub & Spoke Spanish):', vehiculo);
 
-    console.log('🚗 Creating vehicle (Supabase):', vehiculo);
+    // 1. Ensure Global Vehicle (Source of Truth)
+    const globalId = await _ensureGlobalVehicle(vehiculo);
+    if (!globalId) {
+        console.warn('⚠️ Could not sync with vehiculos_globales. Proceeding with Local only (Legacy Risk).');
+    }
 
-    // 1. Validate cliente_id (Required)
+    // 2. Validate cliente_id (Required for Local)
     let clienteId = vehiculo.cliente_id;
 
     if (!clienteId && vehiculo.cliente_rut) {
-        // Legacy/Fallback: Try to find client by RUT
         const cliente = await buscarClientePorRut(vehiculo.cliente_rut);
         if (cliente) {
             clienteId = cliente.id;
@@ -58,23 +118,25 @@ export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_ru
     }
 
     if (!clienteId) {
-        console.error('❌ Error: cliente_id is required to create a vehicle');
+        console.error('❌ Error: cliente_id is required to create a local vehicle link');
         return null;
     }
 
+    // 3. Sync to Local (Legacy Mirror)
     // Prepare payload with taller_id
     const vehiculoData = {
         patente: patenteUpper,
         marca: vehiculo.marca || 'Desconocida',
         modelo: vehiculo.modelo || 'Desconocido',
-        anio: vehiculo.anio || new Date().getFullYear().toString(),
+        ano: vehiculo.anio || new Date().getFullYear().toString(), // Legacy field 'ano' (string)
         motor: vehiculo.motor || null,
         color: vehiculo.color || '-',
+        vehiculo_global_id: globalId || null, // Hub Link
         cliente_id: clienteId,
         taller_id: tallerId
     };
 
-    console.log('📤 Sending to Supabase:', vehiculoData);
+    console.log('📤 Sending to Supabase Local:', vehiculoData);
 
     const { data, error } = await supabase
         .from('vehiculos')
@@ -82,17 +144,22 @@ export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_ru
             onConflict: 'patente',
             ignoreDuplicates: false
         })
-        .select()
+        .select(`
+            *,
+            anio: ano
+        `)
         .single();
 
     if (error) {
-        console.error('❌ Error creating/updating vehicle:', error);
-        return null; // Return null instead of throwing to avoid crashing UI if not handled
+        console.error('❌ Error creating/updating local vehicle:', error);
+        return null;
     }
 
-    console.log('✅ Vehicle saved:', data);
+    console.log('✅ Vehicle saved (Local Sync):', data);
     return data;
 }
+
+
 
 // Obtener todos los vehículos - MULTI-TENANT
 export async function obtenerVehiculos(): Promise<VehiculoDB[]> {
@@ -276,6 +343,7 @@ export async function crearCliente(cliente: Omit<ClienteDB, 'id' | 'fecha_creaci
 
 // Obtener todas las órdenes
 // Obtener todas las órdenes (con paginación opcional) - MULTI-TENANT
+// Obtener todas las órdenes (con paginación opcional) - MULTI-TENANT
 export async function obtenerOrdenes(limit?: number, offset?: number): Promise<OrdenDB[]> {
     const tallerId = await getCurrentUserTallerId();
     if (!tallerId) return [];
@@ -284,15 +352,31 @@ export async function obtenerOrdenes(limit?: number, offset?: number): Promise<O
         .from('ordenes')
         .select(`
             *,
-            vehiculos (
-                *,
-                clientes (*)
+            cliente:clientes (
+                id,
+                nombre_completo,
+                telefono
             ),
-            perfiles_creado:perfiles!creado_por (*),
-            perfiles_asignado:perfiles!asignado_a (*)
+            vehiculos:vehiculos!vehiculo_local_id (
+                id,
+                patente,
+                marca,
+                modelo,
+                ano,
+                color
+            ),
+            asignado:perfiles!ordenes_asignado_a_fkey (
+                id,
+                nombre_completo,
+                email
+            ),
+            creado_por_perfil:perfiles!ordenes_creado_por_fkey (
+                id,
+                nombre_completo
+            )
         `)
         .eq('taller_id', tallerId)
-        .order('fecha_ingreso', { ascending: false });
+        .order('creado_en', { ascending: false });
 
     // Aplicar paginación si se proporciona
     if (limit !== undefined && offset !== undefined) {
@@ -330,27 +414,29 @@ export async function obtenerOrdenesLight(): Promise<OrdenDB[]> {
         .select(`
             id,
             fecha_ingreso,
-            fecha_entrega,
-            fecha_cierre,
+
+
             estado,
             precio_total,
             metodo_pago,
             creado_por,
             asignado_a,
             patente_vehiculo,
+            vehiculo_local_id,
+            vehiculo_global_id,
             descripcion_ingreso,
             fotos_urls,
-            vehiculos (
-                marca,
-                modelo,
-                clientes (
-                    nombre_completo
-                )
-            ),
-            perfiles_creado:perfiles!creado_por (
+            cliente:clientes (
                 nombre_completo
             ),
-            perfiles_asignado:perfiles!asignado_a (
+            vehiculos:vehiculos!vehiculo_local_id (
+                marca,
+                modelo
+            ),
+            creado:perfiles!ordenes_creado_por_fkey (
+                nombre_completo
+            ),
+            asignado:perfiles!ordenes_asignado_a_fkey (
                 nombre_completo
             )
         `)
@@ -374,6 +460,7 @@ export async function obtenerOrdenesHoy(): Promise<OrdenDB[]> {
         .from('ordenes')
         .select(`
             *,
+            *,
             vehiculos (
                 *,
                 clientes (*)
@@ -391,24 +478,55 @@ export async function obtenerOrdenesHoy(): Promise<OrdenDB[]> {
 }
 
 // Obtener orden por ID
-export async function obtenerOrdenPorId(id: number): Promise<OrdenDB | null> {
+export async function obtenerOrdenPorId(id: string): Promise<OrdenDB | null> {
+    console.log('🔍 [SupabaseService] Obteniendo orden por ID:', id);
+
+    // Query simplificada pero efectiva
     const { data, error } = await supabase
         .from('ordenes')
         .select(`
             *,
-            vehiculos (
-                *,
+            vehiculos:vehiculos!vehiculo_local_id (
+                id,
+                marca,
+                modelo,
+                patente,
+                ano,
+                color,
+                motor,
                 clientes (*)
             ),
-            perfiles_creado:perfiles!creado_por (*),
-            perfiles_asignado:perfiles!asignado_a (*)
+            asignado:perfiles!asignado_a (
+                id,
+                nombre_completo,
+                rol
+            ),
+            creado:perfiles!creado_por (
+                id,
+                nombre_completo,
+                rol
+            )
         `)
         .eq('id', id)
         .single();
 
     if (error) {
-        console.error('Error al obtener orden:', error);
-        return null;
+        console.warn('⚠️ Error en consulta principal de orden (400?), intentando fallback simple...');
+
+        // Fallback ultra-básico para asegurar que al menos la orden se cargue
+        const { data: fallbackData, error: fallbackError } = await supabase
+            .from('ordenes')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (fallbackError) {
+            console.error('❌ Error fatal al obtener orden (Fallback falló):', fallbackError);
+            return null;
+        }
+
+        console.log('✅ Orden recuperada vía fallback (sin relaciones)');
+        return fallbackData;
     }
 
     return data;
@@ -457,10 +575,10 @@ export async function crearOrden(orden: {
         .maybeSingle();
 
     // 2. Si no existe el vehículo, necesitamos un Cliente para crearlo
+    let clienteId: string | undefined;
+
     if (!vehiculo) {
         console.log(`🚗 Vehículo nuevo detectado: ${patenteNormalizada}`);
-
-        let clienteId: string | undefined;
 
         // PRIORIDAD 1: Buscar por Teléfono (ID Principal)
         if (orden.cliente_telefono) {
@@ -507,13 +625,13 @@ export async function crearOrden(orden: {
                     patente: patenteNormalizada,
                     marca: orden.vehiculo_marca || 'Por definir',
                     modelo: orden.vehiculo_modelo || 'Por definir',
-                    anio: orden.vehiculo_anio || new Date().getFullYear().toString(),
+                    ano: orden.vehiculo_anio || new Date().getFullYear().toString(), // Map 'anio' -> 'ano'
                     motor: orden.vehiculo_motor || null,
                     color: orden.vehiculo_color || '-',
                     cliente_id: clienteId,
                     taller_id: tallerId
                 }])
-                .select()
+                .select(`*, anio:ano`) // Alias for frontend consistency
                 .single();
 
             if (vError) {
@@ -528,10 +646,27 @@ export async function crearOrden(orden: {
     const { generateAccessToken, generatePublicOrderLink } = await import('./token-utils');
     const accessToken = generateAccessToken();
 
+    // HUB & SPOKE: Ensure Global Vehicle Link
+    let globalVehicleId: string | null = null;
+    try {
+        globalVehicleId = await _ensureGlobalVehicle({
+            patente: orden.patente_vehiculo,
+            marca: orden.vehiculo_marca,
+            modelo: orden.vehiculo_modelo,
+            anio: orden.vehiculo_anio,
+            motor: orden.vehiculo_motor,
+            color: orden.vehiculo_color
+        });
+    } catch (gErr) {
+        console.error('⚠️ Failed to link Global Vehicle:', gErr);
+    }
+
     const { data, error } = await supabase
         .from('ordenes')
         .insert([{
             patente_vehiculo: patenteNormalizada,
+            vehiculo_global_id: globalVehicleId,
+            vehiculo_local_id: vehiculo?.id || null, // Spoke Link
             descripcion_ingreso: orden.descripcion_ingreso,
             creado_por: orden.creado_por,
             asignado_a: orden.asignado_a || orden.creado_por,
@@ -539,8 +674,11 @@ export async function crearOrden(orden: {
             fotos_urls: orden.fotos || [], // V3 usa fotos_urls
             precio_total: orden.precio_total || 0,
             metodo_pago: orden.metodo_pago,
-            observaciones_mecanico: orden.detalle_trabajos, // Mapeo de legacy
+
+            detalle_trabajos: orden.detalle_trabajos, // Mapeo Corregido a Schema V3
             taller_id: tallerId,
+            cliente_id: vehiculo?.cliente_id || clienteId || null, // FIX: Link Order to Client
+            numero_orden: `ORD-${Date.now().toString().slice(-6)}`, // GEN: Simple Auto-ID
             access_token: accessToken,
             token_created_at: new Date().toISOString()
         }])
@@ -581,32 +719,75 @@ export async function crearOrden(orden: {
 
 // Actualizar orden
 export async function actualizarOrden(
-    id: number,
-    updates: Partial<Omit<OrdenDB, 'id' | 'fecha_ingreso'>>
+    id: string,
+    updates: Partial<OrdenDB>
 ): Promise<OrdenDB | null> {
-    console.log(`🔵 Actualizando orden ${id} en Supabase:`, updates);
+    console.log('🚀 [SupabaseService] Enviando actualización para orden:', id);
+
+    // Lista Blanca de columnas reales en la tabla 'ordenes' segun esquema Supabase
+    const validColumns = [
+        'numero_orden',
+        'taller_id',
+        'cliente_id',
+        'patente_vehiculo',
+        'vehiculo_local_id',
+        'vehiculo_global_id',
+        'estado',
+        'fecha_ingreso',
+        'fecha_estimada_salida',
+        'fecha_salida',
+        'descripcion_problema',
+        'diagnostico',
+        'trabajos_realizados',
+        'descripcion_ingreso',
+        'detalle_trabajos',
+        'fotos_urls',
+        'precio_total',
+        'metodo_pago',
+        'metodos_pago',
+        'asignado_a',
+        'creado_por',
+        'access_token',
+        'token_created_at',
+        'last_public_view',
+        'actualizado_en',
+        'updated_at'
+    ];
+
+    const datosParaActualizar: any = {};
+
+    const updatesAny = updates as any;
+
+    // Solo permitir columnas válidas que no sean undefined
+    Object.keys(updates).forEach(key => {
+        if (validColumns.includes(key) && updatesAny[key] !== undefined) {
+            datosParaActualizar[key] = updatesAny[key];
+        }
+    });
+
+    // Forzar actualizado_en si existe en el esquema para tracking manual
+    datosParaActualizar.actualizado_en = new Date().toISOString();
+
+    console.log('🐞 [DEBUG] actualizarOrden Payload final (Whitelisted):', JSON.stringify(datosParaActualizar));
 
     const { data, error } = await supabase
         .from('ordenes')
-        .update({
-            ...updates,
-            fecha_actualizacion: new Date().toISOString(),
-        })
+        .update(datosParaActualizar)
         .eq('id', id)
         .select()
         .single();
 
     if (error) {
-        console.error('❌ Error al actualizar orden:', error);
+        console.error('❌ Error al actualizar orden en Supabase:', error);
         return null;
     }
 
-    console.log('✅ Orden actualizada en Supabase:', data);
     return data;
 }
 
 // Eliminar orden
-export async function eliminarOrden(id: number): Promise<boolean> {
+// Eliminar orden
+export async function eliminarOrden(id: string): Promise<boolean> {
     console.log(`🗑️ Eliminando orden ${id} de Supabase`);
 
     const { error } = await supabase
@@ -825,12 +1006,16 @@ export async function crearUsuario(
 // ============ CITAS/AGENDAMIENTO ============
 
 export async function obtenerCitas(): Promise<CitaDB[]> {
+    // TEMPORAL: Bloquear carga de citas
+    console.log('🚧 Citas deshabilitadas temporalmente');
+    return [];
+
+    /*
     const { data, error } = await supabase
         .from('citas')
         // select con join a vehiculos usando la patente
         .select(`
-            *,
-            vehiculos:vehiculos!patente_vehiculo(*)
+            *
         `)
         .order('fecha_inicio', { ascending: true });
 
@@ -840,10 +1025,14 @@ export async function obtenerCitas(): Promise<CitaDB[]> {
     }
 
     return data || [];
+    */
 }
 
 // Obtener citas de hoy (con datos de cliente)
 export async function obtenerCitasHoy(): Promise<CitaDB[]> {
+    // TEMPORAL: Bloquear carga de citas hoy
+    return [];
+    /*
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -853,7 +1042,8 @@ export async function obtenerCitasHoy(): Promise<CitaDB[]> {
         .from('citas')
         .select(`
             *,
-            clientes (
+            *,
+            clientes!citas_cliente_id_fkey (
                 nombre_completo,
                 telefono
             )
@@ -868,6 +1058,7 @@ export async function obtenerCitasHoy(): Promise<CitaDB[]> {
     }
 
     return data || [];
+    */
 }
 
 // Obtener servicios frecuentes (V3.1)
@@ -887,11 +1078,15 @@ export async function obtenerServiciosFrecuentes(): Promise<ServicioDB[]> {
 }
 
 export async function obtenerCitasSemana(startDate: Date, endDate: Date): Promise<CitaDB[]> {
+    // TEMPORAL: Bloquear carga de citas semana
+    return [];
+    /*
     const { data, error } = await supabase
         .from('citas')
         .select(`
             *,
-            clientes (
+            *,
+            clientes!citas_cliente_id_fkey (
                 nombre_completo,
                 telefono
             )
@@ -906,50 +1101,46 @@ export async function obtenerCitasSemana(startDate: Date, endDate: Date): Promis
     }
 
     return data || [];
+    */
 }
 
-export async function crearCita(cita: Omit<CitaDB, 'id' | 'creado_en' | 'actualizado_en'>): Promise<CitaDB | null> {
+export async function crearCita(cita: any): Promise<CitaDB | null> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return null;
+
     console.log('📅 Creando cita (Smart Logic V3)...', cita);
 
     let clienteId = cita.cliente_id;
     let patenteNormalizada = cita.patente_vehiculo?.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     // 1. Buscar Cliente si no viene ID
-    const citaAny = cita as any;
-    if (!clienteId && citaAny.cliente_telefono) {
-        const telefonoLimpio = citaAny.cliente_telefono.replace(/\D/g, '');
+    if (!clienteId && cita.cliente_telefono) {
+        const telefonoLimpio = cita.cliente_telefono.replace(/\D/g, '');
         const telefono = telefonoLimpio.length > 0 ? `+569${telefonoLimpio.slice(-8)}` : '';
 
         if (telefono) {
             const existe = await buscarClientePorTelefono(telefono);
             if (existe) {
                 clienteId = existe.id;
-            } else if (citaAny.cliente_nombre) {
+            } else if (cita.cliente_nombre) {
                 const nuevo = await crearCliente({
-                    nombre_completo: citaAny.cliente_nombre,
+                    nombre_completo: cita.cliente_nombre,
                     telefono: telefono,
-                    tipo: 'persona'
-                });
+                    tipo: 'persona',
+                    taller_id: tallerId
+                } as any);
                 if (nuevo) clienteId = nuevo.id;
             }
         }
     }
 
-    // 2. Asegurar Vehículo si viene patente
-    if (patenteNormalizada && !cita.patente_vehiculo) {
-        // Ya debería estar creado por el modal, pero aseguramos
-        // El modal llama a crearVehiculo antes, así que confiamos en que existe o se creó.
-    }
-
     // 2. Sanitize Payload for V3 Schema (Strict)
     const dbPayload = {
-        titulo: cita.titulo,
-        fecha_inicio: cita.fecha_inicio,
-        fecha_fin: cita.fecha_fin,
-        estado: cita.estado,
-        cliente_id: clienteId || null,
+        taller_id: tallerId,
+        fecha_hora: cita.fecha_hora || cita.fecha_inicio,
+        motivo: cita.motivo || cita.titulo,
+        estado: cita.estado || 'pendiente',
         patente_vehiculo: patenteNormalizada || null,
-        orden_id: cita.orden_id || null,
         notas: cita.notas || null
     };
 
@@ -964,19 +1155,25 @@ export async function crearCita(cita: Omit<CitaDB, 'id' | 'creado_en' | 'actuali
         return null;
     }
 
-    console.log('✅ Cita creada:', data.id);
+    // UI Feedback: Return constructed object
     return data;
 }
 
-export async function actualizarCita(id: number, updates: Partial<Omit<CitaDB, 'id' | 'creado_en'>>): Promise<CitaDB | null> {
-    const validCols = ['titulo', 'fecha_inicio', 'fecha_fin', 'estado', 'cliente_id', 'patente_vehiculo', 'orden_id', 'notas'];
-
+export async function actualizarCita(id: string, updates: any): Promise<CitaDB | null> {
     const dbPayload: any = {};
-    for (const key of Object.keys(updates)) {
-        if (validCols.includes(key)) {
-            dbPayload[key] = (updates as any)[key];
-        }
+
+    // Map fields (Legacy -> V3)
+    if (updates.fecha_hora !== undefined || updates.fecha_inicio !== undefined) {
+        dbPayload.fecha_hora = updates.fecha_hora || updates.fecha_inicio;
     }
+    if (updates.motivo !== undefined || updates.titulo !== undefined) {
+        dbPayload.motivo = updates.motivo || updates.titulo;
+    }
+    if (updates.estado !== undefined) dbPayload.estado = updates.estado;
+    if (updates.patente_vehiculo !== undefined) dbPayload.patente_vehiculo = updates.patente_vehiculo;
+    if (updates.notas !== undefined) dbPayload.notas = updates.notas;
+
+    if (Object.keys(dbPayload).length === 0) return null;
 
     const { data, error } = await supabase
         .from('citas')
@@ -993,7 +1190,7 @@ export async function actualizarCita(id: number, updates: Partial<Omit<CitaDB, '
     return data;
 }
 
-export async function eliminarCita(id: number): Promise<boolean> {
+export async function eliminarCita(id: string): Promise<boolean> {
     const { error } = await supabase
         .from('citas')
         .delete()
@@ -1031,14 +1228,46 @@ export async function confirmarRevisionIngreso(
         updates.confirmado_salida_por = datosSalida.confirmado_por;
     }
 
-    const { error } = await supabase
+    // 1. Update Checklist
+    const { data: checklistData, error } = await supabase
         .from('listas_chequeo')
         .update(updates)
-        .eq('id', checklistId);
+        .eq('id', checklistId)
+        .select('orden_id') // Fetch associated order_id
+        .maybeSingle();
 
     if (error) {
         console.error('❌ Error al confirmar revisión/salida:', error);
         return false;
+    }
+
+    if (!checklistData) {
+        console.error('❌ Error: No se encontró checklist con ID:', checklistId);
+        return false;
+    }
+
+    // 2. Auto-Update Order Status
+    if (checklistData && checklistData.orden_id) {
+        let nuevoEstado = null;
+
+        if (datosSalida) {
+            nuevoEstado = 'entregada'; // Salida confirmed -> Delivered
+        }
+
+        // Only update if a new state is defined (e.g. Entregada)
+        // For Ingreso confirmation, we WAIT for manual "Empezar Reparación"
+        if (nuevoEstado) {
+            console.log(`🔄 Actualizando estado de orden ${checklistData.orden_id} a: ${nuevoEstado}`);
+
+            const { error: orderError } = await supabase
+                .from('ordenes')
+                .update({ estado: nuevoEstado, updated_at: new Date().toISOString() })
+                .eq('id', checklistData.orden_id);
+
+            if (orderError) {
+                console.error('⚠️ Error al actualizar estado de orden automática:', orderError);
+            }
+        }
     }
 
     console.log('✅ Revisión/Salida confirmada');
@@ -1132,3 +1361,4 @@ export async function subirImagenChecklist(file: File, ordenId: string, tipo: st
         return null;
     }
 }
+

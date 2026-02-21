@@ -23,6 +23,7 @@ export interface ClienteDB {
     direccion?: string | null;
     notas?: string | null;
     fecha_creacion?: string;
+    taller_id?: string; // Added for V3 compatibility
 }
 
 export interface ClienteWithStats extends ClienteDB {
@@ -47,10 +48,10 @@ export interface VehiculoDB {
 }
 
 export interface OrdenDB {
-    id: number;
+    id: string; // Updated to string for consistency with Supabase V3
     patente_vehiculo: string;
     descripcion_ingreso: string;
-    estado: 'pendiente' | 'en_progreso' | 'completada' | 'cancelada' | 'entregada' | 'debe';
+    estado: 'pendiente' | 'en_proceso' | 'completada' | 'cancelada' | 'entregada' | 'debe';
 
     creado_por: string;
     asignado_a?: string | null;
@@ -58,6 +59,7 @@ export interface OrdenDB {
     fecha_ingreso: string;
     // Modificado para compatibilidad V3 (Optional)
     fecha_entrega?: string | null;
+    fecha_salida?: string | null;
     fecha_cierre?: string | null;
     fecha_lista?: string | null;
     fecha_completada?: string | null;
@@ -84,10 +86,17 @@ export interface OrdenDB {
     vehiculos?: VehiculoDB | null;
     perfiles_creado?: PerfilDB | null;
     perfiles_asignado?: PerfilDB | null;
+    creado_por_perfil?: { id: string; nombre_completo: string; } | null;
+
+    // New Aliased Relationships (V3 Supabase)
+    cliente?: { id: string; nombre_completo: string; telefono?: string | null; email?: string | null; rut_dni?: string | null } | null;
+    vehiculo?: { id: string; patente: string; marca: string; modelo: string; ano?: string; vin?: string; motor?: string } | null;
+    asignado?: { id: string; nombre_completo: string; rol?: string } | null;
+    creado?: { id: string; nombre_completo: string; rol?: string } | null;
 }
 
 export interface CitaDB {
-    id: number;
+    id: string; // Updated to string for consistency with Supabase V3
     titulo: string;
     fecha_inicio: string; // backend usa fecha_inicio/fin
     fecha_fin: string;
@@ -148,6 +157,14 @@ function getNextOrderId(): number {
     const next = current + 1;
     saveToStorage(KEYS.ORDER_COUNTER, next);
     return next;
+}
+
+function obtenerOrdenesDesdeStorage(): OrdenDB[] {
+    return getFromStorage<OrdenDB[]>(KEYS.ORDENES, []);
+}
+
+function guardarOrdenesEnStorage(ordenes: OrdenDB[]): void {
+    saveToStorage(KEYS.ORDENES, ordenes);
 }
 
 // ============ INICIALIZACIÓN ============
@@ -279,55 +296,37 @@ export async function obtenerOrdenesHoy(): Promise<OrdenDB[]> {
     });
 }
 
-export async function obtenerOrdenPorId(id: number): Promise<OrdenDB | null> {
-    const ordenes = getFromStorage<OrdenDB[]>(KEYS.ORDENES, []);
+export async function obtenerOrdenPorId(id: string): Promise<OrdenDB | null> {
+    const ordenes = obtenerOrdenesDesdeStorage();
     return ordenes.find(o => o.id === id) || null;
 }
 
-export async function crearOrden(orden: {
-    patente_vehiculo: string;
-    descripcion_ingreso: string;
-    creado_por: string;
-    estado?: 'pendiente' | 'en_progreso' | 'completada' | 'cancelada' | 'entregada' | 'debe';
-    fotos?: string[];
-    cliente_nombre?: string;
-    cliente_telefono?: string;
-    precio_total?: number;
-    metodo_pago?: string;
-    asignado_a?: string;
-    detalles_vehiculo?: string;
-}): Promise<OrdenDB | null> {
-    const ordenes = getFromStorage<OrdenDB[]>(KEYS.ORDENES, []);
+export async function crearOrden(orden: Omit<OrdenDB, 'id' | 'fecha_ingreso' | 'fecha_actualizacion'>): Promise<OrdenDB | null> {
+    const ordenes = obtenerOrdenesDesdeStorage();
 
     const nuevaOrden: OrdenDB = {
-        id: getNextOrderId(),
-        patente_vehiculo: orden.patente_vehiculo.toUpperCase(),
-        descripcion_ingreso: orden.descripcion_ingreso,
-        creado_por: orden.creado_por,
-        estado: (orden.estado as any) || 'pendiente',
+        ...orden,
+        id: Date.now().toString(), // Mock ID as string
+        estado: orden.estado || 'pendiente',
         asignado_a: orden.asignado_a || orden.creado_por, // Asignar al especificado o al creador
         fecha_ingreso: new Date().toISOString(),
         fecha_actualizacion: new Date().toISOString(),
-        fotos_urls: orden.fotos || [], // Map legacy 'fotos' to 'fotos_urls'
-        cliente_nombre: orden.cliente_nombre,
-        cliente_telefono: orden.cliente_telefono,
+        fotos_urls: orden.fotos_urls || [],
         precio_total: orden.precio_total || 0,
-        metodo_pago: orden.metodo_pago,
-        // Legacy fields ignored or mapped if needed
     };
 
     ordenes.push(nuevaOrden);
-    saveToStorage(KEYS.ORDENES, ordenes);
+    guardarOrdenesEnStorage(ordenes);
 
     console.log('✅ Orden creada:', nuevaOrden.id);
     return nuevaOrden;
 }
 
 export async function actualizarOrden(
-    id: number,
+    id: string,
     updates: Partial<Omit<OrdenDB, 'id' | 'fecha_ingreso'>>
 ): Promise<OrdenDB | null> {
-    const ordenes = getFromStorage<OrdenDB[]>(KEYS.ORDENES, []);
+    const ordenes = obtenerOrdenesDesdeStorage();
     const index = ordenes.findIndex(o => o.id === id);
 
     if (index === -1) {
@@ -341,21 +340,22 @@ export async function actualizarOrden(
         fecha_actualizacion: new Date().toISOString(),
     };
 
-    saveToStorage(KEYS.ORDENES, ordenes);
+    guardarOrdenesEnStorage(ordenes);
     console.log('✅ Orden actualizada:', id);
     return ordenes[index];
 }
 
-export async function eliminarOrden(id: number): Promise<boolean> {
-    const ordenes = getFromStorage<OrdenDB[]>(KEYS.ORDENES, []);
-    const filtered = ordenes.filter(o => o.id !== id);
+export async function eliminarOrden(id: string): Promise<boolean> {
+    let ordenes = obtenerOrdenesDesdeStorage();
+    const initialLength = ordenes.length;
+    ordenes = ordenes.filter(o => o.id !== id);
 
-    if (filtered.length === ordenes.length) {
+    if (ordenes.length === initialLength) {
         console.error('Orden no encontrada:', id);
         return false;
     }
 
-    saveToStorage(KEYS.ORDENES, filtered);
+    guardarOrdenesEnStorage(ordenes);
     console.log('✅ Orden eliminada:', id);
     return true;
 }
@@ -424,7 +424,7 @@ export async function obtenerOrdenesPorUsuario(userId: string): Promise<{
     creadas: OrdenDB[];
     asignadas: OrdenDB[];
 }> {
-    const ordenes = getFromStorage<OrdenDB[]>(KEYS.ORDENES, []);
+    const ordenes = obtenerOrdenesDesdeStorage();
 
     return {
         creadas: ordenes.filter(o => o.creado_por === userId),
@@ -558,7 +558,8 @@ export async function obtenerCitasSemana(startDate: Date, endDate: Date): Promis
 
 export async function crearCita(cita: Omit<CitaDB, 'id'>): Promise<CitaDB | null> {
     const citas = await obtenerCitas();
-    const newId = citas.length > 0 ? Math.max(...citas.map(c => c.id)) + 1 : 1;
+    const ids = citas.map(c => parseInt(c.id) || 0); // Handle string IDs
+    const newId = (ids.length > 0 ? Math.max(...ids) + 1 : 1).toString();
 
     const newCita: CitaDB = {
         id: newId,
@@ -572,7 +573,7 @@ export async function crearCita(cita: Omit<CitaDB, 'id'>): Promise<CitaDB | null
     return newCita;
 }
 
-export async function actualizarCita(id: number, updates: Partial<Omit<CitaDB, 'id'>>): Promise<CitaDB | null> {
+export async function actualizarCita(id: string, updates: Partial<Omit<CitaDB, 'id'>>): Promise<CitaDB | null> {
     const citas = await obtenerCitas();
     const index = citas.findIndex(c => c.id === id);
 
@@ -588,7 +589,7 @@ export async function actualizarCita(id: number, updates: Partial<Omit<CitaDB, '
     return updated;
 }
 
-export async function eliminarCita(id: number): Promise<boolean> {
+export async function eliminarCita(id: string): Promise<boolean> {
     const citas = await obtenerCitas();
     const filtered = citas.filter(c => c.id !== id);
 

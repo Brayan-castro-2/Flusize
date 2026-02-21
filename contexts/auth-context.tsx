@@ -20,6 +20,7 @@ export interface AuthUser {
     name: string;
     role: 'mecanico' | 'admin';
     isActive: boolean;
+    tallerId?: string; // UUID del taller asignado
 }
 
 interface AuthContextType {
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         name: result.perfil.nombre_completo,
                         role: result.perfil.rol,
                         isActive: result.perfil.activo,
+                        tallerId: result.perfil.taller_id,
                     };
                     setUser(authUser);
                     console.log('Sesión restaurada:', authUser.name);
@@ -90,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 name: result.perfil.nombre_completo,
                 role: result.perfil.rol,
                 isActive: result.perfil.activo,
+                tallerId: result.perfil.taller_id,
             };
 
             setUser(authUser);

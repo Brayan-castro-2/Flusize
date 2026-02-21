@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/auth-context';
 import { actualizarOrden, buscarVehiculoPorPatente, obtenerOrdenPorId, obtenerPerfiles, obtenerChecklist, type OrdenDB, type VehiculoDB, type PerfilDB } from '@/lib/storage-adapter';
+import { useUpdateOrder } from '@/hooks/use-orders';
+import { useToast } from '@/components/ui/use-toast';
 import { generateOrderPDF } from '@/lib/pdf-generator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +29,7 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 import ChecklistForm from '@/components/ordenes/checklist-form';
-import { ArrowLeft, CheckCircle, Download, Loader2, Printer, Save, ClipboardCheck, Eye, CheckCircle2, FileText, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Download, Loader2, Printer, Save, ClipboardCheck, Eye, CheckCircle2, FileText, AlertCircle, Wrench, Flag } from 'lucide-react';
 import Link from 'next/link';
 
 export default function OrdenesCleanPage() {
@@ -35,9 +37,11 @@ export default function OrdenesCleanPage() {
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
     const { user, isLoading: authLoading } = useAuth();
+    const updateOrder = useUpdateOrder();
+    const { toast } = useToast();
 
     const orderIdParam = searchParams.get('id');
-    const orderId = Number(orderIdParam);
+    const orderId = orderIdParam;
 
     const [order, setOrder] = useState<OrdenDB | null>(null);
     const [vehiculo, setVehiculo] = useState<VehiculoDB | null>(null);
@@ -88,7 +92,7 @@ export default function OrdenesCleanPage() {
     });
 
     useEffect(() => {
-        if (!Number.isFinite(orderId)) {
+        if (!orderId) {
             setIsLoading(false);
             setOrder(null);
             setVehiculo(null);
@@ -96,66 +100,66 @@ export default function OrdenesCleanPage() {
         }
 
         const loadData = async () => {
-            const [ordenData, perfs, checklistData] = await Promise.all([
-                obtenerOrdenPorId(orderId),
-                obtenerPerfiles(),
-                obtenerChecklist(String(orderId))
-            ]);
+            setIsLoading(true);
+            try {
+                const [ordenData, perfs, checklistData] = await Promise.all([
+                    obtenerOrdenPorId(orderId),
+                    obtenerPerfiles(),
+                    obtenerChecklist(String(orderId))
+                ]);
 
-            setIsLoading(false); // Set loading false earlier to avoid jitter if possible, or keep at end
-
-            if (ordenData) {
-                setOrder(ordenData);
                 setPerfiles(perfs);
                 setChecklist(checklistData);
-                setPrecioFinal(formatPrecio(ordenData.precio_total || 0));
 
-                // Clean Description Logic
-                const rawDesc = ordenData.descripcion_ingreso || '';
-                // Remove "Motor: ..." prefix if present
-                const cleanedDesc = rawDesc.replace(/^Motor:.*?( - |$)/i, '').trim() || rawDesc;
-                setDescripcion(cleanedDesc);
+                if (ordenData) {
+                    setOrder(ordenData);
+                    setPrecioFinal(formatPrecio(ordenData.precio_total || 0));
 
-                setEstado(ordenData.estado);
-                setAsignadoA(ordenData.asignado_a || '');
-                setDetalleTrabajos(ordenData.detalle_trabajos || '');
-                setMetodosPago(ordenData.metodos_pago || []);
+                    // Clean Description Logic
+                    const rawDesc = ordenData.descripcion_ingreso || '';
+                    const cleanedDesc = rawDesc.replace(/^Motor:.*?( - |$)/i, '').trim() || rawDesc;
+                    setDescripcion(cleanedDesc);
 
-                // KM Logic
-                const kmMatch = rawDesc.match(/KM:\s*(\d+\.?\d*)/);
-                const kmSalidaMatch = rawDesc.match(/→\s*(\d+\.?\d*)/);
+                    setEstado(ordenData.estado);
+                    setAsignadoA(ordenData.asignado_a || '');
+                    setDetalleTrabajos(ordenData.detalle_trabajos || '');
+                    setMetodosPago(ordenData.metodos_pago || []);
 
-                if (kmMatch) setKmIngreso(kmMatch[1]);
-                if (kmSalidaMatch) setKmSalida(kmSalidaMatch[1]);
+                    // KM Logic
+                    const kmMatch = rawDesc.match(/KM:\s*(\d+\.?\d*)/);
+                    const kmSalidaMatch = rawDesc.match(/→\s*(\d+\.?\d*)/);
 
-                // Show KM fields only if data exists
-                if (kmMatch || kmSalidaMatch) {
-                    setShowKm(true);
+                    if (kmMatch) setKmIngreso(kmMatch[1]);
+                    if (kmSalidaMatch) setKmSalida(kmSalidaMatch[1]);
+
+                    if (kmMatch || kmSalidaMatch) {
+                        setShowKm(true);
+                    }
+
+                    // Client Info Logic (Smart Fallback)
+                    const veh = await buscarVehiculoPorPatente(ordenData.patente_vehiculo);
+                    setVehiculo(veh);
+
+                    setClienteNombre(ordenData.cliente?.nombre_completo || ordenData.cliente_nombre || veh?.clientes?.nombre_completo || '');
+                    setClienteTelefono(ordenData.cliente?.telefono || ordenData.cliente_telefono || veh?.clientes?.telefono || '');
                 }
-
-                // Client Info Logic (Smart Fallback)
-                const veh = await buscarVehiculoPorPatente(ordenData.patente_vehiculo);
-                setVehiculo(veh);
-
-                // Prioritize Order info, fallback to Vehicle Client info
-                setClienteNombre(ordenData.cliente_nombre || veh?.clientes?.nombre_completo || '');
-                setClienteTelefono(ordenData.cliente_telefono || veh?.clientes?.telefono || '');
-            } else {
+            } catch (error) {
+                console.error("Error loading order:", error);
+            } finally {
                 setIsLoading(false);
             }
         };
 
-        setIsLoading(true);
         loadData();
     }, [orderId]);
 
     const handlePrint = () => {
-        if (!Number.isFinite(orderId)) return;
+        if (!orderId) return;
         window.open(`/print/orden/${orderId}`, '_blank');
     };
 
     const handleTicket = () => {
-        if (!Number.isFinite(orderId)) return;
+        if (!orderId) return;
         window.open(`/print/ticket/${orderId}`, '_blank');
     };
 
@@ -205,59 +209,67 @@ export default function OrdenesCleanPage() {
 
         setIsSaving(true);
 
-        // PREPARAR PAYLOAD: Usar any para permitir nulls explícitos en campos opcionales
+        // PREPARAR PAYLOAD: Solo campos que existen en la tabla 'ordenes'
+        // Mapeamos metodos_pago (array) a metodo_pago (string) para compatibilidad DB
+        const metodoPagoText = metodosPago.map(m => m.metodo).join(', ');
+
         const updateData: any = {
             descripcion_ingreso: descripcion,
             estado,
             precio_total: parsePrecio(precioFinal),
-            cliente_nombre: clienteNombre || null,
-            cliente_telefono: clienteTelefono || null,
+            metodo_pago: metodoPagoText || null,
             metodos_pago: metodosPago.length > 0 ? metodosPago : null,
             asignado_a: asignadoA || null,
             detalle_trabajos: detalleTrabajos || null,
         };
 
         // LÓGICA DE FECHAS
-        // 1. Si se marca como completada, establecer fecha de entrega y fecha completada
+        // 1. Si se marca como completada, establecer fecha de salida
         if (estado === 'completada') {
             const now = new Date().toISOString();
-            // Solo establecer fechas si no existen, o actualizarlas? 
-            // Para asegurar consistencia, actualizamos a ahora.
-            updateData.fecha_entrega = now;
-            updateData.fecha_completada = now;
-            updateData.fecha_lista = now;
+            updateData.fecha_salida = now;
         }
-        // 2. Si se cambia de completada a pendiente, LIMPIAR fechas explícitamente (null)
+        // 2. Si se cambia de completada a pendiente, LIMPIAR fecha de salida
         else if (estado === 'pendiente' && order.estado === 'completada') {
-            console.log('🔄 Revertiendo estado a Pendiente: Limpiando fechas');
-            updateData.fecha_entrega = null;
-            updateData.fecha_completada = null;
-            updateData.fecha_lista = null;
+            console.log('🔄 Revertiendo estado a Pendiente: Limpiando fecha de salida');
+            updateData.fecha_salida = null;
         }
 
-        console.log('📤 Enviando actualización:', updateData);
+        console.log('📤 Enviando actualización optimista:', updateData);
 
-        const updated = await actualizarOrden(order.id, updateData);
+        // Actualización Optimista: Feedback visual inmediato
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2500);
 
-        if (updated) {
-            setOrder(updated);
-            setPrecioFinal(formatPrecio(updated.precio_total || 0));
-            // Actualizar estado local para que el select muestre el valor correcto
-            setEstado(updated.estado);
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 2500);
-
-            // ACTUALIZACIÓN OPTIMISTA / MANUAL DE CACHÉ
-            // Actualizamos directamente la lista en caché para que al volver sea instantáneo
-            // sin esperar a que el servidor responda al refetch.
-            queryClient.setQueryData<OrdenDB[]>(['orders'], (oldOrders) => {
-                if (!oldOrders) return [updated];
-                return oldOrders.map(o => o.id === updated.id ? updated : o);
-            });
-
-            // Invalidar caché para asegurar consistencia final
-            await queryClient.invalidateQueries({ queryKey: ['orders'] });
+        // Opcional: Actualizar el estado local de la página de inmediato
+        setOrder(prev => prev ? { ...prev, ...updateData } : null);
+        if (updateData.precio_total !== undefined) {
+            setPrecioFinal(formatPrecio(updateData.precio_total));
         }
+
+        updateOrder.mutate({ id: order.id, updates: updateData });
+        setIsSaving(false);
+    };
+
+    const handleUpdateStatus = async (newStatus: 'en_proceso' | 'completada') => {
+        if (!order) return;
+        setIsSaving(true);
+        const now = new Date().toISOString();
+        const updateData: any = {
+            estado: newStatus,
+        };
+
+        if (newStatus === 'completada') {
+            updateData.fecha_salida = now;
+        }
+
+        // Optimista
+        setOrder(prev => prev ? { ...prev, ...updateData } : null);
+        setEstado(newStatus);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2500);
+
+        updateOrder.mutate({ id: order.id, updates: updateData });
         setIsSaving(false);
     };
 
@@ -267,30 +279,18 @@ export default function OrdenesCleanPage() {
 
         setIsSaving(true);
         const now = new Date().toISOString();
-        const updated = await actualizarOrden(order.id, {
-            estado: 'completada',
-            fecha_lista: now,
-            fecha_completada: now,
-            fecha_entrega: now,
-        });
-        if (updated) {
-            console.log('✅ Orden actualizada:', updated);
-            setOrder(updated);
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 2500);
+        const updateData = {
+            estado: 'completada' as const,
+            fecha_salida: now,
+        };
 
-            // ACTUALIZACIÓN OPTIMISTA / MANUAL DE CACHÉ
-            queryClient.setQueryData<OrdenDB[]>(['orders'], (oldOrders) => {
-                if (!oldOrders) return [updated];
-                return oldOrders.map(o => o.id === updated.id ? updated : o);
-            });
+        // Optimista
+        setOrder(prev => prev ? { ...prev, ...updateData } : null);
+        setEstado('completada');
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2500);
 
-            // Invalidar caché para actualizar lista de órdenes inmediatamente
-            await queryClient.invalidateQueries({ queryKey: ['orders'] });
-        } else {
-            console.error('❌ Error: No se pudo actualizar la orden');
-            alert('Error al actualizar el estado. Por favor intenta de nuevo.');
-        }
+        updateOrder.mutate({ id: order.id, updates: updateData });
         setIsSaving(false);
     };
 
@@ -332,12 +332,12 @@ export default function OrdenesCleanPage() {
         );
     }
 
-    if (!Number.isFinite(orderId)) {
+    if (!orderId) {
         return (
             <div className="text-center py-12">
                 <p className="text-slate-400 mb-4">Selecciona una orden</p>
                 <Link href="/admin/ordenes">
-                    <Button variant="outline" className="border-slate-600 text-slate-300">
+                    <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-900 hover:text-white rounded-xl transition-colors">
                         Volver a órdenes
                     </Button>
                 </Link>
@@ -350,7 +350,7 @@ export default function OrdenesCleanPage() {
             <div className="text-center py-12">
                 <p className="text-slate-400 mb-4">Orden no encontrada</p>
                 <Link href="/admin/ordenes">
-                    <Button variant="outline" className="border-slate-600 text-slate-300">
+                    <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-900 hover:text-white rounded-xl transition-colors">
                         Volver a órdenes
                     </Button>
                 </Link>
@@ -359,10 +359,10 @@ export default function OrdenesCleanPage() {
     }
 
     return (
-        <div className="space-y-6 max-w-3xl mx-auto">
+        <div className="space-y-6 max-w-3xl mx-auto pb-12">
             {saveSuccess && (
                 <div className="fixed top-20 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-auto z-50">
-                    <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-2">
+                    <div className="bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-2">
                         <CheckCircle className="w-5 h-5" />
                         Cambios guardados
                     </div>
@@ -370,88 +370,93 @@ export default function OrdenesCleanPage() {
             )}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-xl md:text-2xl font-bold text-white">Orden #{order.id}</h1>
-                    <p className="text-sm text-slate-400">{new Date(order.fecha_ingreso).toLocaleString('es-CL')}</p>
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-900">Orden #{order.id}</h1>
+                    <p className="text-sm text-slate-500">{new Date(order.fecha_ingreso).toLocaleString('es-CL')}</p>
                 </div>
+                {/* Header Buttons */}
                 <div className="flex gap-2">
-                    {user?.role === 'admin' ? (
-                        <Button onClick={handleTicket} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 rounded-xl">
+                    {user?.role === 'admin' && (
+                        <Button onClick={handleTicket} className="bg-slate-900 text-white hover:bg-white hover:text-slate-900 border border-slate-900 rounded-xl transition-colors shadow-sm">
                             <Printer className="w-4 h-4 mr-2" />
                             <span className="hidden sm:inline">Boleta/Ticket</span>
                         </Button>
-                    ) : null}
-                    <Button onClick={handleGeneratePDF} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 rounded-xl">
+                    )}
+                    <Button onClick={handleGeneratePDF} className="bg-slate-900 text-white hover:bg-white hover:text-slate-900 border border-slate-900 rounded-xl transition-colors shadow-sm">
                         <Download className="w-4 h-4 mr-2" />
                         <span className="hidden sm:inline">PDF{checklist ? ' (con Checklist)' : ''}</span>
                         <span className="sm:hidden">PDF</span>
                     </Button>
-                    <Button onClick={handlePrint} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 rounded-xl">
+                    <Button onClick={handlePrint} className="bg-slate-900 text-white hover:bg-white hover:text-slate-900 border border-slate-900 rounded-xl transition-colors shadow-sm">
                         <Printer className="w-4 h-4 mr-2" />
                         <span className="hidden sm:inline">Imprimir Orden</span>
                     </Button>
                 </div>
             </div>
 
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-white border-slate-200 shadow-sm">
                 <CardHeader>
-                    <CardTitle className="text-white">Detalles de la Orden</CardTitle>
+                    <CardTitle className="text-slate-900">Detalles de la Orden</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-5">
+                    {/* Read-only details */}
                     <div className="flex items-center justify-between">
-                        <span className="text-slate-400">Patente</span>
-                        <span className="font-mono font-bold text-white">{order.patente_vehiculo}</span>
+                        <span className="text-slate-500">Patente</span>
+                        <span className="font-mono font-bold text-slate-900">{order.patente_vehiculo}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-slate-400">Vehículo</span>
-                        <span className="text-white">{vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-'}</span>
+                        <span className="text-slate-500">Vehículo</span>
+                        <span className="text-slate-900">{vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-'}</span>
                     </div>
+
                     {user?.role === 'admin' && (
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Nombre del Cliente</Label>
+                                <Label className="text-slate-600">Nombre del Cliente</Label>
                                 <Input
                                     value={clienteNombre}
                                     onChange={(e) => setClienteNombre(e.target.value)}
-                                    className="bg-slate-700/50 border-slate-600 text-white rounded-xl"
+                                    className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 rounded-xl"
                                     placeholder="Nombre del cliente"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Teléfono del Cliente</Label>
+                                <Label className="text-slate-600">Teléfono del Cliente</Label>
                                 <Input
                                     value={clienteTelefono}
                                     onChange={(e) => setClienteTelefono(e.target.value)}
-                                    className="bg-slate-700/50 border-slate-600 text-white rounded-xl"
+                                    className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 rounded-xl"
                                     placeholder="+56 9 1234 5678"
                                 />
                             </div>
                         </div>
                     )}
+
                     {user?.role === 'admin' ? (
                         <>
+                            {/* Editor Fields */}
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label className="text-slate-300">Estado</Label>
+                                    <Label className="text-slate-600">Estado</Label>
                                     <Select value={estado} onValueChange={setEstado}>
-                                        <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl">
+                                        <SelectTrigger className="bg-white border-slate-300 text-slate-900 rounded-xl">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-slate-800 border-slate-700">
-                                            <SelectItem value="pendiente" className="text-slate-200">Pendiente</SelectItem>
-                                            <SelectItem value="completada" className="text-slate-200">Completada</SelectItem>
+                                        <SelectContent className="bg-white border-slate-200">
+                                            <SelectItem value="pendiente" className="text-slate-700 hover:bg-slate-50">Pendiente</SelectItem>
+                                            <SelectItem value="completada" className="text-slate-700 hover:bg-slate-50">Completada</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-slate-300">Asignado a</Label>
+                                    <Label className="text-slate-600">Asignado a</Label>
                                     <Select value={asignadoA || 'none'} onValueChange={(v) => setAsignadoA(v === 'none' ? '' : v)}>
-                                        <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white rounded-xl">
+                                        <SelectTrigger className="bg-white border-slate-300 text-slate-900 rounded-xl">
                                             <SelectValue placeholder="Seleccionar mecánico" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-slate-800 border-slate-700">
-                                            <SelectItem value="none" className="text-slate-200">Sin asignar</SelectItem>
+                                        <SelectContent className="bg-white border-slate-200">
+                                            <SelectItem value="none" className="text-slate-700">Sin asignar</SelectItem>
                                             {perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'admin').map((perfil) => (
-                                                <SelectItem key={perfil.id} value={perfil.id} className="text-slate-200">
+                                                <SelectItem key={perfil.id} value={perfil.id} className="text-slate-700 hover:bg-slate-50">
                                                     {perfil.nombre_completo}
                                                 </SelectItem>
                                             ))}
@@ -460,9 +465,9 @@ export default function OrdenesCleanPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-4 border-t border-slate-700/50 pt-4">
+                            <div className="space-y-4 border-t border-slate-200 pt-4">
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-slate-300">Control de Kilometraje</Label>
+                                    <Label className="text-slate-600">Control de Kilometraje</Label>
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs text-slate-500">{showKm ? 'Activado' : 'Desactivado'}</span>
                                         <Button
@@ -470,7 +475,7 @@ export default function OrdenesCleanPage() {
                                             variant={showKm ? "default" : "outline"}
                                             size="sm"
                                             onClick={() => setShowKm(!showKm)}
-                                            className={showKm ? "bg-blue-600 hover:bg-blue-500 h-7" : "border-slate-600 text-slate-400 h-7"}
+                                            className={showKm ? "bg-blue-600 hover:bg-blue-500 h-7" : "border-slate-300 text-slate-600 h-7"}
                                         >
                                             {showKm ? 'Ocultar' : 'Mostrar'}
                                         </Button>
@@ -480,23 +485,23 @@ export default function OrdenesCleanPage() {
                                 {showKm && (
                                     <div className="grid md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
                                         <div className="space-y-2">
-                                            <Label className="text-slate-300">KM Ingreso</Label>
+                                            <Label className="text-slate-600">KM Ingreso</Label>
                                             <Input
                                                 type="number"
                                                 value={kmIngreso}
                                                 onChange={(e) => setKmIngreso(e.target.value)}
-                                                className="bg-slate-700/50 border-slate-600 text-white rounded-xl"
+                                                className="bg-white border-slate-300 text-slate-900 rounded-xl"
                                                 placeholder="150000"
                                                 min="0"
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-slate-300">KM Salida</Label>
+                                            <Label className="text-slate-600">KM Salida</Label>
                                             <Input
                                                 type="number"
                                                 value={kmSalida}
                                                 onChange={(e) => setKmSalida(e.target.value)}
-                                                className="bg-slate-700/50 border-slate-600 text-white rounded-xl"
+                                                className="bg-white border-slate-300 text-slate-900 rounded-xl"
                                                 placeholder="130000"
                                                 min="0"
                                             />
@@ -506,42 +511,42 @@ export default function OrdenesCleanPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Motivo de Ingreso</Label>
+                                <Label className="text-slate-600">Motivo de Ingreso</Label>
                                 <Textarea
                                     value={descripcion}
                                     onChange={(e) => setDescripcion(e.target.value)}
-                                    className="min-h-[100px] bg-slate-700/50 border-slate-600 text-white rounded-xl"
+                                    className="min-h-[100px] bg-white border-slate-300 text-slate-900 rounded-xl"
                                     placeholder="Describe el motivo de ingreso del vehículo..."
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Detalle de Trabajos Realizados</Label>
+                                <Label className="text-slate-600">Detalle de Trabajos Realizados</Label>
                                 <Textarea
                                     value={detalleTrabajos}
                                     onChange={(e) => setDetalleTrabajos(e.target.value)}
-                                    className="min-h-[100px] bg-slate-700/50 border-slate-600 text-white rounded-xl"
+                                    className="min-h-[100px] bg-white border-slate-300 text-slate-900 rounded-xl"
                                     placeholder="Describe los trabajos realizados en el vehículo..."
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-slate-300">Precio Total ($)</Label>
+                                <Label className="text-slate-600">Precio Total ($)</Label>
                                 <Input
                                     value={precioFinal}
                                     onChange={(e) => setPrecioFinal(e.target.value)}
                                     onBlur={() => setPrecioFinal(formatPrecio(parsePrecio(precioFinal)))}
                                     inputMode="numeric"
-                                    className="bg-slate-700/50 border-slate-600 text-white rounded-xl text-lg font-semibold"
+                                    className="bg-white border-slate-300 text-slate-900 rounded-xl text-lg font-semibold"
                                     placeholder="15000"
                                 />
-                                <p className="text-xs text-slate-400">Precio en pesos chilenos</p>
+                                <p className="text-xs text-slate-500">Precio en pesos chilenos</p>
                             </div>
 
                             {/* Métodos de Pago */}
-                            <div className="space-y-3 border-t border-slate-700 pt-4">
+                            <div className="space-y-3 border-t border-slate-200 pt-4">
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-slate-300 text-base">Métodos de Pago</Label>
+                                    <Label className="text-slate-600 text-base">Métodos de Pago</Label>
                                     <Button
                                         type="button"
                                         size="sm"
@@ -556,7 +561,7 @@ export default function OrdenesCleanPage() {
                                 {metodosPago.length > 0 && (
                                     <div className="space-y-2">
                                         {metodosPago.map((mp, idx) => (
-                                            <div key={idx} className="flex gap-2 items-center bg-slate-700/30 p-3 rounded-lg">
+                                            <div key={idx} className="flex gap-2 items-center bg-slate-50 border border-slate-200 p-3 rounded-lg">
                                                 <Select
                                                     value={mp.metodo}
                                                     onValueChange={(value) => {
@@ -565,15 +570,15 @@ export default function OrdenesCleanPage() {
                                                         setMetodosPago(updated);
                                                     }}
                                                 >
-                                                    <SelectTrigger className="w-[140px] bg-slate-700 border-slate-600 text-white rounded-lg">
+                                                    <SelectTrigger className="w-[140px] bg-white border-slate-300 text-slate-900 rounded-lg">
                                                         <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent className="bg-slate-800 border-slate-700">
-                                                        <SelectItem value="efectivo" className="text-slate-200">Efectivo</SelectItem>
-                                                        <SelectItem value="debito" className="text-slate-200">Débito</SelectItem>
-                                                        <SelectItem value="credito" className="text-slate-200">Crédito</SelectItem>
-                                                        <SelectItem value="transferencia" className="text-slate-200">Transferencia</SelectItem>
-                                                        <SelectItem value="debe" className="text-slate-200">Debe (Deuda)</SelectItem>
+                                                    <SelectContent className="bg-white border-slate-200">
+                                                        <SelectItem value="efectivo" className="text-slate-700">Efectivo</SelectItem>
+                                                        <SelectItem value="debito" className="text-slate-700">Débito</SelectItem>
+                                                        <SelectItem value="credito" className="text-slate-700">Crédito</SelectItem>
+                                                        <SelectItem value="transferencia" className="text-slate-700">Transferencia</SelectItem>
+                                                        <SelectItem value="debe" className="text-slate-700">Debe (Deuda)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <Input
@@ -591,7 +596,7 @@ export default function OrdenesCleanPage() {
                                                         e.target.value = formatPrecio(updated[idx].monto);
                                                     }}
                                                     placeholder="Monto"
-                                                    className="flex-1 bg-slate-700 border-slate-600 text-white rounded-lg"
+                                                    className="flex-1 bg-white border-slate-300 text-slate-900 rounded-lg"
                                                 />
                                                 <Button
                                                     type="button"
@@ -607,16 +612,16 @@ export default function OrdenesCleanPage() {
                                                 </Button>
                                             </div>
                                         ))}
-                                        <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-700">
-                                            <span className="text-slate-400">Total pagos:</span>
-                                            <span className="text-white font-semibold">
+                                        <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-200">
+                                            <span className="text-slate-500">Total pagos:</span>
+                                            <span className="text-slate-900 font-semibold">
                                                 ${formatPrecio(metodosPago.reduce((sum, mp) => sum + mp.monto, 0))}
                                             </span>
                                         </div>
                                         {metodosPago.length > 0 && parsePrecio(precioFinal) > 0 && (
                                             <div className="flex justify-between items-center text-sm">
-                                                <span className="text-slate-400">Precio total:</span>
-                                                <span className="text-white font-semibold">${precioFinal}</span>
+                                                <span className="text-slate-500">Precio total:</span>
+                                                <span className="text-slate-900 font-semibold">${precioFinal}</span>
                                             </div>
                                         )}
                                     </div>
@@ -644,7 +649,7 @@ export default function OrdenesCleanPage() {
                                 <Link href="/admin/ordenes">
                                     <Button
                                         variant="outline"
-                                        className="border-slate-600 text-slate-300 hover:bg-slate-700 rounded-xl"
+                                        className="border-slate-300 text-slate-700 hover:bg-slate-900 hover:text-white rounded-xl transition-colors"
                                     >
                                         <ArrowLeft className="w-4 h-4 mr-2" />
                                         Volver a Órdenes
@@ -654,18 +659,18 @@ export default function OrdenesCleanPage() {
 
                             {/* Botones de Boleta, PDF e Imprimir - Aparecen solo después de guardar */}
                             {saveSuccess && (
-                                <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-slate-700">
+                                <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-slate-200">
                                     {user?.role === 'admin' && (
-                                        <Button onClick={handleTicket} variant="outline" className="flex-1 sm:flex-none border-slate-600 text-slate-300 hover:bg-slate-700 rounded-xl">
+                                        <Button onClick={handleTicket} className="flex-1 sm:flex-none bg-slate-900 text-white hover:bg-white hover:text-slate-900 border border-slate-900 rounded-xl transition-colors shadow-sm">
                                             <Printer className="w-4 h-4 mr-2" />
                                             Boleta/Ticket
                                         </Button>
                                     )}
-                                    <Button onClick={handleDownloadPDF} variant="outline" className="flex-1 sm:flex-none border-slate-600 text-slate-300 hover:bg-slate-700 rounded-xl">
+                                    <Button onClick={handleDownloadPDF} className="flex-1 sm:flex-none bg-slate-900 text-white hover:bg-white hover:text-slate-900 border border-slate-900 rounded-xl transition-colors shadow-sm">
                                         <Download className="w-4 h-4 mr-2" />
                                         Descargar PDF
                                     </Button>
-                                    <Button onClick={handlePrint} variant="outline" className="flex-1 sm:flex-none border-slate-600 text-slate-300 hover:bg-slate-700 rounded-xl">
+                                    <Button onClick={handlePrint} className="flex-1 sm:flex-none bg-slate-900 text-white hover:bg-white hover:text-slate-900 border border-slate-900 rounded-xl transition-colors shadow-sm">
                                         <Printer className="w-4 h-4 mr-2" />
                                         Imprimir Orden
                                     </Button>
@@ -675,33 +680,33 @@ export default function OrdenesCleanPage() {
                     ) : (
                         <>
                             <div className="flex items-center justify-between">
-                                <span className="text-slate-400">Precio Final</span>
-                                <span className="text-white font-bold">${(order.precio_total || 0).toLocaleString('es-CL')}</span>
+                                <span className="text-slate-500">Precio Final</span>
+                                <span className="text-slate-900 font-bold">${(order.precio_total || 0).toLocaleString('es-CL')}</span>
                             </div>
                             <div className="pt-2">
-                                <p className="text-slate-400 text-sm mb-1">Motivo</p>
-                                <p className="text-white whitespace-pre-wrap">{order.descripcion_ingreso}</p>
+                                <p className="text-slate-500 text-sm mb-1">Motivo</p>
+                                <p className="text-slate-900 whitespace-pre-wrap">{order.descripcion_ingreso}</p>
                             </div>
                         </>
                     )}
 
                     {order.detalles_vehiculo ? (
                         <div className="pt-2">
-                            <p className="text-slate-400 text-sm mb-1">Detalles del Vehículo</p>
-                            <p className="text-white whitespace-pre-wrap">{order.detalles_vehiculo}</p>
+                            <p className="text-slate-500 text-sm mb-1">Detalles del Vehículo</p>
+                            <p className="text-slate-900 whitespace-pre-wrap">{order.detalles_vehiculo}</p>
                         </div>
                     ) : null}
 
                     {order.fotos_urls?.length ? (
                         <div className="pt-2">
-                            <p className="text-slate-400 text-sm mb-2">Imágenes</p>
+                            <p className="text-slate-500 text-sm mb-2">Imágenes</p>
                             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                                 {order.fotos_urls.map((src, idx) => (
                                     <button
                                         key={idx}
                                         type="button"
                                         onClick={() => window.open(src, '_blank')}
-                                        className="rounded-xl border border-slate-700 bg-slate-800/30 p-2 hover:bg-slate-800/50"
+                                        className="rounded-xl border border-slate-200 bg-slate-50 p-2 hover:bg-slate-100"
                                     >
                                         <img src={src} alt={`foto-${idx}`} className="h-28 w-full rounded-lg object-cover" />
                                     </button>
@@ -713,10 +718,10 @@ export default function OrdenesCleanPage() {
             </Card>
 
             {/* SECCIÓN CHECKLIST */}
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-white border-slate-200 shadow-sm">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-white">
-                        <ClipboardCheck className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-slate-900">
+                        <ClipboardCheck className="w-5 h-5 text-blue-600" />
                         Lista de Chequeo
                     </CardTitle>
                 </CardHeader>
@@ -724,10 +729,10 @@ export default function OrdenesCleanPage() {
                     {!checklist ? (
                         // Sin checklist
                         <div className="text-center py-8">
-                            <p className="text-slate-400 mb-4">No se ha creado checklist para esta orden</p>
+                            <p className="text-slate-500 mb-4">No se ha creado checklist para esta orden</p>
                             <Button
                                 onClick={() => handleOpenChecklist('checklist')}
-                                className="bg-blue-600 hover:bg-blue-700"
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
                             >
                                 <ClipboardCheck className="w-4 h-4 mr-2" />
                                 Crear Checklist Ingreso
@@ -736,43 +741,80 @@ export default function OrdenesCleanPage() {
                     ) : !checklist.revisado_por_mecanico_at ? (
                         // Checklist sin confirmar
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-yellow-500">
+                            <div className="flex items-center gap-2 text-amber-500 bg-amber-50 p-3 rounded-lg border border-amber-100">
                                 <AlertCircle className="w-5 h-5" />
                                 <span className="font-medium">Confirmación Pendiente</span>
                             </div>
                             <Button
                                 onClick={() => handleOpenChecklist('readonly_ingreso')}
                                 variant="outline"
-                                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                                className="w-full border-slate-300 text-slate-700 hover:bg-slate-900 hover:text-white rounded-xl transition-colors"
                             >
                                 <Eye className="w-4 h-4 mr-2" />
                                 Ver Ingreso para Confirmar
                             </Button>
                         </div>
                     ) : (
-                        // Checklist confirmado
+                        // Checklist confirmado - FLUJO COMPLETO
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-green-500">
-                                <CheckCircle2 className="w-5 h-5" />
-                                <span className="font-medium">Ingreso Revisado</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Button
-                                    onClick={() => handleOpenChecklist('readonly_ingreso')}
-                                    variant="outline"
-                                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                                >
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    Ver Ingreso
-                                </Button>
-                                <Button
-                                    onClick={() => handleOpenChecklist('salida')}
-                                    className="bg-green-600 hover:bg-green-700"
-                                >
-                                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                                    Checklist Salida
-                                </Button>
-                            </div>
+                            {(() => {
+                                const isSalidaConfirmed = !!checklist.confirmado_salida_en;
+                                const isEnProceso = order.estado === 'en_proceso';
+                                const isPendiente = order.estado === 'pendiente';
+
+                                return (
+                                    <>
+                                        <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                                            <CheckCircle2 className="w-5 h-5" />
+                                            <span className="font-medium">
+                                                {isSalidaConfirmed ? 'Salida Revisada' : 'Ingreso Revisado'}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <Button
+                                                onClick={() => handleOpenChecklist('readonly_ingreso')}
+                                                variant="outline"
+                                                className="border-slate-300 text-slate-700 hover:bg-slate-900 hover:text-white rounded-xl transition-colors"
+                                            >
+                                                <Eye className="w-4 h-4 mr-2" />
+                                                Ver Ingreso
+                                            </Button>
+
+                                            {/* Logic for Start/Finish Work Buttons */}
+                                            {isPendiente && (
+                                                <Button
+                                                    onClick={() => handleUpdateStatus('en_proceso')}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white animate-pulse"
+                                                >
+                                                    <Wrench className="w-4 h-4 mr-2" />
+                                                    Empezar Reparación
+                                                </Button>
+                                            )}
+
+                                            {isEnProceso && (
+                                                <Button
+                                                    onClick={() => handleUpdateStatus('completada')}
+                                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                                >
+                                                    <Flag className="w-4 h-4 mr-2" />
+                                                    Terminar Trabajo
+                                                </Button>
+                                            )}
+
+                                            {!isPendiente && !isEnProceso && (
+                                                <Button
+                                                    onClick={() => handleOpenChecklist('salida')}
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                    Checklist Salida
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     )}
                 </CardContent>
@@ -780,16 +822,16 @@ export default function OrdenesCleanPage() {
 
             {/* CHECKLIST DIALOG */}
             <Dialog open={checklistDialog.open} onOpenChange={(open) => !open && handleChecklistClose()}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-800">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border-slate-200 text-slate-900">
                     <DialogHeader>
-                        <DialogTitle className="text-slate-100">
+                        <DialogTitle className="text-slate-900">
                             {checklistDialog.mode === 'checklist' && 'Crear Checklist de Ingreso'}
                             {checklistDialog.mode === 'readonly_ingreso' && 'Checklist de Ingreso'}
                             {checklistDialog.mode === 'salida' && 'Checklist de Salida'}
                         </DialogTitle>
-                        <DialogDescription className="text-slate-400">
+                        <DialogDescription className="text-slate-500">
                             {checklistDialog.mode === 'checklist' && 'Registra el estado del vehículo al momento del ingreso'}
-                            {checklistDialog.mode === 'readonly_ingreso' && 'Revisa y confirma el checklist de ingreso'}
+                            {checklistDialog.mode === 'readonly_ingreso' && 'Nota: Solo lectura. Para editar, usa la app móvil.'}
                             {checklistDialog.mode === 'salida' && 'Registra el estado del vehículo al momento de la entrega'}
                         </DialogDescription>
                     </DialogHeader>

@@ -136,12 +136,9 @@ export default function AdminPage() {
 
     const getPerfilNombre = (order: OrdenDB) => {
         // Ahora usamos el perfil anidado si existe
-        if (order.asignado_a && order.perfiles_asignado) {
-            return order.perfiles_asignado.nombre_completo;
-        }
-        if (order.perfiles_creado) {
-            return order.perfiles_creado.nombre_completo;
-        }
+        if (order.asignado) return order.asignado.nombre_completo;
+        if (order.creado) return order.creado.nombre_completo;
+        if (order.creado_por_perfil) return order.creado_por_perfil.nombre_completo;
         return 'Sin asignar';
     };
 
@@ -307,7 +304,7 @@ export default function AdminPage() {
                                                         {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : order.patente_vehiculo}
                                                     </p>
                                                     <p className="text-xs text-blue-400 truncate">
-                                                        {order.vehiculos?.clientes?.nombre_completo || order.cliente_nombre || 'Cliente S/R'}
+                                                        {order.cliente?.nombre_completo || order.cliente_nombre || 'Cliente S/R'}
                                                     </p>
                                                     {order.asignado_a && (
                                                         <p className="text-xs text-gray-500 mt-1">
