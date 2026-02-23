@@ -18,7 +18,7 @@ export interface AuthUser {
     id: string;
     email: string;
     name: string;
-    role: 'mecanico' | 'admin';
+    role: 'mecanico' | 'admin' | 'superadmin';
     isActive: boolean;
     tallerId?: string; // UUID del taller asignado
 }
@@ -73,8 +73,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             console.log('Iniciando login para:', email);
 
+            // Resolver alias cortos a emails completos (para credenciales demo)
+            let emailResolved = email.trim();
+            if (!emailResolved.includes('@')) {
+                // Alias → email completo
+                const aliasMap: Record<string, string> = {
+                    'admin': 'admin@taller.demo',
+                    'mecanico': 'mecanico@taller.demo',
+                    'cliente': 'cliente@taller.demo',
+                };
+                emailResolved = aliasMap[emailResolved.toLowerCase()] || emailResolved;
+            }
+
             // Usar el servicio de localStorage
-            const result = await loginConCredenciales(email.trim(), password);
+            const result = await loginConCredenciales(emailResolved, password);
 
             if (result.error || !result.user || !result.perfil) {
                 return { success: false, error: result.error || 'Error de autenticación' };

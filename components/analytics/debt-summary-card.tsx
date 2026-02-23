@@ -35,21 +35,29 @@ export function DebtSummaryCard({ orders }: DebtSummaryCardProps) {
             // V3 Logic: metodo_pago string - Soporta pagos parciales (ej: "efectivo, debe")
             return order.metodo_pago?.includes('debe');
         }).map(order => {
-            // New logic: Sum only the amounts marked as 'debe' in the metodos_pago array
-            let calculatedDebt = 0;
+            // Priority 1: Use JSONB metodos_pago array (requires SQL migration)
             if (order.metodos_pago && Array.isArray(order.metodos_pago)) {
-                calculatedDebt = order.metodos_pago
+                const calculatedDebt = order.metodos_pago
                     .filter(mp => mp.metodo === 'debe')
                     .reduce((sum, mp) => sum + (mp.monto || 0), 0);
-            } else {
-                // Legacy fallback: Use total price if metodo_pago string mentions 'debe'
-                calculatedDebt = order.precio_total || 0;
+                return { ...order, debtAmount: calculatedDebt };
             }
 
-            return {
-                ...order,
-                debtAmount: calculatedDebt,
-            };
+            // Priority 2: Parse "metodo:monto" format from string (e.g. "efectivo:40000, debe:10000")
+            if (order.metodo_pago?.includes(':')) {
+                const parts = order.metodo_pago.split(',').map(s => s.trim());
+                let debeAmount = 0;
+                for (const part of parts) {
+                    const [metodo, montoStr] = part.split(':');
+                    if (metodo?.trim() === 'debe') {
+                        debeAmount += parseInt(montoStr?.trim() || '0', 10) || 0;
+                    }
+                }
+                return { ...order, debtAmount: debeAmount };
+            }
+
+            // Legacy fallback: full price (old orders without amount encoding)
+            return { ...order, debtAmount: order.precio_total || 0 };
         }).sort((a, b) => b.debtAmount - a.debtAmount);
 
         const totalDebt = ordersWithDebt.reduce((sum, order) => sum + order.debtAmount, 0);

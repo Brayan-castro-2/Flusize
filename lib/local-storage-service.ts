@@ -9,8 +9,9 @@ export interface PerfilDB {
     id: string;
     email: string;
     nombre_completo: string;
-    rol: 'mecanico' | 'admin';
+    rol: 'mecanico' | 'admin' | 'superadmin';
     activo: boolean;
+    taller_id?: string;
 }
 
 export interface ClienteDB {
@@ -396,7 +397,7 @@ export async function crearUsuario(
     email: string,
     password: string,
     nombreCompleto: string,
-    rol: 'admin' | 'mecanico'
+    rol: 'admin' | 'mecanico' | 'superadmin'
 ): Promise<{ success: boolean; error?: string }> {
     const perfiles = getFromStorage<PerfilDB[]>(KEYS.PERFILES, []);
 

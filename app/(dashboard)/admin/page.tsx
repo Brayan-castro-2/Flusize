@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useDashboardOrders } from '@/hooks/use-dashboard';
 import {
@@ -40,6 +41,8 @@ import { DebtSummaryCard } from '@/components/analytics/debt-summary-card';
 import { FEATURE_FLAGS } from '@/config/modules';
 import { NewBadge } from '@/components/ui/new-badge';
 import { UpcomingAppointments } from '@/components/agenda/upcoming-appointments';
+import { useDateFilter } from '@/hooks/use-date-filter';
+import { DateRangeFilter } from '@/components/filters/date-range-filter';
 
 // Skeleton loader para stats
 function StatsSkeleton() {
@@ -58,11 +61,20 @@ function StatsSkeleton() {
 
 export default function AdminPage() {
     const { user } = useAuth();
+    const router = useRouter();
     const { data: allOrders = [], isLoading: isLoadingOrders } = useDashboardOrders();
+    const { dateFilter, setDateFilter, filteredOrders } = useDateFilter(allOrders);
     const [perfiles, setPerfiles] = useState<PerfilDB[]>([]);
     // const [vehiculos, setVehiculos] = useState<VehiculoDB[]>([]); // REMOVED
     const [isLoadingOther, setIsLoadingOther] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Redirigir mecánicos a /recepcion — el dashboard es solo para admin y superadmin
+    useEffect(() => {
+        if (user && user.role === 'mecanico') {
+            router.replace('/recepcion');
+        }
+    }, [user, router]);
 
     const isLoading = isLoadingOrders || isLoadingOther;
     const canViewPrices = user?.name?.toLowerCase().includes('juan');
@@ -99,27 +111,23 @@ export default function AdminPage() {
     }, [loadData]);
 
     const stats = useMemo(() => {
-        const now = new Date();
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const ordersThisMonth = allOrders.filter(o => {
-            const orderDate = new Date(o.fecha_ingreso);
-            return orderDate >= firstDayOfMonth;
-        });
+        const completedTodaysOrders = todaysOrders.filter(o => o.estado === 'completada');
+        const completedFilteredOrders = filteredOrders.filter(o => o.estado === 'completada');
 
         return {
-            todayRevenue: todaysOrders.reduce((acc, o) => acc + (o.precio_total || 0), 0),
-            pending: allOrders.filter(o => o.estado === 'pendiente').length,
-            monthlyRevenue: ordersThisMonth.reduce((acc, o) => acc + (o.precio_total || 0), 0),
-            completed: allOrders.filter(o => o.estado === 'completada').length,
+            todayRevenue: completedTodaysOrders.reduce((acc, o) => acc + (o.precio_total || 0), 0),
+            pending: filteredOrders.filter(o => o.estado === 'pendiente').length,
+            filteredRevenue: completedFilteredOrders.reduce((acc, o) => acc + (o.precio_total || 0), 0),
+            completed: completedFilteredOrders.length,
         };
-    }, [todaysOrders, allOrders]);
+    }, [todaysOrders, filteredOrders]);
 
     // Calcular rendimiento de mecánicos
     const mechanicPerformance = useMemo(() => {
         const mechanics = perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'admin');
 
         return mechanics.map(mechanic => {
-            const assignedOrders = allOrders.filter(o => o.asignado_a === mechanic.id);
+            const assignedOrders = filteredOrders.filter(o => o.asignado_a === mechanic.id);
             const completedOrders = assignedOrders.filter(o => o.estado === 'completada');
             const totalRevenue = assignedOrders.reduce((acc, o) => acc + (o.precio_total || 0), 0);
 
@@ -132,7 +140,7 @@ export default function AdminPage() {
                 completedOrders: completedOrders,
             };
         }).sort((a, b) => b.ordersCount - a.ordersCount);
-    }, [allOrders, perfiles]);
+    }, [filteredOrders, perfiles]);
 
     const getPerfilNombre = (order: OrdenDB) => {
         // Ahora usamos el perfil anidado si existe
@@ -177,6 +185,13 @@ export default function AdminPage() {
                 </Button>
             </div>
 
+            {/* Filtros */}
+            <DateRangeFilter
+                onFilterChange={setDateFilter}
+                totalOrders={filteredOrders.length}
+                totalRevenue={stats.filteredRevenue}
+            />
+
             {/* Stats Grid */}
             {isLoading ? (
                 <StatsSkeleton />
@@ -207,8 +222,8 @@ export default function AdminPage() {
                         <Card className="bg-white border border-gray-200">
                             <CardContent className="p-3 sm:p-4">
                                 <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mb-2" />
-                                <p className="text-xl sm:text-3xl font-bold text-gray-900">${stats.monthlyRevenue.toLocaleString('es-CL')}</p>
-                                <p className="text-xs sm:text-sm text-gray-600">Monto Mensual</p>
+                                <p className="text-xl sm:text-3xl font-bold text-gray-900">${stats.filteredRevenue.toLocaleString('es-CL')}</p>
+                                <p className="text-xs sm:text-sm text-gray-600">{dateFilter ? 'Monto del Período' : 'Monto Mensual'}</p>
                             </CardContent>
                         </Card>
                     )}

@@ -65,7 +65,7 @@ export interface PerfilDB {
     id: string; // UUID
     email: string;
     nombre_completo: string;
-    rol: 'mecanico' | 'admin';
+    rol: 'mecanico' | 'admin' | 'superadmin';
     activo: boolean;
     taller_id?: string; // UUID del taller asignado
     created_at: string;

@@ -58,9 +58,9 @@ export async function obtenerOrdenesCount(): Promise<number> {
     return localService.obtenerOrdenesCount();
 }
 
-export async function obtenerOrdenesLight(): Promise<OrdenDB[]> {
+export async function obtenerOrdenesLight(mecanicoId?: string): Promise<OrdenDB[]> {
     if (isSupabase()) {
-        return supabaseService.obtenerOrdenesLight();
+        return supabaseService.obtenerOrdenesLight(mecanicoId);
     }
     return localService.obtenerOrdenesLight();
 }
@@ -149,7 +149,7 @@ export async function crearUsuario(
     email: string,
     password: string,
     nombreCompleto: string,
-    rol: 'admin' | 'mecanico'
+    rol: 'admin' | 'mecanico' | 'superadmin'
 ): Promise<{ success: boolean; error?: string; user?: PerfilDB }> {
     if (isSupabase()) {
         return supabaseService.crearUsuario(email, password, nombreCompleto, rol);
@@ -299,7 +299,7 @@ export async function guardarChecklist(checklist: {
     items: any;
     photos: any;
     comentarios_generales?: string;
-    fotos_extra?: string[];
+    fotos_extra?: string[] | { url: string; nota: string }[];
 }): Promise<any> {
     if (isSupabase()) {
         // Adapt frontend structure to DB structure
@@ -308,7 +308,7 @@ export async function guardarChecklist(checklist: {
             detalles: checklist.items,
             fotos: checklist.photos,
             comentarios_generales: checklist.comentarios_generales,
-            fotos_extra: checklist.fotos_extra
+            fotos_extra: checklist.fotos_extra as any
         });
     }
     console.log('🟡 [Storage] Guardando checklist en local (Mock)...', checklist);

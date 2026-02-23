@@ -408,8 +408,8 @@ export async function obtenerOrdenesCount(): Promise<number> {
 }
 
 // Obtener órdenes optimizadas para Dashboard (Light)
-export async function obtenerOrdenesLight(): Promise<OrdenDB[]> {
-    const { data, error } = await supabase
+export async function obtenerOrdenesLight(mecanicoId?: string): Promise<OrdenDB[]> {
+    let query = supabase
         .from('ordenes')
         .select(`
             id,
@@ -441,6 +441,13 @@ export async function obtenerOrdenesLight(): Promise<OrdenDB[]> {
             )
         `)
         .order('fecha_ingreso', { ascending: false });
+
+    // Si es mecánico, filtrar solo sus órdenes asignadas
+    if (mecanicoId) {
+        query = query.eq('asignado_a', mecanicoId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error('❌ Error al obtener órdenes light:', error);
@@ -1281,7 +1288,7 @@ export async function guardarChecklist(checklist: {
     detalles: any; // Changed from items to match DB
     fotos: any;
     comentarios_generales?: string;
-    fotos_extra?: string[];
+    fotos_extra?: string[] | { url: string; nota: string }[];
 }): Promise<any> {
     const { data, error } = await supabase
         .from('listas_chequeo') // Changed table name
@@ -1362,3 +1369,39 @@ export async function subirImagenChecklist(file: File, ordenId: string, tipo: st
     }
 }
 
+// =========== CREAR USUARIO SISTEMA (ADMIN) ===========
+export async function crearUsuarioSistema(datos: { email: string, password: string, nombre: string, rol: 'mecanico' | 'admin' | 'superadmin' }) {
+    // 1. Crear usuario en Auth de Supabase
+    console.log("Creando Auth User para:", datos.email);
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: datos.email,
+        password: datos.password,
+    });
+
+    if (authError) {
+        console.error("Error en Auth:", authError);
+        throw authError;
+    }
+
+    const newUserId = authData.user?.id;
+    if (!newUserId) throw new Error("No se obtuvo el ID del usuario creado.");
+
+    console.log("Creando Perfil para UUID:", newUserId);
+    // 2. Insertar el Perfil en la tabla 'perfiles' (vinculando el UUID)
+    const { error: profileError } = await supabase
+        .from('perfiles')
+        .insert([{
+            id: newUserId,
+            email: datos.email,
+            nombre_completo: datos.nombre,
+            rol: datos.rol,
+            activo: true
+        }]);
+
+    if (profileError) {
+        console.error("Error al crear perfil:", profileError);
+        throw profileError;
+    }
+
+    return authData.user;
+}

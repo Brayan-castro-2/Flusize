@@ -211,7 +211,11 @@ export default function OrdenesCleanPage() {
 
         // PREPARAR PAYLOAD: Solo campos que existen en la tabla 'ordenes'
         // Mapeamos metodos_pago (array) a metodo_pago (string) para compatibilidad DB
-        const metodoPagoText = metodosPago.map(m => m.metodo).join(', ');
+        // Encode amounts in the string: "efectivo:40000, debe:10000"
+        // This allows the DebtSummaryCard to extract the real debt amount without a DB migration.
+        const metodoPagoText = metodosPago.length > 0
+            ? metodosPago.map(m => `${m.metodo}:${m.monto}`).join(', ')
+            : null;
 
         const updateData: any = {
             descripcion_ingreso: descripcion,
@@ -613,9 +617,9 @@ export default function OrdenesCleanPage() {
                                             </div>
                                         ))}
                                         <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-200">
-                                            <span className="text-slate-500">Total pagos:</span>
+                                            <span className="text-slate-500">Total pagado:</span>
                                             <span className="text-slate-900 font-semibold">
-                                                ${formatPrecio(metodosPago.reduce((sum, mp) => sum + mp.monto, 0))}
+                                                ${formatPrecio(metodosPago.filter(mp => mp.metodo !== 'debe').reduce((sum, mp) => sum + mp.monto, 0))}
                                             </span>
                                         </div>
                                         {metodosPago.length > 0 && parsePrecio(precioFinal) > 0 && (
@@ -648,11 +652,10 @@ export default function OrdenesCleanPage() {
                                 </Button>
                                 <Link href="/admin/ordenes">
                                     <Button
-                                        variant="outline"
-                                        className="border-slate-300 text-slate-700 hover:bg-slate-900 hover:text-white rounded-xl transition-colors"
+                                        className="bg-slate-900 text-white hover:bg-slate-800 rounded-xl transition-colors shadow-sm"
                                     >
-                                        <ArrowLeft className="w-4 h-4 mr-2" />
-                                        Volver a Órdenes
+                                        <ArrowLeft className="w-4 h-4 mr-2 text-white" />
+                                        <span className="text-white">Volver a Órdenes</span>
                                     </Button>
                                 </Link>
                             </div>

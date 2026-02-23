@@ -1,430 +1,643 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
-    CheckCircle2,
-    Clock,
+    Check,
     Wrench,
     Car,
     Camera,
-    MessageSquare,
     AlertCircle,
+    MessageCircle,
+    Navigation,
     MapPin,
-    Phone
+    Phone,
+    Clock,
+    Sparkles,
+    ArrowRight,
+    ClipboardCheck,
+    PackageCheck,
+    ChevronLeft,
+    Share2,
+    FileText,
+    ChevronRight,
+    ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 
-// --- TYPES ---
-type OrderStatus = 'pendiente' | 'en_proceso' | 'completada' | 'entregada' | 'debe' | 'cancelada';
+// ─────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────
+type OrderStatus = 'pendiente' | 'en_proceso' | 'completada' | 'entregada' | 'cancelada';
 
-interface OrderData {
+interface TrackingData {
     id: string;
     numero_orden: string;
     estado: OrderStatus;
-    descripcion_ingreso: string;
+    descripcion_problema: string | null;
+    descripcion_ingreso: string | null;
     fecha_ingreso: string;
-    fecha_entrega: string | null;
+    fotos_urls: string[];
+    patente_vehiculo: string | null;
     vehiculo: {
-        marca: string;
-        modelo: string;
+        marca: string | null;
+        modelo: string | null;
         patente: string;
-        anio: string;
-        color: string;
-    };
+        ano: number | null;
+    } | null;
     taller: {
         nombre: string;
-        direccion: string;
-        telefono: string;
-        logo_url: string | null;
-    };
-    evidencias: {
-        url: string;
-        tipo: 'foto' | 'video';
-        comentario: string | null;
-    }[];
-    isReviewed?: boolean;
+        telefono: string | null;
+        direccion: string | null;
+        latitud: number | null;
+        longitud: number | null;
+    } | null;
+    checklistFotos: string[];
+    revisado: boolean;
 }
 
-// --- COMPONENTS ---
+// ─────────────────────────────────────────
+// TIMELINE CONFIG
+// ─────────────────────────────────────────
+type StepStatus = "done" | "active" | "pending";
+interface Step { label: string; description: string; status: StepStatus; icon: React.ReactNode; time?: string }
 
-const StatusTimeline = ({ currentStatus, isReviewed }: { currentStatus: OrderStatus, isReviewed?: boolean }) => {
-    // Logic to map DB status to display steps
-    // Statuses based on standard flow
+function getActiveStep(estado: OrderStatus, revisado: boolean): number {
+    if (estado === 'entregada') return 4;
+    if (estado === 'completada') return 3;
+    if (estado === 'en_proceso') return 2;
+    if (estado === 'pendiente' && revisado) return 1;
+    return 0;
+}
 
-    const steps = [
-        { id: 'pendiente', label: 'Recibido', icon: Car, date: null },
-        { id: 'diagnostico', label: 'Revisión', icon: Wrench, date: null }, // Intermediate visual step
-        { id: 'en_proceso', label: 'Reparación', icon: Wrench, date: null },
-        { id: 'completada', label: 'Listo', icon: CheckCircle2, date: null },
+// ─────────────────────────────────────────
+// DATA FETCHER
+// ─────────────────────────────────────────
+async function fetchTracking(id: string): Promise<TrackingData | null> {
+    const { data: raw, error } = await supabase
+        .from('ordenes')
+        .select(`
+      id, numero_orden, estado, descripcion_problema, descripcion_ingreso,
+      fecha_ingreso, fotos_urls, patente_vehiculo,
+      vehiculos:vehiculos!vehiculo_local_id ( marca, modelo, patente, ano ),
+      talleres ( nombre, telefono, direccion, latitud, longitud )
+    `)
+        .eq('id', id)
+        .single();
+
+    if (error || !raw) return null;
+
+    const d = raw as any;
+    const veh = Array.isArray(d.vehiculos) ? d.vehiculos[0] : d.vehiculos;
+    const taller = Array.isArray(d.talleres) ? d.talleres[0] : d.talleres;
+
+    const { data: checklist } = await supabase
+        .from('listas_chequeo')
+        .select('fotos, fotos_salida, revisado_por_mecanico_at')
+        .eq('orden_id', id)
+        .maybeSingle();
+
+    const extractUrls = (obj: any): string[] => {
+        if (!obj || typeof obj !== 'object') return [];
+        return Object.values(obj).filter((v): v is string => typeof v === 'string' && v.startsWith('http'));
+    };
+
+    const checklistFotos = [
+        ...extractUrls(checklist?.fotos),
+        ...extractUrls(checklist?.fotos_salida),
     ];
 
-    // Determine active index based on currentStatus
-    let activeIndex = 0;
+    const orderFotos: string[] = Array.isArray(d.fotos_urls) ? d.fotos_urls.filter(Boolean) : [];
 
-    // Logic for steps
-    if (currentStatus === 'en_proceso') activeIndex = 2;
-    if (currentStatus === 'completada' || currentStatus === 'debe') activeIndex = 3;
-    if (currentStatus === 'entregada') activeIndex = 4; // All steps completed
+    return {
+        id: d.id,
+        numero_orden: d.numero_orden || d.id.slice(0, 8).toUpperCase(),
+        estado: d.estado || 'pendiente',
+        descripcion_problema: d.descripcion_problema,
+        descripcion_ingreso: d.descripcion_ingreso,
+        fecha_ingreso: d.fecha_ingreso,
+        fotos_urls: [...new Set([...orderFotos, ...checklistFotos])],
+        patente_vehiculo: d.patente_vehiculo,
+        vehiculo: veh ? {
+            marca: veh.marca,
+            modelo: veh.modelo,
+            patente: veh.patente || d.patente_vehiculo || '—',
+            ano: veh.ano,
+        } : null,
+        taller: taller ? {
+            nombre: taller.nombre,
+            telefono: taller.telefono,
+            direccion: taller.direccion,
+            latitud: taller.latitud,
+            longitud: taller.longitud,
+        } : null,
+        checklistFotos,
+        revisado: !!checklist?.revisado_por_mecanico_at,
+    };
+}
 
-    // Special case: Reviewed but still Pending (Waiting for repair start)
-    const isWaitingRequests = currentStatus === 'pendiente' && isReviewed;
-    if (isWaitingRequests) {
-        activeIndex = 2; // Advance to Repair step visually
+// ─────────────────────────────────────────
+// SUB-COMPONENTS (Light Mode versions based on Design)
+// ─────────────────────────────────────────
+
+function TrackingHeader({ data, onBack }: { data: TrackingData, onBack: () => void }) {
+    const veh = data.vehiculo;
+    const nombreVehiculo = veh?.marca && veh?.modelo ? `${veh.marca} ${veh.modelo} ${veh.ano || ''}`.trim() : 'Vehículo';
+    const patente = veh?.patente || data.patente_vehiculo || '—';
+
+    return (
+        <header className="relative px-4 pb-6 pt-6">
+            <div className="flex items-center justify-between mb-8">
+                <button
+                    onClick={onBack}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200"
+                    aria-label="Volver"
+                >
+                    <ChevronLeft className="h-5 w-5" />
+                </button>
+                <div className="flex items-center gap-1.5">
+                    <div className="h-6 w-6 rounded-md bg-blue-600 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-white tracking-tight">F</span>
+                    </div>
+                    <span className="text-sm font-bold text-slate-800 tracking-tight">flusize</span>
+                </div>
+                <button className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200" aria-label="Compartir">
+                    <Share2 className="h-4 w-4" />
+                </button>
+            </div>
+
+            <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/50">
+                    <Car className="h-7 w-7" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-xl font-bold text-slate-800 leading-tight">{nombreVehiculo}</h1>
+                    <div className="mt-2 flex items-center gap-2">
+                        <Badge className="bg-slate-100 text-slate-600 border-transparent font-mono text-xs tracking-wider px-3 py-1 hover:bg-slate-100 shadow-sm">
+                            {patente}
+                        </Badge>
+                        <Badge className="bg-blue-50 text-blue-700 border-transparent text-xs px-3 py-1 hover:bg-blue-50 shadow-sm">
+                            Orden #{data.numero_orden}
+                        </Badge>
+                    </div>
+                </div>
+            </div>
+        </header>
+    );
+}
+
+function StatusTimeline({ data }: { data: TrackingData }) {
+    const activeIdx = getActiveStep(data.estado, data.revisado);
+
+    const stepConfigs = [
+        { label: "Recibido", description: "Tu vehículo fue ingresado al taller", icon: <ClipboardCheck className="h-4 w-4" /> },
+        { label: "Diagnóstico", description: "Inspección completa realizada", icon: <Check className="h-4 w-4" /> },
+        { label: "En Reparación", description: "El técnico está trabajando en tu auto", icon: <Wrench className="h-4 w-4" /> },
+        { label: "Listo para Retiro", description: "Te avisaremos cuando esté listo", icon: <PackageCheck className="h-4 w-4" /> },
+    ];
+
+    const steps: Step[] = stepConfigs.map((cfg, idx) => ({
+        ...cfg,
+        status: idx < activeIdx ? "done" : idx === activeIdx ? "active" : "pending",
+    }));
+
+    const StepIndicator = ({ status, icon }: { status: StepStatus; icon: React.ReactNode }) => {
+        if (status === "done") return (
+            <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white shadow-md shadow-blue-200">
+                <Check className="h-4 w-4" />
+            </div>
+        )
+        if (status === "active") return (
+            <div className="relative z-10 flex h-9 w-9 items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-blue-100 animate-pulse" />
+                <div className="absolute inset-0.5 rounded-full bg-blue-50 animate-ping" style={{ animationDuration: "2s" }} />
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white shadow-md shadow-blue-300">{icon}</div>
+            </div>
+        )
+        return <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-slate-400">{icon}</div>
     }
 
     return (
-        <div className="relative py-4 pl-2">
-            {/* Connecting Line */}
-            <div className="absolute left-[29px] top-6 bottom-6 w-0.5 bg-slate-200" />
-
-            <div className="space-y-8 relative">
+        <section className="px-5 py-4" aria-label="Estado de la orden">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Estado de tu orden</h2>
+            <div className="relative">
                 {steps.map((step, index) => {
-                    const isActive = index === activeIndex;
-                    const isCompleted = index < activeIndex;
-
-                    // Custom styling for Waiting state
-                    const isWaitingStep = isWaitingRequests && index === 2;
-
+                    const isLast = index === steps.length - 1
                     return (
-                        <div key={step.id} className="flex items-start gap-4 relative z-10 group">
-                            <div className={cn(
-                                "w-14 h-14 rounded-full flex items-center justify-center shrink-0 border-[3px] transition-all duration-500 bg-white",
-                                // Waiting state -> Orange/slate? Or just Blue but different text?
-                                // Let's use clean Slate/Orange to indicate paused
-                                isWaitingStep ? "border-amber-400 text-amber-500 shadow-xl shadow-amber-500/20" :
-                                    isActive ? "border-blue-600 text-blue-600 shadow-xl shadow-blue-500/20 scale-110" :
-                                        isCompleted ? "border-green-500 text-green-500" :
-                                            "border-slate-100 text-slate-300"
-                            )}>
-                                <step.icon className={cn("w-6 h-6", (isActive && !isWaitingStep) && "animate-pulse")} />
-                            </div>
-                            <div className={cn(
-                                "pt-3 transition-all duration-300",
-                                isActive || isCompleted ? "opacity-100" : "opacity-50"
-                            )}>
-                                <h3 className={cn("font-bold text-lg leading-none mb-1",
-                                    isWaitingStep ? "text-slate-900" :
-                                        isActive ? "text-slate-900" : isCompleted ? "text-slate-700" : "text-slate-400")}>
-                                    {step.label}
-                                </h3>
-                                {isActive && (
-                                    <p className={cn("text-sm font-medium", isWaitingStep ? "text-amber-500" : "text-blue-600")}>
-                                        {isWaitingStep ? 'En espera de inicio' :
-                                            index === 3 ? 'Listo para retiro' : 'En progreso actual'}
-                                    </p>
-                                )}
-                                {isCompleted && (
-                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">
-                                        Completado
-                                    </p>
+                        <div key={step.label} className="relative flex gap-4 pb-8 last:pb-0">
+                            {!isLast && (
+                                <div
+                                    className="absolute left-[17px] top-9 h-[calc(100%-1rem)] w-[2px]"
+                                    style={{ background: step.status === "done" ? "#2563eb" : "#e2e8f0" }} // blue-600 or slate-200
+                                />
+                            )}
+                            <StepIndicator status={step.status} icon={step.icon} />
+                            <div className="flex-1 pt-1">
+                                <div className="flex items-center justify-between">
+                                    <h3 className={`text-sm font-bold ${step.status === "active" ? "text-blue-700" : step.status === "done" ? "text-slate-800" : "text-slate-400"}`}>
+                                        {step.label}
+                                    </h3>
+                                    {step.status === "done" && index === 0 && <span className="text-[10px] font-medium text-slate-400">
+                                        {new Date(data.fecha_ingreso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>}
+                                </div>
+                                <p className={`mt-0.5 text-xs leading-relaxed ${step.status === "pending" ? "text-slate-400" : "text-slate-500"}`}>
+                                    {step.description}
+                                </p>
+                                {step.status === "active" && (
+                                    <div className="mt-2 flex items-center gap-1.5">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
+                                        <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">En progreso</span>
+                                    </div>
                                 )}
                             </div>
                         </div>
-                    );
+                    )
                 })}
             </div>
-        </div>
-    );
-};
+        </section>
+    )
+}
 
-const EvidenceGallery = ({ evidencias }: { evidencias: OrderData['evidencias'] }) => {
-    if (evidencias.length === 0) {
-        return (
-            <div className="text-center py-12 px-6 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-300">
-                    <Camera className="w-8 h-8" />
-                </div>
-                <h3 className="text-slate-900 font-semibold mb-1">Sin evidencias aún</h3>
-                <p className="text-slate-500 text-sm">Tu mecánico aún no carga evidencia. Cuando lo haga, aparecerá aquí.</p>
-            </div>
-        );
-    }
+function LiveActionCard({ fotos, onOpenFotos, onOpenDetails }: { fotos: string[], onOpenFotos: () => void, onOpenDetails: () => void }) {
+    // Use actual data length
+    const photoCount = fotos.length;
 
     return (
-        <div className="grid grid-cols-2 gap-3">
-            {evidencias.map((ev, idx) => (
-                <div key={idx} className="aspect-square relative rounded-2xl overflow-hidden bg-slate-100 group shadow-sm cursor-pointer">
-                    <Image
-                        src={ev.url}
-                        alt="Evidencia"
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    {ev.comentario && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 backdrop-blur-sm">
-                            <p className="text-xs text-white truncate">{ev.comentario}</p>
-                        </div>
+        <section className="px-4 py-2">
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-5">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                        <ClipboardList className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-800">Checklist e Inspección</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Avances fotográficos y diagnóstico</p>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <Button
+                        onClick={onOpenFotos}
+                        className="flex-1 h-11 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-sm font-bold shadow-sm shadow-blue-200"
+                    >
+                        <Camera className="h-4 w-4 mr-2" /> Ver Fotos ({photoCount})
+                    </Button>
+                    <Button
+                        onClick={onOpenDetails}
+                        variant="outline"
+                        className="flex-1 h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-sm font-bold"
+                    >
+                        <FileText className="h-4 w-4 mr-2" /> Detalle <ChevronRight className="h-3.5 w-3.5 text-slate-400 ml-1" />
+                    </Button>
+                </div>
+            </div>
+        </section>
+    )
+}
+
+function UpsellCard() {
+    return (
+        <section className="px-4 py-2">
+            <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100 rounded-2xl p-5 shadow-sm">
+                <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-100/50 rounded-full" />
+                <div className="absolute -left-4 -bottom-4 w-16 h-16 bg-cyan-100/50 rounded-full" />
+
+                <div className="relative z-10 flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-blue-600" />
+                    <h3 className="text-[10px] lowercase font-bold text-blue-600 uppercase tracking-widest">Recomendado</h3>
+                </div>
+                <div className="relative z-10">
+                    <h4 className="text-base font-bold text-slate-800 mb-1">No pierdas tu historial.</h4>
+                    <p className="text-[13px] text-slate-600 leading-relaxed mb-4">
+                        Crea tu cuenta gratis en Flusize para ver tus gastos, historial de reparaciones y recordatorios de mantenimiento en un solo lugar.
+                    </p>
+
+                    <a href="/register" className="mb-2 inline-flex h-11 w-full items-center justify-center rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 shadow-sm">
+                        <svg className="w-5 h-5 mr-2.5" viewBox="0 0 24 24">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                        </svg>
+                        Registrarse con Google
+                    </a>
+
+                    <a href="/register" className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white transition-colors hover:bg-blue-700 shadow-sm shadow-blue-200">
+                        Usar correo electrónico <ArrowRight className="ml-1.5 h-4 w-4" />
+                    </a>
+                </div>
+            </div>
+        </section>
+    )
+}
+
+function WorkshopFooter({ taller, numeroOrden }: { taller: TrackingData['taller'], numeroOrden: string }) {
+    if (!taller) return null;
+
+    const phone = taller.telefono?.replace(/\D/g, '') || '';
+    const waMsg = encodeURIComponent(`Hola, consulto por la orden #${numeroOrden}`);
+    const waLink = phone ? `https://wa.me/${phone}?text=${waMsg}` : null;
+
+    const lat = taller.latitud;
+    const lng = taller.longitud;
+
+    // Waze fallback a dirección si no hay lat/lng
+    const wazeLink = (lat && lng)
+        ? `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`
+        : taller.direccion ? `https://waze.com/ul?q=${encodeURIComponent(taller.direccion)}` : null;
+
+    // Maps fallback a dirección si no hay lat/lng
+    const mapsLink = (lat && lng)
+        ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+        : taller.direccion ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(taller.direccion)}` : null;
+
+    const uberLink = taller.direccion ? `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(taller.direccion)}` : null;
+
+    const initial = taller.nombre.substring(0, 2).toUpperCase();
+
+    const copiarDireccion = () => {
+        if (taller.direccion) {
+            navigator.clipboard.writeText(taller.direccion);
+            // Reemplazar después por un toast más elegante
+            alert("Dirección copiada al portapapeles: " + taller.direccion);
+        }
+    };
+
+    return (
+        <footer className="px-4 pt-2 pb-8">
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-4 mb-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-slate-800 font-bold text-sm">
+                        {initial}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-bold text-slate-800 tracking-tight">{taller.nombre}</h3>
+                        {taller.direccion && (
+                            <button
+                                onClick={copiarDireccion}
+                                className="flex items-center gap-1.5 mt-1 cursor-pointer hover:bg-slate-50 p-1 -ml-1 rounded transition-colors group border-none bg-transparent outline-none w-full text-left"
+                                title="Copiar dirección"
+                            >
+                                <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                <span className="text-[13px] text-slate-500 truncate group-hover:text-slate-700">{taller.direccion}</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+                {taller.telefono && (
+                    <div className="flex items-center gap-2 mb-5 px-1 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <Phone className="h-3.5 w-3.5 text-slate-500" />
+                        <span className="text-xs font-semibold text-slate-700">{taller.telefono}</span>
+                        <span className="text-xs text-slate-300 mx-1">|</span>
+                        <span className="text-xs text-slate-500">Contactar para consultas</span>
+                    </div>
+                )}
+
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Acciones rápidas</h4>
+                <div className="grid grid-cols-2 gap-3">
+                    {waLink ? (
+                        <Button className="h-11 rounded-[14px] text-[13px] font-bold shadow-none bg-[#f8f9fa] text-slate-400 hover:bg-slate-100 border-none" asChild>
+                            <a href={waLink} target="_blank" rel="noopener noreferrer">
+                                <MessageCircle className="h-4 w-4 mr-1.5" /> WhatsApp
+                            </a>
+                        </Button>
+                    ) : (
+                        <Button disabled className="h-11 rounded-[14px] text-[13px] font-bold bg-[#f8f9fa] text-slate-300 border-none shadow-none">
+                            Sin WhatsApp
+                        </Button>
+                    )}
+
+                    {uberLink ? (
+                        <Button className="h-11 rounded-[14px] text-[13px] font-bold bg-black text-white hover:bg-slate-900 border-none shadow-none" asChild>
+                            <a href={uberLink} target="_blank" rel="noopener noreferrer">
+                                <Car className="h-4 w-4 mr-1.5" /> Pedir Uber
+                            </a>
+                        </Button>
+                    ) : (
+                        <div />
+                    )}
+
+                    {wazeLink && (
+                        <Button className="h-11 rounded-[14px] text-[13px] font-bold bg-[#3bd7fd] hover:bg-[#2bc7ed] text-black border-none shadow-none" asChild>
+                            <a href={wazeLink} target="_blank" rel="noopener noreferrer">
+                                <Navigation className="h-4 w-4 mr-1.5" /> Waze
+                            </a>
+                        </Button>
+                    )}
+
+                    {mapsLink && (
+                        <Button className="h-11 rounded-[14px] text-[13px] font-bold bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 shadow-none" asChild>
+                            <a href={mapsLink} target="_blank" rel="noopener noreferrer">
+                                <MapPin className="h-4 w-4 mr-1.5" /> Maps
+                            </a>
+                        </Button>
                     )}
                 </div>
-            ))}
+            </div>
+            <p className="text-center text-[11px] text-slate-400 mt-6">
+                Seguimiento potenciado por <span className="font-bold text-slate-500 tracking-tight">flusize</span>
+            </p>
+        </footer>
+    )
+}
+
+// ─────────────────────────────────────────
+// EXTRA: Simple Photo Gallery Modal & Details Modal
+// ─────────────────────────────────────────
+function PhotoLightbox({ fotos, activeIdx, onClose, onNext, onPrev }: { fotos: string[], activeIdx: number, onClose: () => void, onNext: () => void, onPrev: () => void }) {
+    return (
+        <div className="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center">
+            <div className="absolute top-4 right-4 text-white p-2" onClick={onClose}><AlertCircle className="rotate-45" /></div>
+            <div className="relative w-full max-w-lg aspect-square p-4">
+                {fotos[activeIdx] && (
+                    <img src={fotos[activeIdx]} className="w-full h-full object-contain rounded-lg" alt="Evidencia" />
+                )}
+            </div>
+            <div className="flex gap-4 mt-6">
+                <Button variant="outline" className="bg-white text-slate-800" onClick={onPrev} disabled={activeIdx <= 0}>Anterior</Button>
+                <span className="text-white font-mono flex items-center">{activeIdx + 1} / {fotos.length}</span>
+                <Button variant="outline" className="bg-white text-slate-800" onClick={onNext} disabled={activeIdx >= fotos.length - 1}>Siguiente</Button>
+            </div>
+            <Button variant="ghost" className="mt-4 text-white" onClick={onClose}>Cerrar Galería</Button>
         </div>
-    );
-};
+    )
+}
 
-// --- MAIN PAGE ---
+function DetailsModal({ data, onClose }: { data: TrackingData, onClose: () => void }) {
+    const desc = data.descripcion_problema || data.descripcion_ingreso;
 
-export default function OrderTrackingPage() {
+    return (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <ClipboardList className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-800">Detalles de la Orden</h3>
+                            <p className="text-xs text-slate-500">Orden #{data.numero_orden}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300">
+                        <AlertCircle className="rotate-45 w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="p-5 space-y-4">
+                    {desc ? (
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Motivo del Ingreso</p>
+                            <p className="text-sm text-slate-700 leading-relaxed">{desc}</p>
+                        </div>
+                    ) : (
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
+                            <p className="text-sm text-slate-500">No hay una descripción registrada.</p>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <p className="text-xs font-bold text-slate-400 uppercase mb-1">Fecha Ingreso</p>
+                            <p className="text-sm font-bold text-slate-800">
+                                {new Date(data.fecha_ingreso).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </p>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <p className="text-xs font-bold text-slate-400 uppercase mb-1">Patente</p>
+                            <p className="text-sm font-bold text-slate-800 font-mono">
+                                {data.vehiculo?.patente || data.patente_vehiculo || '—'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 border-t border-slate-100 bg-slate-50">
+                    <Button onClick={onClose} className="w-full h-11 bg-slate-200 text-slate-800 hover:bg-slate-300 font-bold rounded-xl">
+                        Cerrar
+                    </Button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ─────────────────────────────────────────
+// PAGE
+// ─────────────────────────────────────────
+export default function TrackingPage() {
     const params = useParams();
-    const id = params?.orden_id as string; // Check path param name in nextjs folder structure
+    const router = useRouter();
+    const id = params?.orden_id as string;
 
-    const [order, setOrder] = useState<OrderData | null>(null);
+    const [data, setData] = useState<TrackingData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        async function fetchOrder() {
-            if (!id) return;
-            try {
-                // 1. Fetch Order with Relations (Simplified)
-                let query = supabase
-                    .from('ordenes')
-                    .select(`
-                        *,
-                        vehiculos (
-                            marca, modelo, patente, ano, color, motor
-                        ),
-                        talleres (
-                            nombre, direccion, telefono, logo_url
-                        )
-                    `)
-                    .eq('id', id)
-                    .single();
+    // Modals state
+    const [galleryOpen, setGalleryOpen] = useState(false);
+    const [photoIdx, setPhotoIdx] = useState(0);
+    const [detailsOpen, setDetailsOpen] = useState(false);
 
-                let { data: rawOrderData, error: orderError } = await query;
-                const orderData = rawOrderData as any;
+    const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-                // Fallback attempt is likely not needed if the first one is correct, 
-                // but if we keep it, let's make it consistent.
-                if (orderError) {
-                    console.warn("Query failed, trying simpler query...", orderError);
-                    // Retry without inner selects if relations fail? 
-                    // Or just try to get the order itself.
-                    const retryQuery = supabase
-                        .from('ordenes')
-                        .select('*')
-                        .eq('id', id)
-                        .single();
-
-                    const retryResult = await retryQuery;
-                    if (retryResult.error) {
-                        throw retryResult.error;
-                    }
-                    // orderData = retryResult.data; // This would mismatch types if not cast
-                    // We will handle specific fallbacks in mapping
-                }
-
-                if (!orderData) throw new Error('Orden no encontrada');
-
-                // Map results to expected structure
-                // Supabase returns arrays for relations sometimes if not one-to-one is detected perfectly
-                const order = {
-                    ...orderData,
-                    vehiculo: Array.isArray(orderData.vehiculos) ? orderData.vehiculos[0] : orderData.vehiculos,
-                    taller: Array.isArray(orderData.talleres) ? orderData.talleres[0] : orderData.talleres,
-                    // evidencias: orderData.evidencias || []
-                };
-
-                // Map to UI Structure
-                const mappedOrder: OrderData = {
-                    id: orderData.id,
-                    numero_orden: orderData.numero_orden || orderData.id.slice(0, 6),
-                    estado: orderData.estado,
-                    descripcion_ingreso: orderData.descripcion_ingreso,
-                    fecha_ingreso: orderData.fecha_ingreso,
-                    fecha_entrega: orderData.fecha_entrega,
-                    vehiculo: {
-                        marca: orderData.vehiculo?.marca || 'Marca',
-                        modelo: orderData.vehiculo?.modelo || 'Modelo',
-                        patente: orderData.vehiculo?.patente || 'Patente',
-                        anio: orderData.vehiculo?.ano?.toString() || orderData.vehiculos?.anio?.toString() || '-',
-                        color: orderData.vehiculo?.color || '-'
-                    },
-                    taller: {
-                        nombre: orderData.taller?.nombre || 'Taller Mecánico',
-                        direccion: orderData.taller?.direccion || '-',
-                        telefono: orderData.taller?.telefono || '',
-                        logo_url: orderData.taller?.logo_url
-                    },
-                    evidencias: orderData.evidencias?.map((e: any) => ({
-                        url: e.url_foto || e.url, // Handle both potential field names
-                        tipo: e.tipo || 'foto',
-                        comentario: e.comentario
-                    })) || []
-                };
-
-                // Merge legacy fotos_urls if evidencias table empty
-                if (mappedOrder.evidencias.length === 0 && orderData.fotos_urls && Array.isArray(orderData.fotos_urls)) {
-                    mappedOrder.evidencias = orderData.fotos_urls.map((url: string) => ({ url, tipo: 'foto', comentario: null }));
-                }
-
-                // 2. Fetch Checklist Status (for intermediate state)
-                const { data: checklistData } = await supabase
-                    .from('listas_chequeo')
-                    .select('revisado_por_mecanico_at')
-                    .eq('orden_id', id)
-                    .maybeSingle();
-
-                const isReviewed = !!checklistData?.revisado_por_mecanico_at;
-
-                setOrder({ ...mappedOrder, isReviewed });
-            } catch (err: any) {
-                console.error(err);
-                setError(err.message || 'Error cargando datos');
-            } finally {
-                setLoading(false);
-            }
+    const load = async () => {
+        if (!id) return;
+        try {
+            const d = await fetchTracking(id);
+            if (!d) throw new Error('Orden no encontrada');
+            setData(d);
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
         }
+    };
 
-        fetchOrder();
+    useEffect(() => { load(); }, [id]);
+
+    useEffect(() => {
+        if (!id) return;
+        const refresh = async () => { await load(); };
+        const ch = supabase
+            .channel(`tracking-${id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes', filter: `id=eq.${id}` }, refresh)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'listas_chequeo', filter: `orden_id=eq.${id}` }, refresh)
+            .subscribe();
+        channelRef.current = ch;
+        return () => { ch.unsubscribe(); };
     }, [id]);
 
-    if (loading) {
-        return (
-            <div className="min-h-[60vh] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-slate-400 font-medium animate-pulse">Cargando tu vehículo...</p>
-                </div>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-blue-600 animate-spin" />
+        </div>
+    );
 
-    if (error || !order) {
-        return (
-            <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center">
-                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6 text-red-500 shadow-sm border border-red-100">
-                    <AlertCircle className="w-10 h-10" />
-                </div>
-                <h1 className="text-2xl font-bold text-slate-900 mb-2">No encontramos esa orden</h1>
-                <p className="text-slate-500 max-w-xs mx-auto">
-                    El enlace podría estar expirado o el vehículo ya fue retirado.
-                </p>
-                <Button className="mt-8 bg-slate-900 text-white rounded-xl" onClick={() => window.location.reload()}>
-                    Intentar nuevamente
-                </Button>
+    if (error || !data) return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
+                <AlertCircle className="w-8 h-8 text-red-500" />
             </div>
-        );
-    }
+            <h1 className="text-xl font-bold text-slate-800 mb-2">Orden no encontrada</h1>
+            <p className="text-sm text-slate-500 max-w-xs mb-6">El enlace podría haber expirado o el vehículo ya fue retirado del taller.</p>
+        </div>
+    );
 
     return (
-        <div className="pb-32">
+        <div className="min-h-screen bg-slate-50">
+            <div className="max-w-md mx-auto relative pb-10">
 
-            {/* Workshop Info Bar */}
-            <div className="bg-white px-6 py-4 border-b border-slate-100">
-                <h1 className="font-bold text-xl text-slate-900 leading-tight">{order.taller.nombre}</h1>
-                <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
-                    {order.taller.direccion !== '-' && (
-                        <div className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span className="truncate max-w-[150px]">{order.taller.direccion}</span>
-                        </div>
-                    )}
+                <TrackingHeader data={data} onBack={() => window.history.back()} />
+
+                <div className="h-px bg-slate-200 mx-5" role="separator" />
+
+                <div className="py-2">
+                    <StatusTimeline data={data} />
                 </div>
+
+                <div className="h-px bg-slate-200 mx-5" role="separator" />
+
+                <div className="pt-6 pb-2">
+                    <LiveActionCard
+                        fotos={data.fotos_urls}
+                        onOpenFotos={() => {
+                            if (data.fotos_urls.length > 0) {
+                                setPhotoIdx(0);
+                                setGalleryOpen(true);
+                            } else {
+                                alert("Aún no se han subido fotos de inspección.");
+                            }
+                        }}
+                        onOpenDetails={() => setDetailsOpen(true)}
+                    />
+                </div>
+
+                <div className="py-2">
+                    <UpsellCard />
+                </div>
+
+                <div className="pt-4">
+                    <WorkshopFooter taller={data.taller} numeroOrden={data.numero_orden} />
+                </div>
+
             </div>
 
-            <main className="max-w-md mx-auto p-6 space-y-8">
+            {galleryOpen && (
+                <PhotoLightbox
+                    fotos={data.fotos_urls}
+                    activeIdx={photoIdx}
+                    onClose={() => setGalleryOpen(false)}
+                    onNext={() => setPhotoIdx(p => p + 1)}
+                    onPrev={() => setPhotoIdx(p => p - 1)}
+                />
+            )}
 
-                {/* Hero / Vehicle Card */}
-                <div className="relative pt-4">
-                    <div className="absolute top-0 right-0 -mr-6 -mt-6 opacity-5">
-                        <Car className="w-48 h-48" />
-                    </div>
-
-                    <div className="relative z-10">
-                        <p className="text-slate-500 text-sm font-medium uppercase tracking-wider mb-1">Vehículo en Taller</p>
-                        <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-none mb-2">
-                            {order.vehiculo.marca} {order.vehiculo.modelo}
-                        </h2>
-                        <div className="inline-flex items-center px-3 py-1 bg-slate-100 rounded-lg text-slate-600 font-mono font-bold text-sm border border-slate-200">
-                            {order.vehiculo.patente}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Timeline */}
-                <section>
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-slate-900 font-bold text-lg flex items-center gap-2">
-                            Estado del servicio
-                        </h3>
-                        {order.estado === 'completada' && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Listo para retiro
-                            </span>
-                        )}
-                    </div>
-
-                    <StatusTimeline currentStatus={order.estado} isReviewed={order.isReviewed} />
-                </section>
-
-                {/* Evidence */}
-                <section>
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-slate-900 font-bold text-lg flex items-center gap-2">
-                            Galería de trabajo
-                        </h3>
-                        <span className="text-xs text-slate-400 font-medium">
-                            {order.evidencias.length} fotos
-                        </span>
-                    </div>
-                    <EvidenceGallery evidencias={order.evidencias} />
-                </section>
-
-                {/* Details Card */}
-                <Card className="rounded-3xl border-slate-100 shadow-xl shadow-slate-200/50 bg-white overflow-hidden">
-                    <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
-                        <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                            <MessageSquare className="w-4 h-4 text-slate-400" />
-                            Detalles del Ingreso
-                        </h3>
-                    </div>
-                    <CardContent className="p-6 space-y-4">
-                        <div>
-                            <p className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Motivo / Problema</p>
-                            <p className="text-slate-700 leading-relaxed font-medium">{order.descripcion_ingreso}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 pt-2">
-                            <div>
-                                <p className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Ingreso</p>
-                                <p className="text-slate-900 font-mono text-sm">{new Date(order.fecha_ingreso).toLocaleDateString()}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Orden #</p>
-                                <p className="text-slate-900 font-mono text-sm">#{order.numero_orden}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Spacing for FAB */}
-                <div className="h-12" />
-            </main>
-
-            {/* Floating Action Button / Bottom Bar */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-xl border-t border-slate-200 safe-area-inset-bottom z-40 transition-transform duration-500 translate-y-0">
-                <div className="max-w-md mx-auto flex flex-col gap-3">
-                    <Button className="w-full rounded-2xl h-14 text-lg font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all">
-                        Crear cuenta para ver historial
-                    </Button>
-
-                    {order.taller.telefono && (
-                        <Button
-                            variant="ghost"
-                            className="w-full h-10 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-xl"
-                            onClick={() => window.open(`https://wa.me/${order.taller.telefono}`, '_blank')}
-                        >
-                            <Phone className="w-4 h-4 mr-2" />
-                            Contactar al Taller
-                        </Button >
-                    )
-                    }
-                </div >
-            </div >
-        </div >
+            {detailsOpen && (
+                <DetailsModal data={data} onClose={() => setDetailsOpen(false)} />
+            )}
+        </div>
     );
 }

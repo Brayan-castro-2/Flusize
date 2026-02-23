@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { obtenerPerfiles, actualizarPerfil, crearUsuario, type PerfilDB } from '@/lib/storage-adapter';
+import { useAuth } from '@/contexts/auth-context';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -48,7 +48,8 @@ export default function UsuariosPage() {
     const [newEmail, setNewEmail] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [newName, setNewName] = useState('');
-    const [newRole, setNewRole] = useState<'mecanico' | 'admin'>('mecanico');
+    const [newRole, setNewRole] = useState<'mecanico' | 'admin' | 'superadmin'>('mecanico');
+    const { user: currentUser } = useAuth();
 
     useEffect(() => {
         loadUsuarios();
@@ -117,6 +118,88 @@ export default function UsuariosPage() {
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold text-gray-800">Usuarios</h1>
                     <p className="text-sm text-gray-600">Gestión de mecánicos y administradores</p>
+                </div>
+
+                <div className="ml-auto">
+                    <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="bg-[#0066FF] hover:bg-[#0052CC] text-white">
+                                <UserPlus className="w-4 h-4 mr-2" />
+                                Crear Usuario
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>Nuevo Usuario</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                {createError && (
+                                    <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200">
+                                        {createError}
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Nombre Completo</Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="Ej: Juan Pérez"
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="usuario@taller.com"
+                                        value={newEmail}
+                                        onChange={(e) => setNewEmail(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Contraseña</Label>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        placeholder="Mínimo 6 caracteres"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="role">Rol del Usuario</Label>
+                                    <Select value={newRole} onValueChange={(val: any) => setNewRole(val)}>
+                                        <SelectTrigger id="role" className="w-full">
+                                            <SelectValue placeholder="Seleccionar Rol" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="mecanico">Mecánico</SelectItem>
+                                            {/* Solo superadmin puede crear otros admins */}
+                                            {currentUser?.role === 'superadmin' && (
+                                                <SelectItem value="admin">Administrador (Coordinador)</SelectItem>
+                                            )}
+                                            {currentUser?.role === 'superadmin' && (
+                                                <SelectItem value="superadmin">Dueño (Super Admin)</SelectItem>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <Button
+                                    className="w-full bg-[#0066FF] hover:bg-[#0052CC]"
+                                    onClick={handleCreateUser}
+                                    disabled={isCreating}
+                                >
+                                    {isCreating ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Creando...
+                                        </>
+                                    ) : 'Crear Usuario'}
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 

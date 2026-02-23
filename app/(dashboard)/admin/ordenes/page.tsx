@@ -11,6 +11,7 @@ import { useVehiculos } from '@/hooks/use-vehiculos';
 import { useAuth } from '@/contexts/auth-context';
 import { useAppointments, APPOINTMENTS_QUERY_KEY } from '@/hooks/use-appointments';
 import type { CitaDB } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,7 @@ import Link from 'next/link';
 export default function OrdenesPage() {
     const { toast } = useToast();
     const { user } = useAuth();
+    const router = useRouter();
 
     const {
         data: infiniteData,
@@ -161,6 +163,12 @@ export default function OrdenesPage() {
         setChecklistDialog({ open: false, orderId: null, mode: 'checklist' });
         // Refresh checklist data
         if (orderId) {
+            // Invalidar queries de órdenes para mostrar el nuevo estado si fue confirmado
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard_orders'] });
+            // Forzar actualización de router cache de Next.js
+            router.refresh();
+
             setChecklists(prev => {
                 const newState = { ...prev };
                 delete newState[orderId];
@@ -179,9 +187,27 @@ export default function OrdenesPage() {
         }
     }, [expandedOrderId]);
 
-    const isAdmin = user?.role === 'admin';
+    // BUST CACHE ON MOUNT
+    // When navigating from Reception, Next.js can sometimes aggressively cache the Page RSC payload.
+    // By invoking router.refresh() on mount, we force Next.js to re-evaluate the Server Component 
+    // and deliver fresh RSC data without losing the current client state.
+    useEffect(() => {
+        router.refresh();
+        // Disparar refetch manual de react-query al montar para máxima consistencia
+        queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
+    }, [router, queryClient]);
+
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    const isMecanico = user?.role === 'mecanico';
     const canViewPrices = user?.name?.toLowerCase().includes('juan');
     const isLoading = isLoadingOrders || isLoadingPerfiles || isLoadingVehiculos;
+
+    // Auto-filtrar órdenes para mecánicos: solo ven las asignadas a ellos
+    useEffect(() => {
+        if (isMecanico && user?.id) {
+            setMechanicFilter(user.id);
+        }
+    }, [isMecanico, user?.id]);
 
     // Memoizar mapas para búsquedas O(1) en lugar de O(n)
     const perfilesMap = useMemo(() => {
@@ -350,8 +376,8 @@ export default function OrdenesPage() {
             const direction = sortConfig.direction === 'asc' ? 1 : -1;
 
             // Handle specific complex sort keys or default
-            let valA: any = a[key as keyof OrdenDB];
-            let valB: any = b[key as keyof OrdenDB];
+            let valA: any = (a as any)[key];
+            let valB: any = (b as any)[key];
 
             if (key === 'fecha_ingreso') {
                 valA = new Date(a.fecha_ingreso).getTime();
@@ -465,28 +491,32 @@ export default function OrdenesPage() {
         return desc.replace(/^Motor:.*?( - |$)/i, '').trim() || desc;
     };
     // -- HANDLERS --
-
-    // NEW: Handle Status Update Manual
-    const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    // NUEVO: Manejar Actualización de Estado Optimista
+    const handleUpdateStatus = (orderId: string, newStatus: string) => {
         try {
             console.log(`Manually updating order ${orderId} to ${newStatus}`);
-            const result = await actualizarOrden(orderId, { estado: newStatus } as any);
-
-            if (result) {
-                // Invalidate query to refresh UI
-                queryClient.invalidateQueries({ queryKey: [ORDERS_QUERY_KEY] });
-                toast({
-                    title: "Estado actualizado",
-                    description: `La orden ha pasado a estado: ${newStatus.replace('_', ' ').toUpperCase()}`,
-                });
-            } else {
-                throw new Error("No se pudo actualizar la orden");
-            }
+            // Use optimistic update mutation
+            updateOrder.mutate({ id: orderId, updates: { estado: newStatus } as any }, {
+                onSuccess: () => {
+                    toast({
+                        title: "Estado actualizado",
+                        description: `La orden ha pasado a estado: ${newStatus.replace('_', ' ').toUpperCase()}`,
+                    });
+                },
+                onError: (error) => {
+                    console.error("Failed to update status", error);
+                    toast({
+                        title: "Error",
+                        description: "No se pudo actualizar el estado de la orden. Revisa la consola para más detalles.",
+                        variant: "destructive",
+                    });
+                }
+            });
         } catch (error) {
             console.error("Failed to update status", error);
             toast({
                 title: "Error",
-                description: "No se pudo actualizar el estado de la orden. Revisa la consola para más detalles.",
+                description: "Ocurrió un error inesperado al actualizar el estado.",
                 variant: "destructive",
             });
         }
@@ -1286,11 +1316,13 @@ export default function OrdenesPage() {
                                                 {getStatusBadge(order.estado, order.id, true)}
                                             </div>
                                             <div className="flex items-center gap-1 flex-shrink-0">
-                                                <Link href={`/admin/ordenes/clean?id=${order.id}`}>
-                                                    <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 px-2">
-                                                        <Edit className="w-3.5 h-3.5" />
-                                                    </Button>
-                                                </Link>
+                                                {!isMecanico && (
+                                                    <Link href={`/admin/ordenes/clean?id=${order.id}`}>
+                                                        <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 px-2">
+                                                            <Edit className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </Link>
+                                                )}
                                                 {isAdmin && (
                                                     deleteConfirm === order.id ? (
                                                         <div className="flex gap-1">

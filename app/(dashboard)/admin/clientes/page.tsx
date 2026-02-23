@@ -213,72 +213,80 @@ export default function ClientesPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <Users className="w-6 h-6 text-blue-500" />
-                        Gestión de Clientes
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+
+                <div className="relative z-10">
+                    <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 flex items-center gap-3">
+                        <Users className="w-8 h-8 text-red-500" />
+                        Directorio de Clientes
                     </h1>
-                    <p className="text-slate-400">Administra tu base de datos de clientes CRM</p>
+                    <p className="text-slate-400 font-medium mt-1">Gestión avanzada de CRM y fidelización</p>
                 </div>
 
                 <Button
                     onClick={handleNewCliente}
-                    className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto shadow-lg shadow-blue-600/20"
+                    className="relative z-10 bg-red-600 hover:bg-red-700 text-white w-full md:w-auto shadow-lg shadow-red-600/30 rounded-xl px-6 py-5 font-bold transition-all hover:scale-[1.02] hover:-translate-y-0.5"
                 >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-5 h-5 mr-2" />
                     Nuevo Cliente
                 </Button>
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-slate-900/60 border-slate-800 p-4 flex items-center gap-4 hover:border-blue-500/50 transition-colors group">
-                    <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
-                        <Users className="w-6 h-6 text-blue-400" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-[#1E293B] border-slate-700 p-6 flex items-center gap-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all group rounded-2xl">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors border border-blue-500/20 group-hover:scale-110">
+                        <Users className="w-7 h-7 text-blue-400" />
                     </div>
                     <div>
-                        <p className="text-blue-400/80 text-xs font-semibold uppercase tracking-wider mb-0.5">Total Clientes</p>
-                        <p className="text-3xl font-bold text-white leading-none">{kpis.total}</p>
+                        <p className="text-blue-400/80 text-[11px] font-bold uppercase tracking-widest mb-1">Total Clientes</p>
+                        <p className="text-4xl font-black text-white leading-none tracking-tight">{kpis.total}</p>
                     </div>
                 </Card>
-                <Card className="bg-slate-900/60 border-slate-800 p-4 flex items-center gap-4 hover:border-emerald-500/50 transition-colors group">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
-                        <TrendingUp className="w-6 h-6 text-emerald-400" />
+
+                <Card className="bg-[#1E293B] border-slate-700 p-6 flex items-center gap-5 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all group rounded-2xl">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 group-hover:scale-110">
+                        <TrendingUp className="w-7 h-7 text-emerald-400" />
                     </div>
                     <div>
-                        <p className="text-emerald-400/80 text-xs font-semibold uppercase tracking-wider mb-0.5">Clientes Activos</p>
-                        <p className="text-3xl font-bold text-white leading-none">{kpis.active}</p>
+                        <p className="text-emerald-400/80 text-[11px] font-bold uppercase tracking-widest mb-1">Clientes Activos</p>
+                        <p className="text-4xl font-black text-white leading-none tracking-tight">{kpis.active}</p>
                     </div>
                 </Card>
-                <Card className="bg-slate-900/60 border-slate-800 p-4 flex items-center gap-4 hover:border-red-500/50 transition-colors group">
-                    <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center group-hover:bg-red-500/30 transition-colors">
-                        <AlertTriangle className="w-6 h-6 text-red-400" />
+
+                <Card className="bg-[#1E293B] border-slate-700/50 p-6 flex items-center gap-5 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10 transition-all group rounded-2xl relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative z-10 w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center group-hover:bg-red-500/20 transition-colors border border-red-500/20 group-hover:scale-110">
+                        <AlertTriangle className="w-7 h-7 text-red-500" />
                     </div>
-                    <div>
-                        <p className="text-red-400/80 text-xs font-semibold uppercase tracking-wider mb-0.5">Deuda Total</p>
-                        <p className="text-3xl font-bold text-red-500 leading-none">{formatCurrency(kpis.totalDebt)}</p>
+                    <div className="relative z-10">
+                        <p className="text-red-400/80 text-[11px] font-bold uppercase tracking-widest mb-1">Cartera Vencida</p>
+                        <p className="text-3xl font-black text-red-400 leading-none tracking-tight">{formatCurrency(kpis.totalDebt)}</p>
                     </div>
                 </Card>
             </div>
 
             {/* Search */}
-            <Card className="bg-slate-900/50 border-slate-800 p-4">
-                <form onSubmit={handleSearch} className="flex gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500/50" />
-                        <Input
-                            placeholder="Buscar por nombre, RUT, patente o email..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-slate-950 border-slate-800 pl-9 text-white placeholder:text-slate-500 focus-visible:ring-blue-500 transition-all border-b-2 focus:border-b-blue-500"
-                        />
-                    </div>
-                    <Button type="submit" variant="secondary" className="border-slate-700 hover:bg-slate-800">
-                        Buscar
-                    </Button>
-                </form>
-            </Card>
+            <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-red-500/10 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <Card className="relative bg-[#0F172A] border-slate-700/60 p-2 rounded-xl shadow-lg">
+                    <form onSubmit={handleSearch} className="flex gap-2">
+                        <div className="relative flex-1 flex items-center">
+                            <Search className="absolute left-4 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                            <Input
+                                placeholder="Buscar por nombre, RUT, patente o email..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="bg-transparent border-none pl-12 text-white placeholder:text-slate-600 focus-visible:ring-0 text-base h-12 shadow-none"
+                            />
+                        </div>
+                        <Button type="submit" className="bg-slate-800 hover:bg-slate-700 text-white font-medium border border-slate-700 h-12 px-6 rounded-lg transition-colors">
+                            Buscar
+                        </Button>
+                    </form>
+                </Card>
+            </div>
 
             {/* CONTENT AREA */}
             <div className="space-y-4">
@@ -287,25 +295,27 @@ export default function ClientesPage() {
                         <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                     </div>
                 ) : clientes.length === 0 ? (
-                    <div className="text-center p-12 text-slate-500 bg-slate-900/50 rounded-xl border border-slate-800">
-                        <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                        <p className="text-lg font-medium">No se encontraron clientes</p>
-                        <p className="text-sm">Intenta con otra búsqueda o crea uno nuevo.</p>
+                    <div className="text-center p-16 text-slate-500 bg-[#0F172A] rounded-2xl border border-slate-800 shadow-inner">
+                        <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Users className="w-10 h-10 opacity-40 text-slate-400" />
+                        </div>
+                        <p className="text-xl font-medium text-slate-300">No se encontraron clientes</p>
+                        <p className="text-sm mt-2 text-slate-500">Intenta con otra búsqueda o crea uno nuevo para empezar.</p>
                     </div>
                 ) : (
                     <>
                         {/* MOBILE VIEW (CARDS) */}
                         <div className="grid grid-cols-1 gap-4 md:hidden">
                             {clientes.map((cliente) => (
-                                <Card key={cliente.id} className="bg-slate-900/50 border-slate-800 p-4 space-y-3">
+                                <Card key={cliente.id} className="bg-[#1E293B] border-slate-700/60 p-5 space-y-4 rounded-2xl shadow-md">
                                     <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold border border-slate-700">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-slate-300 font-bold border border-slate-600/50 shadow-inner">
                                                 {cliente.nombre_completo.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-white">{cliente.nombre_completo}</p>
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${cliente.tipo === 'empresa'
+                                                <p className="font-bold text-white text-lg">{cliente.nombre_completo}</p>
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 mt-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${cliente.tipo === 'empresa'
                                                     ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
                                                     : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                                                     }`}>
@@ -315,36 +325,36 @@ export default function ClientesPage() {
                                         </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400">
-                                                    <MoreHorizontal className="w-4 h-4" />
+                                                <Button variant="ghost" className="h-10 w-10 p-0 text-slate-400 hover:text-white hover:bg-slate-700 rounded-full">
+                                                    <MoreHorizontal className="w-5 h-5" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="bg-slate-900 border-slate-800 text-slate-200">
-                                                <DropdownMenuItem onClick={() => handleEditCliente(cliente, 'datos')} className="hover:bg-slate-800">Editar Cliente</DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleEditCliente(cliente, 'historial')} className="hover:bg-slate-800 text-blue-400">Ver Historial de Órdenes</DropdownMenuItem>
+                                            <DropdownMenuContent align="end" className="bg-[#0F172A] border-slate-700 text-slate-200 rounded-xl shadow-xl">
+                                                <DropdownMenuItem onClick={() => handleEditCliente(cliente, 'datos')} className="hover:bg-slate-800 focus:bg-slate-800 cursor-pointer">Editar Cliente</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleEditCliente(cliente, 'historial')} className="hover:bg-slate-800 focus:bg-slate-800 text-blue-400 cursor-pointer">Ver Historial de Órdenes</DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-2 py-2 border-t border-slate-800/50 border-b">
-                                        <div>
-                                            <p className="text-xs text-slate-500">Gastado</p>
-                                            <p className="text-sm font-mono text-emerald-400">{formatCurrency(cliente.total_gastado)}</p>
+                                    <div className="grid grid-cols-2 gap-3 py-3 border-t border-slate-700/50 border-b">
+                                        <div className="bg-slate-800/30 p-2 rounded-lg">
+                                            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Gastado</p>
+                                            <p className="text-base font-black text-emerald-400">{formatCurrency(cliente.total_gastado)}</p>
                                         </div>
-                                        <div>
-                                            <p className="text-xs text-slate-500">Visitas</p>
-                                            <p className="text-sm font-mono text-white">{cliente.total_ordenes}</p>
+                                        <div className="bg-slate-800/30 p-2 rounded-lg">
+                                            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Visitas</p>
+                                            <p className="text-base font-bold text-white">{cliente.total_ordenes}</p>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between text-xs text-slate-400">
-                                        <div className="flex items-center gap-1">
-                                            <Phone className="w-3 h-3" />
+                                    <div className="flex items-center justify-between text-sm text-slate-400 px-1">
+                                        <div className="flex items-center gap-2 font-medium">
+                                            <Phone className="w-4 h-4 text-blue-500/70" />
                                             {cliente.telefono || '---'}
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <Calendar className="w-3 h-3" />
-                                            Active
+                                        <div className="flex items-center gap-1.5 text-xs">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                            Activo
                                         </div>
                                     </div>
                                 </Card>
@@ -352,44 +362,47 @@ export default function ClientesPage() {
                         </div>
 
                         {/* DESKTOP VIEW (TABLE) */}
-                        <div className="hidden md:block bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+                        <div className="hidden md:block bg-[#0F172A] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden relative">
+                            {/* Decorative top border gradient */}
+                            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-emerald-500 to-red-500 opacity-50"></div>
+
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm text-slate-400">
-                                    <thead className="bg-[#0f172a] text-blue-100 uppercase font-bold text-[11px] tracking-widest border-b border-slate-800">
+                                <table className="w-full text-left text-sm text-slate-300">
+                                    <thead className="bg-[#1E293B] text-slate-400 uppercase font-bold text-[11px] tracking-widest border-b border-slate-700/80">
                                         <tr>
-                                            <th className="px-6 py-4 cursor-pointer hover:text-blue-400 group" onClick={() => handleSort('nombre_completo')}>
-                                                <div className="flex items-center gap-1">
+                                            <th className="px-6 py-5 cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('nombre_completo')}>
+                                                <div className="flex items-center gap-2">
                                                     CLIENTE
-                                                    <ArrowUpDown className="w-3 h-3 text-blue-500/50 group-hover:text-blue-400" />
+                                                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-500 transition-colors" />
                                                 </div>
                                             </th>
-                                            <th className="px-6 py-4 cursor-pointer hover:text-blue-400 group" onClick={() => handleSort('telefono')}>
-                                                <div className="flex items-center gap-1">
+                                            <th className="px-6 py-5 cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('telefono')}>
+                                                <div className="flex items-center gap-2">
                                                     CONTACTO
-                                                    <ArrowUpDown className="w-3 h-3 text-blue-500/50 group-hover:text-blue-400" />
+                                                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-500 transition-colors" />
                                                 </div>
                                             </th>
-                                            <th className="px-6 py-4 cursor-pointer hover:text-blue-400 group" onClick={() => handleSort('total_gastado')}>
-                                                <div className="flex items-center gap-1">
+                                            <th className="px-6 py-5 cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('total_gastado')}>
+                                                <div className="flex items-center gap-2">
                                                     ESTADÍSTICAS
-                                                    <ArrowUpDown className="w-3 h-3 text-blue-500/50 group-hover:text-blue-400" />
+                                                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-500 transition-colors" />
                                                 </div>
                                             </th>
-                                            <th className="px-6 py-4 cursor-pointer hover:text-blue-400 group" onClick={() => handleSort('tipo')}>
-                                                <div className="flex items-center gap-1">
+                                            <th className="px-6 py-5 cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('tipo')}>
+                                                <div className="flex items-center gap-2">
                                                     TIPO
-                                                    <ArrowUpDown className="w-3 h-3 text-blue-500/50 group-hover:text-blue-400" />
+                                                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-500 transition-colors" />
                                                 </div>
                                             </th>
-                                            <th className="px-6 py-4 text-blue-100/70">ESTADO</th>
-                                            <th className="px-6 py-4 text-right text-blue-100/70">ACCIONES</th>
+                                            <th className="px-6 py-5">ESTADO</th>
+                                            <th className="px-6 py-5 text-right">ACCIONES</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-800/50">
+                                    <tbody className="divide-y divide-slate-800">
                                         {sortedClientes.map((cliente) => (
                                             <Fragment key={cliente.id}>
                                                 <tr
-                                                    className={`hover:bg-slate-800/30 transition-colors group cursor-pointer border-b border-slate-800/50 ${expandedClientId === cliente.id ? 'bg-slate-800/20' : ''}`}
+                                                    className={`hover:bg-[#1E293B]/60 transition-colors duration-200 group cursor-pointer border-b border-slate-800/80 ${expandedClientId === cliente.id ? 'bg-[#1E293B] shadow-inner' : ''}`}
                                                     onClick={(e) => {
                                                         // Prevent toggle if clicking dropdown or buttons
                                                         if ((e.target as HTMLElement).closest('[role="menuitem"], button')) return;
@@ -397,56 +410,61 @@ export default function ClientesPage() {
                                                     }}
                                                 >
                                                     <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-4">
                                                             <div className="relative">
-                                                                <div className={`w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold group-hover:bg-blue-600 group-hover:text-white transition-colors border ${premiumClientId === cliente.id ? 'border-yellow-500/50 shadow-[0_0_10px_rgba(234,179,8,0.3)]' : 'border-transparent'}`}>
+                                                                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-slate-300 font-bold group-hover:from-blue-600 group-hover:to-blue-700 group-hover:text-white transition-all shadow-sm border ${premiumClientId === cliente.id ? 'border-yellow-500/50 shadow-[#CA8A04]/30' : 'border-slate-600/50'}`}>
                                                                     {cliente.nombre_completo.charAt(0).toUpperCase()}
                                                                 </div>
                                                                 {premiumClientId === cliente.id && (
-                                                                    <div className="absolute -top-3 -right-2 animate-bounce">
-                                                                        <Crown className="w-5 h-5 text-yellow-500 fill-yellow-500 drop-shadow-md" />
+                                                                    <div className="absolute -top-3 -right-2 drop-shadow-lg">
+                                                                        <Crown className="w-6 h-6 text-yellow-500 fill-yellow-500" />
                                                                     </div>
                                                                 )}
                                                             </div>
                                                             <div>
-                                                                <p className="font-semibold text-white flex items-center gap-2">
+                                                                <p className="font-bold text-white text-[15px] flex items-center gap-2 group-hover:text-blue-400 transition-colors">
                                                                     {cliente.nombre_completo}
                                                                     {premiumClientId === cliente.id && (
-                                                                        <span className="text-[10px] bg-yellow-500/10 text-yellow-500 px-1.5 py-0.5 rounded border border-yellow-500/20 font-bold tracking-wider animate-pulse">VIP</span>
+                                                                        <span className="text-[10px] bg-yellow-500/10 text-yellow-500 px-1.5 py-0.5 rounded-full border border-yellow-500/20 font-black tracking-widest">VIP</span>
                                                                     )}
                                                                 </p>
-                                                                <p className="text-xs text-slate-500 font-mono">{cliente.rut_dni || 'Sin RUT'}</p>
+                                                                <p className="text-xs text-slate-500 font-mono mt-0.5">{cliente.rut_dni || 'Sin RUT'}</p>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <div className="space-y-1">
-                                                            <div className="flex items-center gap-2 text-slate-300">
-                                                                <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex items-center gap-2.5 text-slate-300 font-medium">
+                                                                <div className="p-1 rounded bg-emerald-500/10">
+                                                                    <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                                                                </div>
                                                                 {cliente.telefono || '-'}
                                                             </div>
-                                                            <div className="flex items-center gap-2 text-slate-500 text-xs">
-                                                                <Mail className="w-3.5 h-3.5" />
+                                                            <div className="flex items-center gap-2.5 text-slate-400 text-xs">
+                                                                <div className="p-1 rounded bg-slate-800">
+                                                                    <Mail className="w-3.5 h-3.5 text-slate-400" />
+                                                                </div>
                                                                 {cliente.email || 'Sin email'}
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <div className="space-y-0.5">
-                                                            <div className="flex items-center gap-2 text-emerald-400 font-mono font-medium">
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-2 text-emerald-400 font-mono font-bold text-[15px]">
                                                                 <span>{formatCurrency(cliente.total_gastado)}</span>
                                                             </div>
-                                                            <div className="text-xs text-slate-500">
+                                                            <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                                                                <div className="w-1 h-1 rounded-full bg-slate-600"></div>
                                                                 {cliente.total_ordenes} {cliente.total_ordenes === 1 ? 'visita' : 'visitas'}
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${cliente.tipo === 'empresa'
-                                                            ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${cliente.tipo === 'empresa'
+                                                            ? 'bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-sm shadow-purple-500/5'
+                                                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-sm shadow-blue-500/5'
                                                             }`}>
-                                                            {cliente.tipo === 'empresa' ? <Building2 className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                                                            {cliente.tipo === 'empresa' ? <Building2 className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                                                             {cliente.tipo === 'empresa' ? 'Empresa' : 'Particular'}
                                                         </span>
                                                     </td>
@@ -464,28 +482,41 @@ export default function ClientesPage() {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"
-                                                                className={`h-8 w-8 p-0 ${expandedClientId === cliente.id ? 'text-blue-400 rotate-180' : 'text-slate-500'}`}
+                                                                className={`h-9 w-9 p-0 rounded-full transition-all ${expandedClientId === cliente.id ? 'bg-blue-500/10 text-blue-400 rotate-180' : 'text-slate-400 hover:text-white hover:bg-[#0F172A] border border-transparent hover:border-slate-700'}`}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     toggleRow(cliente.id);
                                                                 }}
                                                             >
-                                                                <ChevronDown className="w-4 h-4 transition-transform" />
+                                                                <ChevronDown className="w-5 h-5 transition-transform" />
                                                             </Button>
                                                             <DropdownMenu>
                                                                 <DropdownMenuTrigger asChild>
-                                                                    <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700">
+                                                                    <Button variant="ghost" className="h-9 w-9 p-0 text-slate-400 hover:text-white hover:bg-[#0F172A] rounded-full transition-colors border border-transparent hover:border-slate-700">
                                                                         <span className="sr-only">Abrir menú</span>
-                                                                        <MoreHorizontal className="w-4 h-4" />
+                                                                        <MoreHorizontal className="w-5 h-5" />
                                                                     </Button>
                                                                 </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end" className="bg-slate-900 border-slate-800 text-slate-200">
-                                                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                                    <DropdownMenuItem onClick={() => handleEditCliente(cliente, 'datos')} className="hover:bg-slate-800 cursor-pointer">
-                                                                        Editar Cliente
+                                                                <DropdownMenuContent align="end" className="bg-[#0F172A] border-slate-700 min-w-[200px] shadow-2xl p-2 rounded-xl text-slate-300">
+                                                                    <DropdownMenuLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider px-2 py-1.5">Acciones</DropdownMenuLabel>
+                                                                    <DropdownMenuSeparator className="bg-slate-800 my-1" />
+                                                                    <DropdownMenuItem
+                                                                        className="flex items-center gap-2 cursor-pointer hover:bg-[#1E293B] focus:bg-[#1E293B] rounded-lg px-3 py-2 transition-colors"
+                                                                        onClick={(e) => { e.stopPropagation(); handleEditCliente(cliente, 'datos'); }}
+                                                                    >
+                                                                        <div className="p-1.5 rounded-lg bg-slate-800 text-slate-400">
+                                                                            <User className="w-4 h-4" />
+                                                                        </div>
+                                                                        <span className="font-medium">Editar Datos</span>
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => handleCreateOrder(cliente)} className="hover:bg-slate-800 cursor-pointer text-blue-400 font-medium">
-                                                                        Crear Orden
+                                                                    <DropdownMenuItem
+                                                                        className="flex items-center gap-2 cursor-pointer hover:bg-emerald-500/10 focus:bg-emerald-500/10 text-emerald-400 rounded-lg px-3 py-2 transition-colors mt-1"
+                                                                        onClick={(e) => { e.stopPropagation(); handleCreateOrder(cliente); }}
+                                                                    >
+                                                                        <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                                                                            <Plus className="w-4 h-4" />
+                                                                        </div>
+                                                                        <span className="font-medium">Nueva Recepción</span>
                                                                     </DropdownMenuItem>
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
@@ -493,62 +524,82 @@ export default function ClientesPage() {
                                                     </td>
                                                 </tr>
                                                 {expandedClientId === cliente.id && (
-                                                    <tr className="bg-slate-950/50">
-                                                        <td colSpan={6} className="p-0 border-b border-slate-800">
-                                                            <div className="p-6 border-l-2 border-blue-500 ml-6 mr-6 mb-6 mt-2 rounded-r-xl bg-slate-900/50">
+                                                    <tr className="bg-[#0F172A] border-b border-slate-700/80">
+                                                        <td colSpan={6} className="p-0 border-b border-slate-800/50">
+                                                            <div className="p-6 border-l-2 border-blue-500 ml-6 mr-6 mb-6 mt-2 rounded-r-xl bg-slate-900/40 shadow-inner">
                                                                 <Tabs defaultValue="vehiculos" className="w-full">
-                                                                    <TabsList className="bg-slate-800/50 border border-slate-700/50 mb-4">
-                                                                        <TabsTrigger value="datos">Datos Personales</TabsTrigger>
-                                                                        <TabsTrigger value="vehiculos">Vehículos</TabsTrigger>
-                                                                        <TabsTrigger value="historial">Historial ({cliente.total_ordenes})</TabsTrigger>
+                                                                    <TabsList className="bg-[#1E293B] border border-slate-700/60 p-1 mb-6 rounded-xl flex">
+                                                                        <TabsTrigger value="datos" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all flex-1">Datos Personales</TabsTrigger>
+                                                                        <TabsTrigger value="vehiculos" className="rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all shadow-sm flex-1">Vehículos</TabsTrigger>
+                                                                        <TabsTrigger value="historial" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all flex-1">Historial ({cliente.total_ordenes})</TabsTrigger>
                                                                     </TabsList>
 
-                                                                    <TabsContent value="datos" className="space-y-4">
-                                                                        <div className="grid grid-cols-2 gap-4">
-                                                                            <div>
-                                                                                <label className="text-[10px] text-blue-400/70 font-bold uppercase tracking-widest">Email</label>
-                                                                                <p className="text-white font-medium">{cliente.email || 'No registrado'}</p>
+                                                                    <TabsContent value="datos" className="space-y-4 outline-none">
+                                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                                                            <div className="bg-[#1E293B] p-4 rounded-xl border border-slate-700/50 shadow-sm">
+                                                                                <label className="text-[10px] text-blue-400/80 font-bold uppercase tracking-widest block mb-1.5 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Email</label>
+                                                                                <p className="text-white font-medium text-sm break-all">{cliente.email || <span className="text-slate-500 italic">No registrado</span>}</p>
                                                                             </div>
-                                                                            <div>
-                                                                                <label className="text-[10px] text-blue-400/70 font-bold uppercase tracking-widest">Teléfono</label>
-                                                                                <p className="text-white font-medium">{cliente.telefono || 'No registrado'}</p>
+                                                                            <div className="bg-[#1E293B] p-4 rounded-xl border border-slate-700/50 shadow-sm">
+                                                                                <label className="text-[10px] text-blue-400/80 font-bold uppercase tracking-widest block mb-1.5 flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> Teléfono</label>
+                                                                                <p className="text-white font-medium text-sm">{cliente.telefono || <span className="text-slate-500 italic">No registrado</span>}</p>
                                                                             </div>
-                                                                            <div>
-                                                                                <label className="text-[10px] text-blue-400/70 font-bold uppercase tracking-widest">Dirección</label>
-                                                                                <p className="text-white font-medium">{cliente.direccion || 'No registrada'}</p>
+                                                                            <div className="bg-[#1E293B] p-4 rounded-xl border border-slate-700/50 shadow-sm">
+                                                                                <label className="text-[10px] text-blue-400/80 font-bold uppercase tracking-widest block mb-1.5 flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" /> Dirección</label>
+                                                                                <p className="text-white font-medium text-sm">{cliente.direccion || <span className="text-slate-500 italic">No registrada</span>}</p>
                                                                             </div>
-                                                                            <div>
-                                                                                <label className="text-[10px] text-blue-400/70 font-bold uppercase tracking-widest">Notas</label>
-                                                                                <p className="text-slate-300 italic">{cliente.notas || '-'}</p>
+                                                                            <div className="bg-[#1E293B] p-4 rounded-xl border border-slate-700/50 shadow-sm">
+                                                                                <label className="text-[10px] text-blue-400/80 font-bold uppercase tracking-widest block mb-1.5 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Notas</label>
+                                                                                <p className="text-slate-300 italic text-sm">{cliente.notas || '-'}</p>
                                                                             </div>
                                                                         </div>
                                                                     </TabsContent>
 
-                                                                    <TabsContent value="vehiculos">
-                                                                        <div className="space-y-3">
-                                                                            <div className="flex justify-between items-center mb-2">
-                                                                                <h4 className="text-sm font-semibold text-slate-400">Vehículos Registrados</h4>
+                                                                    <TabsContent value="vehiculos" className="outline-none">
+                                                                        <div className="space-y-4">
+                                                                            <div className="flex justify-between items-center mb-4 border-b border-slate-700/50 pb-3">
+                                                                                <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                                                                    <Car className="w-5 h-5 text-blue-400" />
+                                                                                    Flota del Cliente
+                                                                                </h4>
                                                                                 <Button
                                                                                     size="sm"
-                                                                                    variant="outline"
-                                                                                    className="h-8 border-dashed border-slate-600 text-slate-400 hover:text-white"
+                                                                                    className="h-9 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 transition-colors shadow-sm rounded-lg font-medium px-4"
                                                                                     onClick={() => handleEditCliente(cliente, 'vehiculos')}
                                                                                 >
-                                                                                    <Plus className="w-3.5 h-3.5 mr-1.5" />
-                                                                                    Agregar Vehículo
+                                                                                    <Plus className="w-4 h-4 mr-2 text-blue-400" />
+                                                                                    Agregar Nuevo
                                                                                 </Button>
                                                                             </div>
 
                                                                             {!cliente.vehiculos || cliente.vehiculos.length === 0 ? (
-                                                                                <p className="text-sm text-slate-500 italic">No hay vehículos registrados</p>
+                                                                                <div className="flex flex-col items-center justify-center py-10 text-center bg-[#1E293B] rounded-xl border border-slate-700/50 border-dashed">
+                                                                                    <Car className="w-12 h-12 text-slate-600 mb-3 opacity-50" />
+                                                                                    <p className="text-sm text-slate-400 font-medium">No hay vehículos registrados para este cliente.</p>
+                                                                                    <p className="text-xs text-slate-500 mt-1">Registra uno nuevo para iniciar una recepción.</p>
+                                                                                </div>
                                                                             ) : (
-                                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                                                    {cliente.vehiculos.map((v: any) => (
-                                                                                        <div key={v.id} className="flex items-center p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                                                                                            <Car className="w-8 h-8 text-slate-500 p-1.5 bg-slate-700/30 rounded-md mr-3" />
-                                                                                            <div>
-                                                                                                <p className="text-sm font-medium text-white">{v.marca} {v.modelo}</p>
-                                                                                                <p className="text-xs font-mono text-blue-400">{v.patente}</p>
+                                                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                                                    {cliente.vehiculos.map((v: any, index: number) => (
+                                                                                        <div key={v.id || index} className="group relative bg-[#1E293B] border border-slate-700/60 p-4 rounded-2xl flex items-center justify-between hover:border-blue-500/50 transition-all shadow-md overflow-hidden">
+                                                                                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                                                            <div className="relative flex items-center gap-4 z-10 w-full">
+                                                                                                <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700 shadow-inner group-hover:scale-105 transition-transform">
+                                                                                                    <Car className="w-6 h-6 text-slate-400 group-hover:text-blue-400 transition-colors" />
+                                                                                                </div>
+                                                                                                <div className="flex-1">
+                                                                                                    <p className="font-bold text-white font-mono tracking-wider text-[15px]">{v.patente}</p>
+                                                                                                    <p className="text-xs text-slate-400 mt-0.5 font-medium flex items-center gap-1.5">
+                                                                                                        {v.marca || 'S/M'} <span className="w-1 h-1 bg-slate-600 rounded-full"></span> {v.modelo ? v.modelo : 'S/M'}
+                                                                                                    </p>
+                                                                                                </div>
+                                                                                                <Button
+                                                                                                    size="sm"
+                                                                                                    onClick={() => router.push(`/recepcion?patente=${v.patente}`)}
+                                                                                                    className="bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 border-0 rounded-lg h-9 px-4 font-bold opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0"
+                                                                                                >
+                                                                                                    Recepcionar
+                                                                                                </Button>
                                                                                             </div>
                                                                                         </div>
                                                                                     ))}
@@ -557,13 +608,19 @@ export default function ClientesPage() {
                                                                         </div>
                                                                     </TabsContent>
 
-                                                                    <TabsContent value="historial">
-                                                                        <div className="flex items-center justify-between p-4 bg-slate-800/30 rounded-lg border border-slate-700/30">
-                                                                            <div>
-                                                                                <p className="text-sm text-slate-300">Para ver el historial detallado, usa la opción de editar.</p>
+                                                                    <TabsContent value="historial" className="outline-none">
+                                                                        <div className="flex flex-col sm:flex-row items-center justify-between p-6 bg-[#1E293B] rounded-2xl border border-slate-700/50 shadow-md relative overflow-hidden">
+                                                                            <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
+                                                                            <div className="relative z-10 mb-4 sm:mb-0">
+                                                                                <h4 className="text-base font-bold text-white flex items-center gap-2 mb-1">
+                                                                                    <FileText className="w-5 h-5 text-emerald-400" />
+                                                                                    Registro de Intervenciones
+                                                                                </h4>
+                                                                                <p className="text-sm text-slate-400">Ver análisis detallado, órdenes pasadas y presupuestos de {cliente.nombre_completo}.</p>
                                                                             </div>
-                                                                            <Button variant="secondary" size="sm" onClick={() => handleEditCliente(cliente, 'historial')}>
+                                                                            <Button className="relative z-10 bg-slate-800 hover:bg-slate-700 text-white shadow-lg border border-slate-600 h-11 px-6 rounded-xl font-bold transition-transform hover:scale-105" onClick={() => handleEditCliente(cliente, 'historial')}>
                                                                                 Ver Historial Completo
+                                                                                <ArrowRight className="w-4 h-4 ml-2 text-slate-400" />
                                                                             </Button>
                                                                         </div>
                                                                     </TabsContent>
@@ -594,28 +651,58 @@ export default function ClientesPage() {
             />
 
             <Dialog open={!!orderingCliente} onOpenChange={(open) => !open && setOrderingCliente(null)}>
-                <DialogContent className="bg-slate-900 border-slate-800 text-white">
-                    <DialogHeader>
-                        <DialogTitle>Seleccionar Vehículo</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <p className="text-sm text-slate-400">
-                            El cliente {orderingCliente?.nombre_completo} tiene varios vehículos. Selecciona uno para crear la orden.
+                <DialogContent className="sm:max-w-md bg-[#0F172A] border-slate-700 text-white shadow-2xl rounded-2xl p-0 overflow-hidden">
+                    <div className="bg-gradient-to-r from-blue-900/40 to-slate-900 p-6 border-b border-slate-800 text-center relative">
+                        <DialogHeader className="m-0">
+                            <div className="w-16 h-16 bg-blue-500/10 rounded-2xl mx-auto flex items-center justify-center mb-4 border border-blue-500/20 shadow-inner">
+                                <Car className="w-8 h-8 text-blue-400" />
+                            </div>
+                            <DialogTitle className="text-2xl font-bold text-white mb-2">Vehículo para Recepción</DialogTitle>
+                        </DialogHeader>
+                        <p className="text-sm text-slate-300 font-medium">
+                            <span className="text-blue-400">{orderingCliente?.nombre_completo}</span> tiene múltiples registrados.<br />¿Con cuál iniciamos hoy?
                         </p>
+                        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
+                    </div>
+                    <div className="p-6 bg-[#0F172A]">
                         <div className="grid gap-3">
-                            {orderingCliente?.vehiculos?.map((v: any) => (
+                            {orderingCliente?.vehiculos?.map((v: any, index: number) => (
                                 <button
-                                    key={v.id}
+                                    key={v.id || index}
+                                    className="flex items-center justify-between p-4 bg-[#1E293B] hover:bg-blue-900/20 border border-slate-700 hover:border-blue-500/50 rounded-xl transition-all group text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     onClick={() => confirmOrderVehicle(v.patente)}
-                                    className="flex items-center justify-between p-4 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-blue-600/20 hover:border-blue-500/50 transition-all text-left group"
                                 >
-                                    <div>
-                                        <p className="font-semibold text-white group-hover:text-blue-200">{v.marca} {v.modelo}</p>
-                                        <p className="text-xs font-mono text-slate-500 group-hover:text-blue-300">{v.patente}</p>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-600/50 group-hover:border-blue-500/30 transition-colors">
+                                            <Car className="w-5 h-5 text-slate-500 group-hover:text-blue-400 transition-colors" />
+                                        </div>
+                                        <div>
+                                            <p className="font-mono font-bold text-lg text-white tracking-wider">{v.patente}</p>
+                                            <p className="text-xs text-slate-400 font-medium mt-0.5 group-hover:text-blue-300/70 transition-colors flex items-center gap-1.5">
+                                                {v.marca || 'S/M'} <span className="w-1 h-1 bg-slate-600 rounded-full"></span> {v.modelo || 'S/M'}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <ChevronUp className="w-5 h-5 text-slate-500 group-hover:text-blue-400 rotate-90" />
+                                    <ChevronUp className="w-5 h-5 text-slate-600 group-hover:text-blue-500 rotate-90 transition-all" />
                                 </button>
                             ))}
+
+                            <div className="relative my-2">
+                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-800"></div></div>
+                                <div className="relative flex justify-center text-xs"><span className="bg-[#0F172A] px-2 text-slate-500 uppercase font-bold tracking-widest">O</span></div>
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                className="w-full justify-center h-14 border-dashed border-slate-600 bg-transparent hover:bg-slate-800 hover:text-white rounded-xl text-slate-400 font-bold transition-colors"
+                                onClick={() => {
+                                    router.push(`/recepcion?rut=${orderingCliente?.rut_dni}`);
+                                    setOrderingCliente(null);
+                                }}
+                            >
+                                <Plus className="w-5 h-5 mr-2" />
+                                Registrar Vehículo Nuevo
+                            </Button>
                         </div>
                     </div>
                 </DialogContent>

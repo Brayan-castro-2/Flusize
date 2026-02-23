@@ -197,9 +197,8 @@ function RecepcionContent() {
             const loadCita = async () => {
                 setIsLoadingCita(true);
                 try {
-                    // Fetch all appointments (temporary solution, ideally fetch by ID)
                     const citas = await obtenerCitas();
-                    const cita = citas.find(c => c.id === Number(citaId));
+                    const cita = citas.find(c => String(c.id) === String(citaId));
 
                     if (cita) {
                         setPatente(cita.patente_vehiculo || '');
@@ -754,12 +753,27 @@ function RecepcionContent() {
             }
 
             setCreatedOrderId(orden.id.toString());
+            setCreatedOrderId(orden.id.toString());
             setStep('checklist');
             window.scrollTo(0, 0); // Scroll to top
 
-            // Invalidar caché para que la nueva orden aparezca inmediatamente
-            await queryClient.invalidateQueries({ queryKey: ['orders'] });
-            await queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            // Inyectar la orden en caché activamente y hacer invalidate en background
+            queryClient.setQueryData(['orders', 'infinite'], (oldData: any) => {
+                if (!oldData || !oldData.pages) return oldData;
+                const newPages = [...oldData.pages];
+                if (newPages.length > 0) {
+                    newPages[0] = {
+                        ...newPages[0],
+                        orders: [orden, ...newPages[0].orders] // Agregar al principio
+                    };
+                }
+                return { ...oldData, pages: newPages };
+            });
+
+            // Invalidar caché para refetch en segundo plano
+            queryClient.invalidateQueries({ queryKey: ['orders'], exact: false });
+            queryClient.invalidateQueries({ queryKey: ['dashboard_orders'], exact: false });
+            queryClient.invalidateQueries({ queryKey: ['appointments'], exact: false });
 
         } catch (error) {
             console.error('Error al crear orden:', error);
@@ -804,14 +818,21 @@ function RecepcionContent() {
                 <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-6">
                     <ChecklistForm
                         orderId={createdOrderId}
-                        onClose={() => {
+                        onClose={async () => {
+                            // Limpiar caché de React Query localmente de forma asíncrona pero rápida
+                            queryClient.invalidateQueries({ queryKey: ['orders'] });
+                            queryClient.invalidateQueries({ queryKey: ['dashboard_orders'] });
+
+                            limpiar(); // Clear form
+
+                            // Como inyectamos la orden en caché (arriba en setQueryData), usamos el router 
+                            // de Next.js para un SPA soft-redirect. La caché pervivirá y la tabla de órdenes
+                            // pintará instantáneamente el nuevo vehículo.
                             if (user?.role === 'admin') {
                                 router.push('/admin/ordenes');
                             } else {
-                                // Para mecánicos, volver al dashboard o quedarse en recepción
                                 router.push('/admin');
                             }
-                            limpiar(); // Clear form after redirect
                         }}
                     />
                 </div>
@@ -948,20 +969,28 @@ function RecepcionContent() {
                         <label className="text-sm font-semibold text-slate-200">WhatsApp</label>
                         <div className="relative mt-2">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                <span className="text-slate-400">+569</span>
+                                <span className="text-slate-400">+56</span>
                             </div>
                             <input
                                 value={clienteWhatsapp}
                                 onChange={(e) => {
-                                    const numeros = e.target.value.replace(/[^0-9]/g, '');
-                                    setClienteWhatsapp(numeros.slice(0, 8));
+                                    // Extract only digits
+                                    let numeros = e.target.value.replace(/[^0-9]/g, '');
+
+                                    // If user pastes a number starting with 56 or 569, strip it
+                                    if (numeros.startsWith('56')) {
+                                        numeros = numeros.slice(2);
+                                    }
+
+                                    // Ensure it doesn't exceed 9 digits (9 + 8 digits = 9 digits total)
+                                    setClienteWhatsapp(numeros.slice(0, 9));
                                 }}
                                 inputMode="numeric"
-                                placeholder="12345678"
-                                className="w-full rounded-xl border border-slate-700 bg-slate-800/50 py-3 pl-16 pr-4 text-white"
+                                placeholder="912345678"
+                                className="w-full rounded-xl border border-slate-700 bg-slate-800/50 py-3 pl-12 pr-4 text-white"
                             />
                         </div>
-                        <div className="mt-2 text-xs text-slate-400">Usa formato internacional sin + (ej: 56912345678).</div>
+                        <div className="mt-2 text-xs text-slate-400">Ingresa tu número de 9 dígitos empezando con 9 (ej: 912345678).</div>
                     </div>
                     <div>
                         <label className="text-sm font-semibold text-slate-200">Email (Opcional)</label>

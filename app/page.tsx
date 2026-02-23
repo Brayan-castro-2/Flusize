@@ -700,6 +700,87 @@ const WhatsAppButton = () => (
   </a>
 );
 
+const DesignPreviews = () => (
+  <div className="py-20 bg-slate-900 border-t border-slate-800">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-10">
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold uppercase tracking-widest mb-4">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500" />
+          </span>
+          En desarrollo
+        </span>
+        <h2 className="text-3xl font-bold text-white mt-2">Diseños en Progreso</h2>
+        <p className="mt-3 text-slate-400 max-w-xl mx-auto text-sm">
+          Vistas de diseño (datos de prueba). Accede para revisar el look & feel antes de la integración completa.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Super Admin */}
+        <Link href="/super-admin" className="group block">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 p-6 transition-all duration-300 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 mb-5">
+              <svg className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">Super Admin</h3>
+            <p className="text-sm text-slate-400 leading-relaxed mb-4">Panel SaaS para dueños de Flusize. GMV, MRR, gestión de talleres y actividad en tiempo real.</p>
+            <div className="flex flex-wrap gap-2 mb-5">
+              {["Métricas", "Gráficos", "Talleres", "Feed"].map(t => (
+                <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">{t}</span>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 text-cyan-400 text-sm font-semibold group-hover:gap-3 transition-all">
+              Ver diseño <ArrowRight className="h-4 w-4" />
+            </div>
+          </div>
+        </Link>
+
+        {/* Mi Garage */}
+        <Link href="/mi-garage" className="group block">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 p-6 transition-all duration-300 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 mb-5">
+              <Car className="h-6 w-6 text-cyan-400" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">Mi Garage</h3>
+            <p className="text-sm text-slate-400 leading-relaxed mb-4">Dashboard mobile para propietarios de vehículos. Historial, gastos, ficha técnica y acciones rápidas.</p>
+            <div className="flex flex-wrap gap-2 mb-5">
+              {["Vehículos", "Gastos", "Ficha", "Mobile"].map(t => (
+                <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">{t}</span>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 text-cyan-400 text-sm font-semibold group-hover:gap-3 transition-all">
+              Ver diseño <ArrowRight className="h-4 w-4" />
+            </div>
+          </div>
+        </Link>
+
+        {/* Order Tracking */}
+        <Link href="/order-tracking-design" className="group block">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 p-6 transition-all duration-300 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 mb-5">
+              <Wrench className="h-6 w-6 text-cyan-400" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">Order Tracking</h3>
+            <p className="text-sm text-slate-400 leading-relaxed mb-4">Rediseño de la página pública de seguimiento. Timeline animado, checklist, upsell y footer del taller.</p>
+            <div className="flex flex-wrap gap-2 mb-5">
+              {["Timeline", "Checklist", "WhatsApp", "Mobile"].map(t => (
+                <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">{t}</span>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 text-cyan-400 text-sm font-semibold group-hover:gap-3 transition-all">
+              Ver diseño <ArrowRight className="h-4 w-4" />
+            </div>
+          </div>
+        </Link>
+      </div>
+    </div>
+  </div>
+);
+
 export default function App() {
   const [activeSection, setActiveSection] = useState('Inicio');
 
@@ -711,6 +792,7 @@ export default function App() {
       <ServiceLocator />
       <VehicleTracker />
       <CommunityReviews />
+      <DesignPreviews />
       <Footer />
       <WhatsAppButton />
     </div>

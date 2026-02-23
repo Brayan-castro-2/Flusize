@@ -67,14 +67,14 @@ export default function LoginPage() {
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl"></div>
 
             {/* Back to Home */}
-            <div className="absolute top-6 left-6 z-10">
-                <Link
-                    href="/"
+            <div className="absolute top-6 left-6 z-20">
+                <button
+                    onClick={() => router.push('/')}
                     className="flex items-center gap-2 text-slate-400 hover:text-cyan-400 transition-colors"
                 >
                     <ArrowLeft className="w-5 h-5" />
                     <span className="text-sm font-medium">Volver al inicio</span>
-                </Link>
+                </button>
             </div>
 
             <div className="flex-1 flex items-center justify-center p-6 relative z-10">

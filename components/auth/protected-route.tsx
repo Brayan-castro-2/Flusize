@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    allowedRoles?: UserRole[];
+    allowedRoles?: ('mecanico' | 'admin' | 'superadmin')[];
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -20,7 +20,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
         if (!isLoading) {
             if (!user) {
                 router.push('/login');
-            } else if (allowedRoles && !allowedRoles.includes(user.role)) {
+            } else if (allowedRoles && !allowedRoles.includes(user.role as any)) {
                 if (user.role === 'mecanico') {
                     router.push('/recepcion');
                 } else {
