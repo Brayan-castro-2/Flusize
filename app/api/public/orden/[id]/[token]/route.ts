@@ -7,7 +7,7 @@ export async function GET(
     { params }: { params: { id: string; token: string } }
 ) {
     try {
-        const ordenId = parseInt(params.id);
+        const ordenId = params.id;
         const token = params.token;
 
         // Validar formato del token
@@ -19,7 +19,7 @@ export async function GET(
         }
 
         // Obtener orden
-        const orden = await obtenerOrdenPorId(ordenId);
+        const orden = (await obtenerOrdenPorId(ordenId)) as any;
 
         if (!orden) {
             return NextResponse.json(
@@ -47,6 +47,7 @@ export async function GET(
             fecha_ingreso: orden.fecha_ingreso,
             fecha_estimada_entrega: orden.fecha_estimada_entrega,
             descripcion_trabajo: orden.descripcion_trabajo,
+            notas_publicas: orden.notas_publicas || null,
             fotos_urls: orden.fotos_urls || [],
             taller: {
                 nombre: orden.taller_nombre || 'Taller',

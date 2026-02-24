@@ -967,7 +967,7 @@ export async function crearUsuario(
     email: string,
     password: string,
     nombreCompleto: string,
-    rol: 'admin' | 'mecanico'
+    rol: 'taller_admin' | 'superadmin' | 'mecanico'
 ): Promise<{ success: boolean; error?: string; user?: PerfilDB }> {
     try {
         // 1. Crear usuario en Auth
@@ -1370,7 +1370,7 @@ export async function subirImagenChecklist(file: File, ordenId: string, tipo: st
 }
 
 // =========== CREAR USUARIO SISTEMA (ADMIN) ===========
-export async function crearUsuarioSistema(datos: { email: string, password: string, nombre: string, rol: 'mecanico' | 'admin' | 'superadmin' }) {
+export async function crearUsuarioSistema(datos: { email: string, password: string, nombre: string, rol: 'mecanico' | 'taller_admin' | 'superadmin' }) {
     // 1. Crear usuario en Auth de Supabase
     console.log("Creando Auth User para:", datos.email);
     const { data: authData, error: authError } = await supabase.auth.signUp({

@@ -124,7 +124,7 @@ export default function AdminPage() {
 
     // Calcular rendimiento de mecánicos
     const mechanicPerformance = useMemo(() => {
-        const mechanics = perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'admin');
+        const mechanics = perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'taller_admin');
 
         return mechanics.map(mechanic => {
             const assignedOrders = filteredOrders.filter(o => o.asignado_a === mechanic.id);

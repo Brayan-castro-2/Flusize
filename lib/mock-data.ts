@@ -16,16 +16,20 @@ export const mockPerfiles: PerfilDB[] = [
     {
         id: 'admin-juan',
         nombre_completo: 'Juan',
-        rol: 'admin',
+        rol: 'superadmin',
         activo: true,
         email: 'juan@taller.cl',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
     },
     {
         id: 'admin-rodrigo',
         nombre_completo: 'Rodrigo',
-        rol: 'admin',
+        rol: 'taller_admin',
         activo: true,
         email: 'rodrigo@taller.cl',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
     },
     {
         id: 'mecanico-francisco',
@@ -33,6 +37,8 @@ export const mockPerfiles: PerfilDB[] = [
         rol: 'mecanico',
         activo: true,
         email: 'francisco@taller.cl',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
     },
     {
         id: 'mecanico-javier',
@@ -40,28 +46,30 @@ export const mockPerfiles: PerfilDB[] = [
         rol: 'mecanico',
         activo: true,
         email: 'javier@taller.cl',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
     },
 ];
 
-// Base de datos de vehículos para buscar por patente
 export const mockVehiculos: VehiculoDB[] = [
-    { patente: 'ABCD12', marca: 'Toyota', modelo: 'Corolla', anio: '2020', color: 'Blanco', cliente_id: 'mock-client' },
-    { patente: 'WXYZ99', marca: 'Chevrolet', modelo: 'Spark', anio: '2019', color: 'Rojo', cliente_id: 'mock-client' },
-    { patente: 'JKLM45', marca: 'Hyundai', modelo: 'Accent', anio: '2021', color: 'Gris', cliente_id: 'mock-client' },
-    { patente: 'PQRS78', marca: 'Kia', modelo: 'Rio', anio: '2022', color: 'Negro', cliente_id: 'mock-client' },
-    { patente: 'DEFG34', marca: 'Nissan', modelo: 'Versa', anio: '2018', color: 'Azul', cliente_id: 'mock-client' },
-    { patente: 'HIJK56', marca: 'Mazda', modelo: '3', anio: '2023', color: 'Blanco', cliente_id: 'mock-client' },
-    { patente: 'LMNO89', marca: 'Ford', modelo: 'Fiesta', anio: '2017', color: 'Plata', cliente_id: 'mock-client' },
-    { patente: 'QRST12', marca: 'Honda', modelo: 'Civic', anio: '2021', color: 'Gris', cliente_id: 'mock-client' },
+    { patente: 'ABCD12', marca: 'Toyota', modelo: 'Corolla', anio: '2020', color: 'Blanco', cliente_id: 'mock-client', taller_id: 'mock-taller' },
+    { patente: 'WXYZ99', marca: 'Chevrolet', modelo: 'Spark', anio: '2019', color: 'Rojo', cliente_id: 'mock-client', taller_id: 'mock-taller' },
+    { patente: 'JKLM45', marca: 'Hyundai', modelo: 'Accent', anio: '2021', color: 'Gris', cliente_id: 'mock-client', taller_id: 'mock-taller' },
+    { patente: 'PQRS78', marca: 'Kia', modelo: 'Rio', anio: '2022', color: 'Negro', cliente_id: 'mock-client', taller_id: 'mock-taller' },
+    { patente: 'DEFG34', marca: 'Nissan', modelo: 'Versa', anio: '2018', color: 'Azul', cliente_id: 'mock-client', taller_id: 'mock-taller' },
+    { patente: 'HIJK56', marca: 'Mazda', modelo: '3', anio: '2023', color: 'Blanco', cliente_id: 'mock-client', taller_id: 'mock-taller' },
+    { patente: 'LMNO89', marca: 'Ford', modelo: 'Fiesta', anio: '2017', color: 'Plata', cliente_id: 'mock-client', taller_id: 'mock-taller' },
+    { patente: 'QRST12', marca: 'Honda', modelo: 'Civic', anio: '2021', color: 'Gris', cliente_id: 'mock-client', taller_id: 'mock-taller' },
 ];
 
 // Órdenes de trabajo mock
 export let mockOrdenes: OrdenDB[] = [
     {
-        id: 1,
+        id: '1',
+        taller_id: 'mock-taller',
         patente_vehiculo: 'ABCD12',
         descripcion_ingreso: 'Cambio de aceite y filtros. El cliente menciona ruido en frenos.',
-        estado: 'en_progreso',
+        estado: 'en_proceso',
         creado_por: 'mecanico-1-id',
         asignado_a: 'mecanico-2-id',
         precio_total: 0,
@@ -71,7 +79,8 @@ export let mockOrdenes: OrdenDB[] = [
         cliente_telefono: '+56912345678',
     },
     {
-        id: 2,
+        id: '2',
+        taller_id: 'mock-taller',
         patente_vehiculo: 'WXYZ99',
         descripcion_ingreso: 'Revisión general por kilometraje. 50.000 km.',
         estado: 'pendiente',
@@ -84,14 +93,15 @@ export let mockOrdenes: OrdenDB[] = [
         cliente_telefono: '+56987654321',
     },
     {
-        id: 3,
+        id: '3',
+        taller_id: 'mock-taller',
         patente_vehiculo: 'JKLM45',
         descripcion_ingreso: 'Reparación de sistema eléctrico. Luces intermitentes no funcionan.',
         estado: 'completada',
         creado_por: 'admin-mock-id',
         asignado_a: 'mecanico-2-id',
         fecha_ingreso: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        fecha_completada: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+        fecha_cierre: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
         fotos_urls: [],
         cliente_nombre: 'Pedro Ramírez',
         cliente_telefono: '+56956781234',
@@ -99,15 +109,16 @@ export let mockOrdenes: OrdenDB[] = [
         precio_total: 45000,
     },
     {
-        id: 4,
+        id: '4',
+        taller_id: 'mock-taller',
         patente_vehiculo: 'PQRS78',
         descripcion_ingreso: 'Cambio de pastillas de freno delanteras y revisión de discos.',
-        estado: 'completada', /** Changed from lijst to completada */
+        estado: 'completada',
         creado_por: 'mecanico-1-id',
         asignado_a: 'mecanico-1-id',
         precio_total: 85000,
         fecha_ingreso: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-        fecha_lista: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        fecha_cierre: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
         fotos_urls: [],
         cliente_nombre: 'Ana Torres',
         cliente_telefono: '+56923456789',
@@ -155,7 +166,7 @@ export async function mockObtenerOrdenesHoy(): Promise<OrdenDB[]> {
 }
 
 // API Mock: Obtener orden por ID
-export async function mockObtenerOrdenPorId(id: number): Promise<OrdenDB | null> {
+export async function mockObtenerOrdenPorId(id: string): Promise<OrdenDB | null> {
     await delay(200);
     return mockOrdenes.find(o => o.id === id) || null;
 }
@@ -165,7 +176,7 @@ export async function mockCrearOrden(orden: {
     patente_vehiculo: string;
     descripcion_ingreso: string;
     creado_por: string;
-    estado?: 'pendiente' | 'en_progreso' | 'completada' | 'cancelada' | 'entregada' | 'debe' | 'lista'; // lista kept for compat but mapped
+    estado?: 'pendiente' | 'en_proceso' | 'completada' | 'cancelada' | 'entregada' | 'debe' | 'lista'; // lista kept for compat but mapped
     fotos?: string[];
     cliente_nombre?: string;
     cliente_telefono?: string;
@@ -173,7 +184,8 @@ export async function mockCrearOrden(orden: {
 }): Promise<OrdenDB | null> {
     await delay(300);
     const newOrden: OrdenDB = {
-        id: Math.max(...mockOrdenes.map(o => o.id), 0) + 1,
+        id: String(Math.max(...mockOrdenes.map(o => Number(o.id) || 0), 0) + 1),
+        taller_id: 'mock-taller',
         patente_vehiculo: orden.patente_vehiculo.toUpperCase(),
         descripcion_ingreso: orden.descripcion_ingreso,
         creado_por: orden.creado_por,
@@ -191,7 +203,7 @@ export async function mockCrearOrden(orden: {
 
 // API Mock: Actualizar orden
 export async function mockActualizarOrden(
-    id: number,
+    id: string,
     updates: Partial<Omit<OrdenDB, 'id' | 'fecha_ingreso'>>
 ): Promise<OrdenDB | null> {
     await delay(200);
@@ -239,7 +251,7 @@ export async function mockCrearUsuario(
     email: string,
     password: string,
     nombreCompleto: string,
-    rol: 'admin' | 'mecanico'
+    rol: 'superadmin' | 'taller_admin' | 'mecanico'
 ): Promise<{ success: boolean; error?: string }> {
     await delay(300);
     const newPerfil: PerfilDB = {
@@ -248,6 +260,8 @@ export async function mockCrearUsuario(
         rol,
         activo: true,
         email: `user-mock-${Date.now()}@example.com`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
     };
     mockPerfiles.push(newPerfil);
     return { success: true };

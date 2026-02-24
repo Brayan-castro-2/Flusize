@@ -6,15 +6,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Wrench, MapPin, Phone, Mail, Building, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Wrench, MapPin, Phone, Mail, Building, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
-        <div className="relative w-8 h-8">
-            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-tr-xl rounded-bl-xl transform skew-x-[-10deg]"></div>
-            <div className="absolute top-1/2 left-0 w-5 h-1 bg-white transform -translate-y-1/2 skew-x-[-10deg] ml-1"></div>
-            <div className="absolute bottom-2 left-1 w-3 h-1 bg-white skew-x-[-10deg]"></div>
-        </div>
+        <img src="/logo_flusize.png" alt="Flusize" className="w-10 h-10 object-contain" />
         <div className="flex flex-col leading-none">
             <span className="font-extrabold text-2xl tracking-wide text-white">FLUSIZE</span>
             <span className="text-[0.6rem] font-medium text-cyan-400 tracking-wider">ORDEN Y CONTROL</span>
@@ -34,6 +30,9 @@ export default function RegistroTallerPage() {
         servicios: [] as string[],
     });
 
+    const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [errorMsg, setErrorMsg] = useState('');
+
     const serviciosDisponibles = [
         'Mecánica General',
         'Frenos',
@@ -45,10 +44,37 @@ export default function RegistroTallerPage() {
         'Neumáticos',
     ];
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Redirect to pricing plans
-        router.push('/planes');
+
+        setStatus('loading');
+        try {
+            // Llamar API para crear el taller y el usuario administrador directamente (sin planes)
+            const res = await fetch('/api/admin-sys/create-taller', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: formData.nombreTaller,
+                    direccion: formData.direccion || formData.ciudad, // fallback
+                    emailAdmin: formData.email
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Error al registrar el taller');
+            }
+
+            setStatus('success');
+            alert(`¡Registro exitoso!\n\nSe ha creado tu taller. Puedes iniciar sesión con tu correo (${formData.email}) mediante un Enlace Mágico.\n\nContraseña temporal (opcional): ${data.password}`);
+            router.push('/login');
+
+        } catch (error: any) {
+            console.error('Registration error:', error);
+            setStatus('error');
+            setErrorMsg(error.message || 'Ocurrió un error al registrar el taller.');
+        }
     };
 
     const toggleServicio = (servicio: string) => {
@@ -214,8 +240,8 @@ export default function RegistroTallerPage() {
                                         type="button"
                                         onClick={() => toggleServicio(servicio)}
                                         className={`p-3 rounded-lg border-2 transition-all text-sm font-medium ${formData.servicios.includes(servicio)
-                                                ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
-                                                : 'border-slate-600 bg-slate-900/50 text-slate-400 hover:border-slate-500'
+                                            ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
+                                            : 'border-slate-600 bg-slate-900/50 text-slate-400 hover:border-slate-500'
                                             }`}
                                     >
                                         <div className="flex items-center gap-2">
@@ -231,11 +257,27 @@ export default function RegistroTallerPage() {
 
                         {/* Submit */}
                         <div className="pt-6 border-t border-slate-700">
+                            {/* Error state */}
+                            {status === 'error' && (
+                                <div className="flex items-start gap-3 p-3.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm font-medium mb-4">
+                                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                    <p>{errorMsg}</p>
+                                </div>
+                            )}
+
                             <Button
                                 type="submit"
-                                className="w-full h-14 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-lg font-semibold rounded-xl shadow-lg shadow-cyan-500/25"
+                                disabled={status === 'loading'}
+                                className="w-full h-14 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-lg font-semibold rounded-xl shadow-lg shadow-cyan-500/25 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                Ver Planes y Continuar
+                                {status === 'loading' ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                                        Creando cuenta...
+                                    </>
+                                ) : (
+                                    'Registrar Taller y Empezar'
+                                )}
                             </Button>
                             <p className="text-center text-xs text-slate-500 mt-4">
                                 Al continuar, aceptas nuestros términos y condiciones

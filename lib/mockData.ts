@@ -1,5 +1,5 @@
 export interface Workshop {
-    id: number;
+    id: string | number;
     name: string;
     manager: string;
     location: string;
@@ -14,6 +14,7 @@ export interface Workshop {
     availability: string;
     specialties: string[]; // Especialidades (Frenos, Motor, etc)
     availableSlots: number; // Cupos disponibles hoy
+    whatsapp?: string;
 }
 
 export const workshops: Workshop[] = [

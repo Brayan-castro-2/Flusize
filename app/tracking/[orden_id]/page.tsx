@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 import {
     Check,
     Wrench,
@@ -22,7 +23,12 @@ import {
     Share2,
     FileText,
     ChevronRight,
-    ClipboardList
+    ClipboardList,
+    Fuel,
+    Zap,
+    Activity,
+    Cog,
+    Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +52,12 @@ interface TrackingData {
         modelo: string | null;
         patente: string;
         ano: number | null;
+        motor?: string;
+        potencia_hp?: string;
+        torque_nm?: string;
+        transmision?: string;
+        traccion?: string;
+        color?: string;
     } | null;
     taller: {
         nombre: string;
@@ -76,6 +88,7 @@ function getActiveStep(estado: OrderStatus, revisado: boolean): number {
 // DATA FETCHER
 // ─────────────────────────────────────────
 async function fetchTracking(id: string): Promise<TrackingData | null> {
+    console.log('[Tracking Debug] fetchTracking started for id:', id);
     const { data: raw, error } = await supabase
         .from('ordenes')
         .select(`
@@ -86,6 +99,8 @@ async function fetchTracking(id: string): Promise<TrackingData | null> {
     `)
         .eq('id', id)
         .single();
+
+    console.log('[Tracking Debug] fetchTracking raw response:', !!raw, error);
 
     if (error || !raw) return null;
 
@@ -98,6 +113,8 @@ async function fetchTracking(id: string): Promise<TrackingData | null> {
         .select('fotos, fotos_salida, revisado_por_mecanico_at')
         .eq('orden_id', id)
         .maybeSingle();
+
+    console.log('[Tracking Debug] fetchTracking checklist:', !!checklist);
 
     const extractUrls = (obj: any): string[] => {
         if (!obj || typeof obj !== 'object') return [];
@@ -297,7 +314,32 @@ function LiveActionCard({ fotos, onOpenFotos, onOpenDetails }: { fotos: string[]
     )
 }
 
-function UpsellCard() {
+function UpsellCard({ trackingId, isLoggedIn, userName }: { trackingId: string, isLoggedIn: boolean, userName: string | null }) {
+    if (isLoggedIn) {
+        return (
+            <section className="px-4 py-2">
+                <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100 rounded-2xl p-5 shadow-sm">
+                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-100/50 rounded-full" />
+                    <div className="absolute -left-4 -bottom-4 w-16 h-16 bg-cyan-100/50 rounded-full" />
+
+                    <div className="relative z-10 flex items-center gap-2 mb-2">
+                        <Sparkles className="h-4 w-4 text-blue-600" />
+                        <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Cuenta Activa</h3>
+                    </div>
+                    <div className="relative z-10">
+                        <h4 className="text-base font-bold text-slate-800 mb-1">¡Hola{userName ? ` ${userName}` : ''}! 👋</h4>
+                        <p className="text-[13px] text-slate-600 leading-relaxed mb-4">
+                            Estás viendo el estado de un vehículo guardado en tu cuenta de Flusize.
+                        </p>
+                        <a href="/mi-garage" className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white transition-colors hover:bg-blue-700 shadow-sm shadow-blue-200">
+                            Volver a Mi Garage <ChevronRight className="ml-1.5 h-4 w-4" />
+                        </a>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section className="px-4 py-2">
             <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100 rounded-2xl p-5 shadow-sm">
@@ -306,7 +348,7 @@ function UpsellCard() {
 
                 <div className="relative z-10 flex items-center gap-2 mb-2">
                     <Sparkles className="h-4 w-4 text-blue-600" />
-                    <h3 className="text-[10px] lowercase font-bold text-blue-600 uppercase tracking-widest">Recomendado</h3>
+                    <h3 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Recomendado</h3>
                 </div>
                 <div className="relative z-10">
                     <h4 className="text-base font-bold text-slate-800 mb-1">No pierdas tu historial.</h4>
@@ -314,7 +356,7 @@ function UpsellCard() {
                         Crea tu cuenta gratis en Flusize para ver tus gastos, historial de reparaciones y recordatorios de mantenimiento en un solo lugar.
                     </p>
 
-                    <a href="/register" className="mb-2 inline-flex h-11 w-full items-center justify-center rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 shadow-sm">
+                    <a href={`/login?claim_id=${trackingId}`} className="mb-2 inline-flex h-11 w-full items-center justify-center rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 shadow-sm">
                         <svg className="w-5 h-5 mr-2.5" viewBox="0 0 24 24">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -324,7 +366,7 @@ function UpsellCard() {
                         Registrarse con Google
                     </a>
 
-                    <a href="/register" className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white transition-colors hover:bg-blue-700 shadow-sm shadow-blue-200">
+                    <a href={`/login?claim_id=${trackingId}`} className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white transition-colors hover:bg-blue-700 shadow-sm shadow-blue-200">
                         Usar correo electrónico <ArrowRight className="ml-1.5 h-4 w-4" />
                     </a>
                 </div>
@@ -512,6 +554,69 @@ function DetailsModal({ data, onClose }: { data: TrackingData, onClose: () => vo
                             </p>
                         </div>
                     </div>
+
+                    {/* Ficha Técnica GetAPI */}
+                    {data.vehiculo && (
+                        <div className="mt-4">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Ficha Técnica</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <div className="w-7 h-7 bg-cyan-50 rounded-lg flex items-center justify-center shrink-0">
+                                        <Fuel className="w-3.5 h-3.5 text-cyan-600" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Motor</p>
+                                        <p className="text-xs font-bold text-slate-700 truncate leading-none">{data.vehiculo.motor || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <div className="w-7 h-7 bg-cyan-50 rounded-lg flex items-center justify-center shrink-0">
+                                        <Zap className="w-3.5 h-3.5 text-cyan-600" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Potencia</p>
+                                        <p className="text-xs font-bold text-slate-700 truncate leading-none">{data.vehiculo.potencia_hp ? `${data.vehiculo.potencia_hp} HP` : 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <div className="w-7 h-7 bg-cyan-50 rounded-lg flex items-center justify-center shrink-0">
+                                        <Activity className="w-3.5 h-3.5 text-cyan-600" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Torque</p>
+                                        <p className="text-xs font-bold text-slate-700 truncate leading-none">{data.vehiculo.torque_nm ? `${data.vehiculo.torque_nm} Nm` : 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <div className="w-7 h-7 bg-cyan-50 rounded-lg flex items-center justify-center shrink-0">
+                                        <Cog className="w-3.5 h-3.5 text-cyan-600" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Transmisión</p>
+                                        <p className="text-xs font-bold text-slate-700 truncate leading-none">{data.vehiculo.transmision || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <div className="w-7 h-7 bg-cyan-50 rounded-lg flex items-center justify-center shrink-0">
+                                        <Car className="w-3.5 h-3.5 text-cyan-600" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Tracción</p>
+                                        <p className="text-xs font-bold text-slate-700 truncate leading-none">{data.vehiculo.traccion || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <div className="w-7 h-7 bg-cyan-50 rounded-lg flex items-center justify-center shrink-0">
+                                        <Settings className="w-3.5 h-3.5 text-cyan-600" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Color</p>
+                                        <p className="text-xs font-bold text-slate-700 truncate leading-none">{data.vehiculo.color || 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-4 border-t border-slate-100 bg-slate-50">
@@ -530,6 +635,7 @@ function DetailsModal({ data, onClose }: { data: TrackingData, onClose: () => vo
 export default function TrackingPage() {
     const params = useParams();
     const router = useRouter();
+    const { user } = useAuth();
     const id = params?.orden_id as string;
 
     const [data, setData] = useState<TrackingData | null>(null);
@@ -557,6 +663,44 @@ export default function TrackingPage() {
     };
 
     useEffect(() => { load(); }, [id]);
+
+    // Dynamically fetch GetAPI technical specs for vehicle
+    useEffect(() => {
+        if (!data || !data.vehiculo || data.vehiculo.motor || !data.vehiculo.patente) return;
+
+        let isMounted = true;
+        const fetchSpecs = async () => {
+            try {
+                const res = await fetch(`/api/vehiculo?patente=${data.vehiculo!.patente}`);
+                if (res.ok) {
+                    const apiResponse = await res.json();
+                    if (apiResponse.success && apiResponse.data && isMounted) {
+                        const techData = apiResponse.data;
+                        setData(prev => prev ? {
+                            ...prev,
+                            vehiculo: {
+                                ...prev.vehiculo!,
+                                motor: techData.engine,
+                                color: techData.color,
+                                transmision: techData.transmission,
+                                traccion: techData.traction || '2WD',
+                                marca: techData.model?.brand?.name || prev.vehiculo!.marca,
+                                modelo: techData.model?.name || prev.vehiculo!.modelo,
+                                potencia_hp: techData.powerHp ? String(techData.powerHp) : undefined,
+                                torque_nm: techData.torqueNm ? String(techData.torqueNm) : undefined,
+                            }
+                        } : prev);
+                    }
+                }
+            } catch (e) {
+                console.error('Error fetching GetAPI', e);
+            }
+        };
+
+        fetchSpecs();
+
+        return () => { isMounted = false; };
+    }, [data?.vehiculo?.patente, data?.vehiculo?.motor]);
 
     useEffect(() => {
         if (!id) return;
@@ -616,7 +760,11 @@ export default function TrackingPage() {
                 </div>
 
                 <div className="py-2">
-                    <UpsellCard />
+                    <UpsellCard
+                        trackingId={data.id}
+                        isLoggedIn={!!user}
+                        userName={user?.user_metadata?.nombre || user?.user_metadata?.name || null}
+                    />
                 </div>
 
                 <div className="pt-4">

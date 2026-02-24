@@ -828,7 +828,7 @@ function RecepcionContent() {
                             // Como inyectamos la orden en caché (arriba en setQueryData), usamos el router 
                             // de Next.js para un SPA soft-redirect. La caché pervivirá y la tabla de órdenes
                             // pintará instantáneamente el nuevo vehículo.
-                            if (user?.role === 'admin') {
+                            if (user?.role === 'taller_admin') {
                                 router.push('/admin/ordenes');
                             } else {
                                 router.push('/admin');

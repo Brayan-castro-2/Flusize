@@ -22,8 +22,8 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 interface LeafletMapProps {
     workshops: Workshop[];
-    selectedId?: number;
-    onSelect?: (id: number) => void;
+    selectedId?: string | number;
+    onSelect?: (id: string | number) => void;
 }
 
 // Internal component to access the map instance
@@ -56,7 +56,7 @@ const LeafletMap = forwardRef(({ workshops, selectedId, onSelect }: LeafletMapPr
         }
     }));
 
-    const handleMarkerClick = (spotId: number) => {
+    const handleMarkerClick = (spotId: string | number) => {
         if (onSelect) {
             onSelect(spotId);
         }
@@ -139,13 +139,15 @@ const LeafletMap = forwardRef(({ workshops, selectedId, onSelect }: LeafletMapPr
                                         ))}
                                     </div>
 
-                                    <button
-                                        onClick={() => router.push(`/conductores/parking/${workshop.id}`)}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                                    <a
+                                        href={workshop.whatsapp ? `https://wa.me/569${workshop.whatsapp.replace(/\D/g, '').slice(-8)}` : '#'}
+                                        target={workshop.whatsapp ? "_blank" : "_self"}
+                                        rel={workshop.whatsapp ? "noopener noreferrer" : ""}
+                                        className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
                                     >
                                         <Wrench className="w-4 h-4" />
-                                        Agendar Visita
-                                    </button>
+                                        Contactar
+                                    </a>
                                 </div>
                             </Popup>
                         </Marker>

@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+export const dynamic = 'force-dynamic'
 import './globals.css'
 import 'leaflet/dist/leaflet.css'
-import { AuthProvider } from '@/contexts/auth-context'
-import { QueryProvider } from '@/contexts/query-provider'
-import { Toaster } from "@/components/ui/sonner"
+import { Toaster } from 'sileo'
+import { ClientProviders } from '@/components/client-providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -56,12 +56,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Gestión Taller" />
       </head>
       <body className={`${inter.className} overflow-x-hidden`}>
-        <QueryProvider>
-          <AuthProvider>
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </QueryProvider>
+        <ClientProviders>
+          {children}
+          <Toaster />
+        </ClientProviders>
       </body>
     </html>
   )

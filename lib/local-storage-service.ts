@@ -9,7 +9,7 @@ export interface PerfilDB {
     id: string;
     email: string;
     nombre_completo: string;
-    rol: 'mecanico' | 'admin' | 'superadmin';
+    rol: 'mecanico' | 'taller_admin' | 'superadmin';
     activo: boolean;
     taller_id?: string;
 }
@@ -73,6 +73,7 @@ export interface OrdenDB {
     kilometraje?: number | null;
     nivel_combustible?: string | null;
     observaciones_mecanico?: string | null;
+    notas_publicas?: string | null;
     fotos_urls?: string[] | null;
 
     // Estructuras legacy para evitar romper UI (serán null en nuevos registros)
@@ -180,14 +181,14 @@ export function initializeLocalStorage(): void {
             {
                 id: 'admin-juan',
                 nombre_completo: 'Juan',
-                rol: 'admin',
+                rol: 'taller_admin',
                 activo: true,
                 email: 'juan@taller.cl',
             },
             {
                 id: 'admin-rodrigo',
                 nombre_completo: 'Rodrigo',
-                rol: 'admin',
+                rol: 'taller_admin',
                 activo: true,
                 email: 'rodrigo@taller.cl',
             },
@@ -397,7 +398,7 @@ export async function crearUsuario(
     email: string,
     password: string,
     nombreCompleto: string,
-    rol: 'admin' | 'mecanico' | 'superadmin'
+    rol: 'taller_admin' | 'mecanico' | 'superadmin'
 ): Promise<{ success: boolean; error?: string }> {
     const perfiles = getFromStorage<PerfilDB[]>(KEYS.PERFILES, []);
 

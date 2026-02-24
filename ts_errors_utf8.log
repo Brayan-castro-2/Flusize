@@ -1,0 +1,694 @@
+﻿app/(dashboard)/admin/citas/page.tsx(108,35): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number | Date'.
+      Type 'undefined' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number'.
+      Type 'undefined' is not assignable to type 'string | number'.
+app/(dashboard)/admin/citas/page.tsx(251,63): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number | Date'.
+      Type 'undefined' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number'.
+      Type 'undefined' is not assignable to type 'string | number'.
+app/(dashboard)/admin/citas/page.tsx(294,63): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number | Date'.
+      Type 'undefined' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number'.
+      Type 'undefined' is not assignable to type 'string | number'.
+app/(dashboard)/admin/clientes/page.tsx(623,82): error TS2304: Cannot find name 'ArrowRight'.
+app/(dashboard)/admin/ordenes/[id]/clean/page.tsx(37,55): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+app/(dashboard)/admin/ordenes/[id]/clean/page.tsx(85,22): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente" | undefined' and '"admin"' have no overlap.
+app/(dashboard)/admin/ordenes/clean/page.tsx(187,13): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente" | undefined' and '"admin"' have no overlap.
+app/(dashboard)/admin/ordenes/clean/page.tsx(282,13): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente" | undefined' and '"admin"' have no overlap.
+app/(dashboard)/admin/ordenes/clean/page.tsx(382,22): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente" | undefined' and '"admin"' have no overlap.
+app/(dashboard)/admin/ordenes/clean/page.tsx(415,22): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente" | undefined' and '"admin"' have no overlap.
+app/(dashboard)/admin/ordenes/clean/page.tsx(438,22): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente" | undefined' and '"admin"' have no overlap.
+app/(dashboard)/admin/ordenes/page.tsx(200,21): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente" | undefined' and '"admin"' have no overlap.
+app/(dashboard)/recepcion/page.tsx(831,33): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente" | undefined' and '"admin"' have no overlap.
+app/api/public/orden/[id]/[token]/route.ts(32,19): error TS2339: Property 'access_token' does not exist on type 'OrdenDB'.
+app/api/public/orden/[id]/[token]/route.ts(45,28): error TS2339: Property 'patente' does not exist on type 'OrdenDB'.
+app/api/public/orden/[id]/[token]/route.ts(48,43): error TS2339: Property 'fecha_estimada_entrega' does not exist on type 'OrdenDB'.
+app/api/public/orden/[id]/[token]/route.ts(49,40): error TS2339: Property 'descripcion_trabajo' does not exist on type 'OrdenDB'.
+app/api/public/orden/[id]/[token]/route.ts(52,31): error TS2339: Property 'taller_nombre' does not exist on type 'OrdenDB'.
+app/page.tsx(96,19): error TS7031: Binding element 'activeSection' implicitly has an 'any' type.
+app/page.tsx(96,34): error TS7031: Binding element 'setActiveSection' implicitly has an 'any' type.
+app/page.tsx(202,34): error TS2531: Object is possibly 'null'.
+app/page.tsx(205,34): error TS2531: Object is possibly 'null'.
+app/page.tsx(411,14): error TS2741: Property 'workshops' is missing in type '{}' but required in type 'LeafletMapProps'.
+app/page.tsx(435,25): error TS7006: Parameter 'e' implicitly has an 'any' type.
+app/page.tsx(443,11): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ "AB-1234": { found: boolean; plate: string; model: string; status: string; progress: number; estimatedTime: string; costs: { labor: number; parts: number; total: number; }; partsList: { name: string; price: number; }[]; mechanicNotes: string; }; }'.
+  No index signature with a parameter of type 'string' was found on type '{ "AB-1234": { found: boolean; plate: string; model: string; status: string; progress: number; estimatedTime: string; costs: { labor: number; parts: number; total: number; }; partsList: { name: string; price: number; }[]; mechanicNotes: string; }; }'.
+app/page.tsx(444,19): error TS2345: Argument of type '{ found: boolean; plate: string; model: string; status: string; progress: number; estimatedTime: string; costs: { labor: number; parts: number; total: number; }; partsList: { name: string; price: number; }[]; mechanicNotes: string; }' is not assignable to parameter of type 'SetStateAction<null>'.
+  Type '{ found: boolean; plate: string; model: string; status: string; progress: number; estimatedTime: string; costs: { labor: number; parts: number; total: number; }; partsList: { name: string; price: number; }[]; mechanicNotes: string; }' provides no match for the signature '(prevState: null): null'.
+app/page.tsx(494,79): error TS2339: Property 'model' does not exist on type 'never'.
+app/page.tsx(495,114): error TS2339: Property 'plate' does not exist on type 'never'.
+app/page.tsx(498,29): error TS2339: Property 'status' does not exist on type 'never'.
+app/page.tsx(505,61): error TS2339: Property 'progress' does not exist on type 'never'.
+app/page.tsx(508,165): error TS2339: Property 'progress' does not exist on type 'never'.
+app/page.tsx(513,119): error TS2339: Property 'estimatedTime' does not exist on type 'never'.
+app/page.tsx(522,29): error TS2339: Property 'partsList' does not exist on type 'never'.
+app/page.tsx(522,44): error TS7006: Parameter 'part' implicitly has an 'any' type.
+app/page.tsx(522,50): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+app/page.tsx(530,38): error TS2339: Property 'costs' does not exist on type 'never'.
+app/page.tsx(534,38): error TS2339: Property 'costs' does not exist on type 'never'.
+app/print/ticket/[id]/page.tsx(31,13): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente"' and '"admin"' have no overlap.
+app/print/ticket/[id]/page.tsx(101,51): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente"' and '"admin"' have no overlap.
+components/layout/sidebar.tsx(130,15): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente"' and '"admin"' have no overlap.
+components/shared/layout/sidebar.tsx(72,71): error TS2345: Argument of type '"taller_admin" | "superadmin" | "mecanico" | "cliente"' is not assignable to parameter of type '"admin" | "mecanico"'.
+  Type '"taller_admin"' is not assignable to type '"admin" | "mecanico"'.
+components/shared/layout/sidebar.tsx(112,14): error TS2367: This comparison appears to be unintentional because the types '"taller_admin" | "superadmin" | "mecanico" | "cliente"' and '"admin"' have no overlap.
+lib/mock-data.ts(16,5): error TS2739: Type '{ id: string; nombre_completo: string; rol: "admin"; activo: true; email: string; }' is missing the following properties from type 'PerfilDB': created_at, updated_at
+lib/mock-data.ts(23,5): error TS2739: Type '{ id: string; nombre_completo: string; rol: "admin"; activo: true; email: string; }' is missing the following properties from type 'PerfilDB': created_at, updated_at
+lib/mock-data.ts(30,5): error TS2739: Type '{ id: string; nombre_completo: string; rol: "mecanico"; activo: true; email: string; }' is missing the following properties from type 'PerfilDB': created_at, updated_at
+lib/mock-data.ts(37,5): error TS2739: Type '{ id: string; nombre_completo: string; rol: "mecanico"; activo: true; email: string; }' is missing the following properties from type 'PerfilDB': created_at, updated_at
+lib/mock-data.ts(48,5): error TS2741: Property 'taller_id' is missing in type '{ patente: string; marca: string; modelo: string; anio: string; color: string; cliente_id: string; }' but required in type 'VehiculoDB'.
+lib/mock-data.ts(49,5): error TS2741: Property 'taller_id' is missing in type '{ patente: string; marca: string; modelo: string; anio: string; color: string; cliente_id: string; }' but required in type 'VehiculoDB'.
+lib/mock-data.ts(50,5): error TS2741: Property 'taller_id' is missing in type '{ patente: string; marca: string; modelo: string; anio: string; color: string; cliente_id: string; }' but required in type 'VehiculoDB'.
+lib/mock-data.ts(51,5): error TS2741: Property 'taller_id' is missing in type '{ patente: string; marca: string; modelo: string; anio: string; color: string; cliente_id: string; }' but required in type 'VehiculoDB'.
+lib/mock-data.ts(52,5): error TS2741: Property 'taller_id' is missing in type '{ patente: string; marca: string; modelo: string; anio: string; color: string; cliente_id: string; }' but required in type 'VehiculoDB'.
+lib/mock-data.ts(53,5): error TS2741: Property 'taller_id' is missing in type '{ patente: string; marca: string; modelo: string; anio: string; color: string; cliente_id: string; }' but required in type 'VehiculoDB'.
+lib/mock-data.ts(54,5): error TS2741: Property 'taller_id' is missing in type '{ patente: string; marca: string; modelo: string; anio: string; color: string; cliente_id: string; }' but required in type 'VehiculoDB'.
+lib/mock-data.ts(55,5): error TS2741: Property 'taller_id' is missing in type '{ patente: string; marca: string; modelo: string; anio: string; color: string; cliente_id: string; }' but required in type 'VehiculoDB'.
+lib/mock-data.ts(61,9): error TS2322: Type 'number' is not assignable to type 'string'.
+lib/mock-data.ts(64,9): error TS2820: Type '"en_progreso"' is not assignable to type '"pendiente" | "en_proceso" | "completada" | "cancelada" | "entregada" | "debe"'. Did you mean '"en_proceso"'?
+lib/mock-data.ts(74,9): error TS2322: Type 'number' is not assignable to type 'string'.
+lib/mock-data.ts(87,9): error TS2322: Type 'number' is not assignable to type 'string'.
+lib/mock-data.ts(102,9): error TS2322: Type 'number' is not assignable to type 'string'.
+lib/mock-data.ts(160,34): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number' have no overlap.
+lib/mock-data.ts(176,9): error TS2322: Type 'number' is not assignable to type 'string'.
+lib/mock-data.ts(176,22): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+lib/mock-data.ts(181,9): error TS2322: Type '"pendiente" | "completada" | "cancelada" | "entregada" | "debe" | "en_progreso"' is not assignable to type '"pendiente" | "en_proceso" | "completada" | "cancelada" | "entregada" | "debe"'.
+  Type '"en_progreso"' is not assignable to type '"pendiente" | "en_proceso" | "completada" | "cancelada" | "entregada" | "debe"'. Did you mean '"en_proceso"'?
+lib/mock-data.ts(198,46): error TS2367: This comparison appears to be unintentional because the types 'string' and 'number' have no overlap.
+lib/mock-data.ts(245,11): error TS2739: Type '{ id: string; nombre_completo: string; rol: "admin" | "mecanico"; activo: true; email: string; }' is missing the following properties from type 'PerfilDB': created_at, updated_at
+lib/notification-service.ts(6,10): error TS2305: Module '"./types"' has no exported member 'OrdenConDetallesDB'.
+lib/storage-adapter.ts(155,78): error TS2345: Argument of type '"admin" | "superadmin" | "mecanico"' is not assignable to parameter of type '"admin" | "mecanico"'.
+  Type '"superadmin"' is not assignable to type '"admin" | "mecanico"'.
+para usar/car-owner-dashboard/app/page.tsx(3,33): error TS2307: Cannot find module '@/components/dashboard-header' or its corresponding type declarations.
+para usar/car-owner-dashboard/app/page.tsx(4,26): error TS2307: Cannot find module '@/components/my-garage' or its corresponding type declarations.
+para usar/car-owner-dashboard/app/page.tsx(5,34): error TS2307: Cannot find module '@/components/financial-summary' or its corresponding type declarations.
+para usar/car-owner-dashboard/app/page.tsx(6,30): error TS2307: Cannot find module '@/components/quick-actions' or its corresponding type declarations.
+para usar/car-owner-dashboard/app/page.tsx(7,32): error TS2307: Cannot find module '@/components/recent-activity' or its corresponding type declarations.
+para usar/car-owner-dashboard/app/page.tsx(8,34): error TS2307: Cannot find module '@/components/vehicle-tech-specs' or its corresponding type declarations.
+para usar/car-owner-dashboard/app/page.tsx(9,27): error TS2307: Cannot find module '@/components/bottom-nav' or its corresponding type declarations.
+para usar/car-owner-dashboard/components/bottom-nav.tsx(34,14): error TS2786: 'item.icon' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/dashboard-header.tsx(20,12): error TS2786: 'Search' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/dashboard-header.tsx(28,12): error TS2786: 'Bell' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/dashboard-header.tsx(37,12): error TS2786: 'User' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/financial-summary.tsx(34,16): error TS2786: 'TrendingUp' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/financial-summary.tsx(45,16): error TS2786: 'ResponsiveContainer' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Props & RefAttributes<HTMLDivElement | { current: HTMLDivElement; }>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Props & RefAttributes<HTMLDivElement | { current: HTMLDivElement; }>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/financial-summary.tsx(46,18): error TS2786: 'PieChart' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<CategoricalChartProps & RefAttributes<{ readonly eventEmitterSymbol: Symbol; clipPathId: string; accessibilityManager: AccessibilityManager; ... 65 more ...; UNSAFE_componentWillUpdate?(nextProps: Readonly<...>, nextState: Readonly<...>, nextContext: any): void; }>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<CategoricalChartProps & RefAttributes<{ readonly eventEmitterSymbol: Symbol; clipPathId: string; accessibilityManager: AccessibilityManager; ... 65 more ...; UNSAFE_componentWillUpdate?(nextProps: Readonly<...>, nextState: Readonly<...>, nextContext: any): void; }>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/financial-summary.tsx(47,20): error TS2786: 'Pie' cannot be used as a JSX component.
+  Its type 'typeof Pie' is not a valid JSX element type.
+    Types of construct signatures are incompatible.
+      Type 'new (props: Props) => Pie' is not assignable to type 'new (props: any, deprecatedLegacyContext?: any) => Component<any, any, any>'.
+        Property 'refs' is missing in type 'Pie' but required in type 'Component<any, any, any>'.
+para usar/car-owner-dashboard/components/financial-summary.tsx(58,24): error TS2786: 'Cell' cannot be used as a JSX component.
+  Its type 'FunctionComponent<Props>' is not a valid JSX element type.
+    Type 'FunctionComponent<Props>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'ReactNode | Promise<ReactNode>' is not assignable to type 'ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/my-garage.tsx(45,12): error TS2786: 'ChevronRight' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/my-garage.tsx(81,16): error TS2786: 'Car' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/my-garage.tsx(86,18): error TS2786: 'Gauge' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/my-garage.tsx(90,18): error TS2786: 'Fuel' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/my-garage.tsx(94,18): error TS2786: 'Calendar' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/quick-actions.tsx(48,16): error TS2786: 'action.icon' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/recent-activity.tsx(60,16): error TS2786: 'ChevronRight' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/recent-activity.tsx(75,20): error TS2786: 'activity.icon' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/ui/form.tsx(96,6): error TS2322: Type '{ children?: ReactNode; id?: string | undefined; prefix?: string | undefined; translate?: "no" | "yes" | undefined; content?: string | undefined; popover?: "" | "hint" | "auto" | "manual" | undefined; ... 277 more ...; className: string; }' is not assignable to type 'Omit<LabelProps & RefAttributes<HTMLLabelElement>, "ref">'.
+  Types of property 'children' are incompatible.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/ui/resizable.tsx(9,3): error TS2339: Property 'className' does not exist on type '{}'.
+para usar/car-owner-dashboard/components/ui/resizable.tsx(11,25): error TS2344: Type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' does not satisfy the constraint 'JSXElementConstructor<any> | keyof IntrinsicElements'.
+  Type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/ui/resizable.tsx(12,4): error TS2741: Property 'direction' is missing in type '{ className: string; }' but required in type '{ autoSaveId?: string | null | undefined; className?: string | undefined; direction: Direction; id?: string | null | undefined; keyboardResizeBy?: number | null | undefined; ... 4 more ...; dir?: "auto" | ... 2 more ... | undefined; }'.
+para usar/car-owner-dashboard/components/ui/resizable.tsx(12,4): error TS2786: 'ResizablePrimitive.PanelGroup' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/ui/resizable.tsx(25,3): error TS2339: Property 'className' does not exist on type '{ withHandle?: boolean | undefined; }'.
+para usar/car-owner-dashboard/components/ui/resizable.tsx(27,25): error TS2344: Type 'typeof PanelResizeHandle' does not satisfy the constraint 'JSXElementConstructor<any> | keyof IntrinsicElements'.
+  Type 'typeof PanelResizeHandle' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+    Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+      Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/ui/resizable.tsx(30,4): error TS2786: 'ResizablePrimitive.PanelResizeHandle' cannot be used as a JSX component.
+  Its type 'typeof PanelResizeHandle' is not a valid JSX element type.
+    Type 'typeof PanelResizeHandle' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/ui/resizable.tsx(39,10): error TS2786: 'GripVertical' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/ui/sidebar.tsx(8,29): error TS2307: Cannot find module '@/hooks/use-mobile' or its corresponding type declarations.
+para usar/car-owner-dashboard/components/ui/sidebar.tsx(13,37): error TS2307: Cannot find module '@/components/ui/sheet' or its corresponding type declarations.
+para usar/car-owner-dashboard/components/ui/sidebar.tsx(14,26): error TS2307: Cannot find module '@/components/ui/skeleton' or its corresponding type declarations.
+para usar/car-owner-dashboard/components/ui/sidebar.tsx(20,8): error TS2307: Cannot find module '@/components/ui/tooltip' or its corresponding type declarations.
+para usar/car-owner-dashboard/components/ui/sonner.tsx(6,42): error TS2344: Type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' does not satisfy the constraint 'JSXElementConstructor<any> | keyof IntrinsicElements'.
+  Type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/ui/sonner.tsx(12,6): error TS2786: 'Sonner' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/components/ui/sonner.tsx(13,36): error TS2339: Property 'theme' does not exist on type '{}'.
+para usar/car-owner-dashboard/components/ui/toaster.tsx(3,26): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+para usar/car-owner-dashboard/components/ui/toaster.tsx(11,8): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+para usar/car-owner-dashboard/components/ui/toaster.tsx(18,31): error TS7031: Binding element 'id' implicitly has an 'any' type.
+para usar/car-owner-dashboard/components/ui/toaster.tsx(18,35): error TS7031: Binding element 'title' implicitly has an 'any' type.
+para usar/car-owner-dashboard/components/ui/toaster.tsx(18,42): error TS7031: Binding element 'description' implicitly has an 'any' type.
+para usar/car-owner-dashboard/components/ui/toaster.tsx(18,55): error TS7031: Binding element 'action' implicitly has an 'any' type.
+para usar/car-owner-dashboard/components/ui/toggle-group.tsx(8,32): error TS2307: Cannot find module '@/components/ui/toggle' or its corresponding type declarations.
+para usar/car-owner-dashboard/components/ui/toggle-group.tsx(22,4): error TS2322: Type '{ children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; } | { children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; }' is not assignable to type 'IntrinsicAttributes & ((ToggleGroupSingleProps | ToggleGroupMultipleProps) & RefAttributes<HTMLDivElement>)'.
+  Type '{ children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; }' is not assignable to type 'IntrinsicAttributes & ((ToggleGroupSingleProps | ToggleGroupMultipleProps) & RefAttributes<HTMLDivElement>)'.
+    Property 'type' is missing in type '{ children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; }' but required in type 'ToggleGroupMultipleProps'.
+para usar/car-owner-dashboard/components/ui/toggle-group.tsx(43,6): error TS2741: Property 'value' is missing in type '{ children: any; ref: ForwardedRef<HTMLButtonElement>; className: string; }' but required in type 'Omit<ToggleGroupItemImplProps, "pressed">'.
+para usar/car-owner-dashboard/components/ui/use-toast.ts(6,53): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+para usar/car-owner-dashboard/components/ui/use-toast.ts(158,22): error TS7006: Parameter 'open' implicitly has an 'any' type.
+para usar/car-owner-dashboard/components/vehicle-tech-specs.tsx(72,22): error TS2786: 'spec.icon' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/car-owner-dashboard/hooks/use-toast.ts(6,53): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+para usar/car-owner-dashboard/hooks/use-toast.ts(158,22): error TS7006: Parameter 'open' implicitly has an 'any' type.
+para usar/flusize-dashboard-design/app/page.tsx(1,28): error TS2307: Cannot find module '@/components/dashboard/sidebar-nav' or its corresponding type declarations.
+para usar/flusize-dashboard-design/app/page.tsx(2,33): error TS2307: Cannot find module '@/components/dashboard/dashboard-header' or its corresponding type declarations.
+para usar/flusize-dashboard-design/app/page.tsx(3,29): error TS2307: Cannot find module '@/components/dashboard/metric-cards' or its corresponding type declarations.
+para usar/flusize-dashboard-design/app/page.tsx(4,29): error TS2307: Cannot find module '@/components/dashboard/growth-chart' or its corresponding type declarations.
+para usar/flusize-dashboard-design/app/page.tsx(5,29): error TS2307: Cannot find module '@/components/dashboard/tenant-table' or its corresponding type declarations.
+para usar/flusize-dashboard-design/app/page.tsx(6,30): error TS2307: Cannot find module '@/components/dashboard/activity-feed' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/dashboard/activity-feed.tsx(4,28): error TS2307: Cannot find module '@/components/ui/scroll-area' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/dashboard/activity-feed.tsx(90,11): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/activity-feed.tsx(91,14): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/activity-feed.tsx(92,12): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/activity-feed.tsx(93,14): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/activity-feed.tsx(94,14): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/activity-feed.tsx(95,15): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/activity-feed.tsx(96,12): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/dashboard-header.tsx(19,12): error TS2786: 'Download' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/dashboard-header.tsx(24,14): error TS2786: 'Bell' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/growth-chart.tsx(58,14): error TS2786: 'TrendingUp' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/growth-chart.tsx(65,12): error TS2786: 'ResponsiveContainer' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Props & RefAttributes<HTMLDivElement | { current: HTMLDivElement; }>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Props & RefAttributes<HTMLDivElement | { current: HTMLDivElement; }>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/growth-chart.tsx(66,14): error TS2786: 'AreaChart' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<CategoricalChartProps & RefAttributes<{ readonly eventEmitterSymbol: Symbol; clipPathId: string; accessibilityManager: AccessibilityManager; ... 65 more ...; UNSAFE_componentWillUpdate?(nextProps: Readonly<...>, nextState: Readonly<...>, nextContext: any): void; }>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<CategoricalChartProps & RefAttributes<{ readonly eventEmitterSymbol: Symbol; clipPathId: string; accessibilityManager: AccessibilityManager; ... 65 more ...; UNSAFE_componentWillUpdate?(nextProps: Readonly<...>, nextState: Readonly<...>, nextContext: any): void; }>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/growth-chart.tsx(82,16): error TS2786: 'XAxis' cannot be used as a JSX component.
+  Its type 'typeof XAxis' is not a valid JSX element type.
+    Type 'typeof XAxis' is not assignable to type 'new (props: any, deprecatedLegacyContext?: any) => Component<any, any, any>'.
+      Property 'refs' is missing in type 'XAxis' but required in type 'Component<any, any, any>'.
+para usar/flusize-dashboard-design/components/dashboard/growth-chart.tsx(88,16): error TS2786: 'YAxis' cannot be used as a JSX component.
+  Its type 'typeof YAxis' is not a valid JSX element type.
+    Type 'typeof YAxis' is not assignable to type 'new (props: any, deprecatedLegacyContext?: any) => Component<any, any, any>'.
+      Property 'refs' is missing in type 'YAxis' but required in type 'Component<any, any, any>'.
+para usar/flusize-dashboard-design/components/dashboard/growth-chart.tsx(93,16): error TS2786: 'Tooltip' cannot be used as a JSX component.
+  Its type 'typeof Tooltip' is not a valid JSX element type.
+    Type 'typeof Tooltip' is not assignable to type 'new (props: any, deprecatedLegacyContext?: any) => Component<any, any, any>'.
+      Property 'refs' is missing in type 'Tooltip<any, any>' but required in type 'Component<any, any, any>'.
+para usar/flusize-dashboard-design/components/dashboard/growth-chart.tsx(94,16): error TS2786: 'Area' cannot be used as a JSX component.
+  Its type 'typeof Area' is not a valid JSX element type.
+    Type 'typeof Area' is not assignable to type 'new (props: any, deprecatedLegacyContext?: any) => Component<any, any, any>'.
+      Property 'refs' is missing in type 'Area' but required in type 'Component<any, any, any>'.
+para usar/flusize-dashboard-design/components/dashboard/growth-chart.tsx(102,16): error TS2786: 'Area' cannot be used as a JSX component.
+  Its type 'typeof Area' is not a valid JSX element type.
+    Type 'typeof Area' is not assignable to type 'new (props: any, deprecatedLegacyContext?: any) => Component<any, any, any>'.
+      Property 'refs' is missing in type 'Area' but required in type 'Component<any, any, any>'.
+para usar/flusize-dashboard-design/components/dashboard/metric-cards.tsx(51,16): error TS2786: 'ArrowUpRight' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/metric-cards.tsx(53,16): error TS2786: 'ArrowDownRight' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/metric-cards.tsx(70,5): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/metric-cards.tsx(78,5): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/metric-cards.tsx(86,5): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/metric-cards.tsx(94,5): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ElementType<any, keyof IntrinsicElements>'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'FunctionComponent<any>'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/sidebar-nav.tsx(19,28): error TS2307: Cannot find module '@/components/ui/scroll-area' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/dashboard/sidebar-nav.tsx(74,16): error TS2786: 'item.icon' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/sidebar-nav.tsx(89,16): error TS2786: 'item.icon' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/sidebar-nav.tsx(102,25): error TS2786: 'ChevronRight' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/sidebar-nav.tsx(102,64): error TS2786: 'ChevronLeft' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/tenant-table.tsx(119,16): error TS2786: 'Search' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/tenant-table.tsx(203,24): error TS2786: 'LogIn' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/tenant-table.tsx(211,24): error TS2786: 'Ban' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/dashboard/tenant-table.tsx(219,24): error TS2786: 'MoreHorizontal' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/ui/form.tsx(96,6): error TS2322: Type '{ children?: ReactNode; id?: string | undefined; prefix?: string | undefined; translate?: "no" | "yes" | undefined; content?: string | undefined; popover?: "" | "hint" | "auto" | "manual" | undefined; ... 277 more ...; className: string; }' is not assignable to type 'Omit<LabelProps & RefAttributes<HTMLLabelElement>, "ref">'.
+  Types of property 'children' are incompatible.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/ui/resizable.tsx(9,3): error TS2339: Property 'className' does not exist on type '{}'.
+para usar/flusize-dashboard-design/components/ui/resizable.tsx(11,25): error TS2344: Type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' does not satisfy the constraint 'JSXElementConstructor<any> | keyof IntrinsicElements'.
+  Type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/ui/resizable.tsx(12,4): error TS2741: Property 'direction' is missing in type '{ className: string; }' but required in type '{ autoSaveId?: string | null | undefined; className?: string | undefined; direction: Direction; id?: string | null | undefined; keyboardResizeBy?: number | null | undefined; ... 4 more ...; dir?: "auto" | ... 2 more ... | undefined; }'.
+para usar/flusize-dashboard-design/components/ui/resizable.tsx(12,4): error TS2786: 'ResizablePrimitive.PanelGroup' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/ui/resizable.tsx(25,3): error TS2339: Property 'className' does not exist on type '{ withHandle?: boolean | undefined; }'.
+para usar/flusize-dashboard-design/components/ui/resizable.tsx(27,25): error TS2344: Type 'typeof PanelResizeHandle' does not satisfy the constraint 'JSXElementConstructor<any> | keyof IntrinsicElements'.
+  Type 'typeof PanelResizeHandle' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+    Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+      Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/ui/resizable.tsx(30,4): error TS2786: 'ResizablePrimitive.PanelResizeHandle' cannot be used as a JSX component.
+  Its type 'typeof PanelResizeHandle' is not a valid JSX element type.
+    Type 'typeof PanelResizeHandle' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/ui/resizable.tsx(39,10): error TS2786: 'GripVertical' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/ui/sidebar.tsx(8,29): error TS2307: Cannot find module '@/hooks/use-mobile' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/ui/sidebar.tsx(13,37): error TS2307: Cannot find module '@/components/ui/sheet' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/ui/sidebar.tsx(14,26): error TS2307: Cannot find module '@/components/ui/skeleton' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/ui/sidebar.tsx(20,8): error TS2307: Cannot find module '@/components/ui/tooltip' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/ui/sonner.tsx(6,42): error TS2344: Type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' does not satisfy the constraint 'JSXElementConstructor<any> | keyof IntrinsicElements'.
+  Type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/ui/sonner.tsx(12,6): error TS2786: 'Sonner' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/flusize-dashboard-design/components/ui/sonner.tsx(13,36): error TS2339: Property 'theme' does not exist on type '{}'.
+para usar/flusize-dashboard-design/components/ui/toaster.tsx(3,26): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/ui/toaster.tsx(11,8): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/ui/toaster.tsx(18,31): error TS7031: Binding element 'id' implicitly has an 'any' type.
+para usar/flusize-dashboard-design/components/ui/toaster.tsx(18,35): error TS7031: Binding element 'title' implicitly has an 'any' type.
+para usar/flusize-dashboard-design/components/ui/toaster.tsx(18,42): error TS7031: Binding element 'description' implicitly has an 'any' type.
+para usar/flusize-dashboard-design/components/ui/toaster.tsx(18,55): error TS7031: Binding element 'action' implicitly has an 'any' type.
+para usar/flusize-dashboard-design/components/ui/toggle-group.tsx(8,32): error TS2307: Cannot find module '@/components/ui/toggle' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/ui/toggle-group.tsx(22,4): error TS2322: Type '{ children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; } | { children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; }' is not assignable to type 'IntrinsicAttributes & ((ToggleGroupSingleProps | ToggleGroupMultipleProps) & RefAttributes<HTMLDivElement>)'.
+  Type '{ children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; }' is not assignable to type 'IntrinsicAttributes & ((ToggleGroupSingleProps | ToggleGroupMultipleProps) & RefAttributes<HTMLDivElement>)'.
+    Property 'type' is missing in type '{ children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; }' but required in type 'ToggleGroupMultipleProps'.
+para usar/flusize-dashboard-design/components/ui/toggle-group.tsx(43,6): error TS2741: Property 'value' is missing in type '{ children: any; ref: ForwardedRef<HTMLButtonElement>; className: string; }' but required in type 'Omit<ToggleGroupItemImplProps, "pressed">'.
+para usar/flusize-dashboard-design/components/ui/use-toast.ts(6,53): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+para usar/flusize-dashboard-design/components/ui/use-toast.ts(158,22): error TS7006: Parameter 'open' implicitly has an 'any' type.
+para usar/flusize-dashboard-design/hooks/use-toast.ts(6,53): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+para usar/flusize-dashboard-design/hooks/use-toast.ts(158,22): error TS7006: Parameter 'open' implicitly has an 'any' type.
+para usar/order-tracking-page/app/page.tsx(1,32): error TS2307: Cannot find module '@/components/tracking/tracking-header' or its corresponding type declarations.
+para usar/order-tracking-page/app/page.tsx(2,32): error TS2307: Cannot find module '@/components/tracking/status-timeline' or its corresponding type declarations.
+para usar/order-tracking-page/app/page.tsx(3,32): error TS2307: Cannot find module '@/components/tracking/live-action-card' or its corresponding type declarations.
+para usar/order-tracking-page/app/page.tsx(4,28): error TS2307: Cannot find module '@/components/tracking/upsell-card' or its corresponding type declarations.
+para usar/order-tracking-page/app/page.tsx(5,32): error TS2307: Cannot find module '@/components/tracking/workshop-footer' or its corresponding type declarations.
+para usar/order-tracking-page/components/tracking/live-action-card.tsx(12,14): error TS2786: 'ClipboardList' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/live-action-card.tsx(24,14): error TS2786: 'Camera' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/live-action-card.tsx(31,14): error TS2786: 'FileText' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/live-action-card.tsx(33,14): error TS2786: 'ChevronRight' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/status-timeline.tsx(20,12): error TS2786: 'ClipboardCheck' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/status-timeline.tsx(27,12): error TS2786: 'Check' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/status-timeline.tsx(34,12): error TS2786: 'Wrench' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/status-timeline.tsx(40,12): error TS2786: 'PackageCheck' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/status-timeline.tsx(48,10): error TS2786: 'Check' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/tracking-header.tsx(13,12): error TS2786: 'ChevronLeft' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/tracking-header.tsx(25,12): error TS2786: 'Share2' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/tracking-header.tsx(32,12): error TS2786: 'Car' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/upsell-card.tsx(17,16): error TS2786: 'Sparkles' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/upsell-card.tsx(33,14): error TS2786: 'ArrowRight' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/workshop-footer.tsx(18,16): error TS2786: 'MapPin' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/workshop-footer.tsx(26,12): error TS2786: 'Phone' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/workshop-footer.tsx(44,16): error TS2786: 'MessageCircle' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/tracking/workshop-footer.tsx(58,16): error TS2786: 'Navigation' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/ui/form.tsx(96,6): error TS2322: Type '{ children?: ReactNode; id?: string | undefined; prefix?: string | undefined; translate?: "no" | "yes" | undefined; content?: string | undefined; popover?: "" | "hint" | "auto" | "manual" | undefined; ... 277 more ...; className: string; }' is not assignable to type 'Omit<LabelProps & RefAttributes<HTMLLabelElement>, "ref">'.
+  Types of property 'children' are incompatible.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/ui/resizable.tsx(9,3): error TS2339: Property 'className' does not exist on type '{}'.
+para usar/order-tracking-page/components/ui/resizable.tsx(11,25): error TS2344: Type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' does not satisfy the constraint 'JSXElementConstructor<any> | keyof IntrinsicElements'.
+  Type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/ui/resizable.tsx(12,4): error TS2741: Property 'direction' is missing in type '{ className: string; }' but required in type '{ autoSaveId?: string | null | undefined; className?: string | undefined; direction: Direction; id?: string | null | undefined; keyboardResizeBy?: number | null | undefined; ... 4 more ...; dir?: "auto" | ... 2 more ... | undefined; }'.
+para usar/order-tracking-page/components/ui/resizable.tsx(12,4): error TS2786: 'ResizablePrimitive.PanelGroup' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<HTMLAttributes<keyof HTMLElementTagNameMap>, "id"> & { autoSaveId?: string | null | undefined; className?: string | undefined; ... 7 more ...; dir?: "auto" | ... 2 more ... | undefined; } & { ...; } & RefAttributes<...>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/ui/resizable.tsx(25,3): error TS2339: Property 'className' does not exist on type '{ withHandle?: boolean | undefined; }'.
+para usar/order-tracking-page/components/ui/resizable.tsx(27,25): error TS2344: Type 'typeof PanelResizeHandle' does not satisfy the constraint 'JSXElementConstructor<any> | keyof IntrinsicElements'.
+  Type 'typeof PanelResizeHandle' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+    Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+      Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/ui/resizable.tsx(30,4): error TS2786: 'ResizablePrimitive.PanelResizeHandle' cannot be used as a JSX component.
+  Its type 'typeof PanelResizeHandle' is not a valid JSX element type.
+    Type 'typeof PanelResizeHandle' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/ui/resizable.tsx(39,10): error TS2786: 'GripVertical' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/ui/sidebar.tsx(8,29): error TS2307: Cannot find module '@/hooks/use-mobile' or its corresponding type declarations.
+para usar/order-tracking-page/components/ui/sidebar.tsx(13,37): error TS2307: Cannot find module '@/components/ui/sheet' or its corresponding type declarations.
+para usar/order-tracking-page/components/ui/sidebar.tsx(14,26): error TS2307: Cannot find module '@/components/ui/skeleton' or its corresponding type declarations.
+para usar/order-tracking-page/components/ui/sidebar.tsx(20,8): error TS2307: Cannot find module '@/components/ui/tooltip' or its corresponding type declarations.
+para usar/order-tracking-page/components/ui/sonner.tsx(6,42): error TS2344: Type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' does not satisfy the constraint 'JSXElementConstructor<any> | keyof IntrinsicElements'.
+  Type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+    Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+      Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+        Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/ui/sonner.tsx(12,6): error TS2786: 'Sonner' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<ToasterProps & RefAttributes<HTMLElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("C:/Users/Administrador/OneDrive/Escritorio/flusize/plantilla_tallerMecanico-main/para usar/car-owner-dashboard/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+para usar/order-tracking-page/components/ui/sonner.tsx(13,36): error TS2339: Property 'theme' does not exist on type '{}'.
+para usar/order-tracking-page/components/ui/toaster.tsx(3,26): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+para usar/order-tracking-page/components/ui/toaster.tsx(11,8): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+para usar/order-tracking-page/components/ui/toaster.tsx(18,31): error TS7031: Binding element 'id' implicitly has an 'any' type.
+para usar/order-tracking-page/components/ui/toaster.tsx(18,35): error TS7031: Binding element 'title' implicitly has an 'any' type.
+para usar/order-tracking-page/components/ui/toaster.tsx(18,42): error TS7031: Binding element 'description' implicitly has an 'any' type.
+para usar/order-tracking-page/components/ui/toaster.tsx(18,55): error TS7031: Binding element 'action' implicitly has an 'any' type.
+para usar/order-tracking-page/components/ui/toggle-group.tsx(8,32): error TS2307: Cannot find module '@/components/ui/toggle' or its corresponding type declarations.
+para usar/order-tracking-page/components/ui/toggle-group.tsx(22,4): error TS2322: Type '{ children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; } | { children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; }' is not assignable to type 'IntrinsicAttributes & ((ToggleGroupSingleProps | ToggleGroupMultipleProps) & RefAttributes<HTMLDivElement>)'.
+  Type '{ children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; }' is not assignable to type 'IntrinsicAttributes & ((ToggleGroupSingleProps | ToggleGroupMultipleProps) & RefAttributes<HTMLDivElement>)'.
+    Property 'type' is missing in type '{ children: Element; ref: ForwardedRef<HTMLDivElement>; className: string; }' but required in type 'ToggleGroupMultipleProps'.
+para usar/order-tracking-page/components/ui/toggle-group.tsx(43,6): error TS2741: Property 'value' is missing in type '{ children: any; ref: ForwardedRef<HTMLButtonElement>; className: string; }' but required in type 'Omit<ToggleGroupItemImplProps, "pressed">'.
+para usar/order-tracking-page/components/ui/use-toast.ts(6,53): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+para usar/order-tracking-page/components/ui/use-toast.ts(158,22): error TS7006: Parameter 'open' implicitly has an 'any' type.
+para usar/order-tracking-page/hooks/use-toast.ts(6,53): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+para usar/order-tracking-page/hooks/use-toast.ts(158,22): error TS7006: Parameter 'open' implicitly has an 'any' type.
+scripts/granular_diagnose_to_file.ts(12,18): error TS7006: Parameter 'msg' implicitly has an 'any' type.
+scripts/granular_diagnose_to_file.ts(45,9): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+scripts/granular_diagnose_to_file.ts(46,37): error TS7053: Element implicitly has an 'any' type because expression of type '"precio_total"' can't be used to index type '{}'.
+  Property 'precio_total' does not exist on type '{}'.
+scripts/granular_diagnose_to_file.ts(47,13): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+scripts/granular_diagnose_to_file.ts(47,41): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.

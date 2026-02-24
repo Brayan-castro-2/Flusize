@@ -8,6 +8,7 @@ import {
     CheckCircle2,
     Wrench,
     AlertCircle,
+    ChevronLeft,
     ChevronRight,
     MapPin,
     ArrowRight,
@@ -19,9 +20,22 @@ import {
     Fuel,
     Zap,
     Gauge,
-    Cog
+    Cog,
+    LogOut,
+    Bell
 } from 'lucide-react';
+import { sileo } from 'sileo';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // ──────────────────────────────────────────
 // TYPES
@@ -35,8 +49,8 @@ interface VehiculoData {
     color: string | null;
     kilometraje: number | null;
     motor: string | null;
-    potencia_hp: number | null;
-    torque_nm: number | null;
+    potencia_hp: number | null | string;
+    torque_nm: number | null | string;
     transmision: string | null;
     traccion: string | null;
 }
@@ -82,65 +96,103 @@ const ESTADO_UI: Record<string, { label: string; color: string; dot: string; Ico
 // DATA FETCHER (MOCKED FOR FINANCIAL REDESIGN)
 // ──────────────────────────────────────────
 async function fetchGarageData(userId: string): Promise<GarageData | null> {
-    // 🚧 BYPASS TEMPORAL PARA REVISIÓN DE DISEÑO FINANCIERO 🚧
+    const { data: perfil } = await supabase.from('perfiles').select('id, nombre_completo, email').eq('id', userId).maybeSingle();
+
+    const perfilSeguro = perfil || {
+        id: userId,
+        nombre_completo: 'Usuario Flusize',
+        email: ''
+    };
+
+    let orQuery = `perfil_global_id.eq.${userId}`;
+    if (perfilSeguro.email) {
+        orQuery += `,email.eq.${perfilSeguro.email}`;
+    }
+
+    const { data: clientesVinculados } = await supabase
+        .from('clientes')
+        .select('id')
+        .or(orQuery);
+
+    const clienteIds = clientesVinculados?.map(c => c.id) || [];
+
+    if (clienteIds.length === 0) {
+        return {
+            perfil: perfilSeguro,
+            cliente_id: userId,
+            vehiculos: [],
+            ordenesRecientes: [],
+            inversionAnual: { total: 0, mecanica: 0, repuestos: 0 }
+        };
+    }
+
+    const { data: vehiculos } = await supabase.from('vehiculos').select('*').in('cliente_id', clienteIds);
+
+    const { data: ordenes } = await supabase
+        .from('ordenes')
+        .select(`
+            id, 
+            numero_orden, 
+            estado, 
+            fecha_ingreso, 
+            descripcion_problema, 
+            precio_total, 
+            talleres (nombre)
+        `)
+        .in('cliente_id', clienteIds)
+        .order('fecha_ingreso', { ascending: false });
+
+    let total = 0;
+    ordenes?.forEach(o => {
+        if (o.estado === 'completada' || o.estado === 'entregada') {
+            total += Number(o.precio_total || 0);
+        }
+    });
+
+    const ordenesMapeadas = ordenes?.map(o => {
+        let tallerNombre = 'Taller Aliado';
+        if (o.talleres) {
+            tallerNombre = Array.isArray(o.talleres) ? o.talleres[0]?.nombre : (o.talleres as any).nombre;
+        }
+        return {
+            id: o.id,
+            numero_orden: o.numero_orden,
+            estado: o.estado,
+            fecha_ingreso: o.fecha_ingreso,
+            descripcion_problema: o.descripcion_problema,
+            precio_total: o.precio_total,
+            taller_nombre: tallerNombre
+        };
+    }) || [];
+
     return {
-        perfil: {
-            id: 'mock-id-123',
-            nombre_completo: 'Demo Driver',
-            email: 'demo@flusize.com',
-        },
-        cliente_id: 'mock-cliente-123',
-        vehiculos: [
-            {
-                id: 'veh-1',
-                patente: 'ABCD12',
-                marca: 'Toyota',
-                modelo: 'Yaris Sport',
-                ano: 2018,
-                color: 'Blanco',
-                kilometraje: 45000,
-                motor: '1.5L DOHC VVT-i',
-                potencia_hp: 107,
-                torque_nm: 140,
-                transmision: 'Automática CVT',
-                traccion: 'Delantera (FWD)',
-            }
-        ],
-        ordenesRecientes: [
-            {
-                id: 'ord-1',
-                numero_orden: '1042',
-                estado: 'entregada',
-                fecha_ingreso: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-                descripcion_problema: 'Cambio de pastillas y discos de freno.',
-                precio_total: 185000,
-                taller_nombre: 'Frenos y Servicios Pro',
-            },
-            {
-                id: 'ord-2',
-                numero_orden: '1011',
-                estado: 'entregada',
-                fecha_ingreso: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-                descripcion_problema: 'Mantenimiento preventivo 40.000km',
-                precio_total: 210000,
-                taller_nombre: 'Autoservicio Miguel',
-            },
-            {
-                id: 'ord-3',
-                numero_orden: '0984',
-                estado: 'entregada',
-                fecha_ingreso: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
-                descripcion_problema: 'Cambio de batería y revisión eléctrica',
-                precio_total: 95000,
-                taller_nombre: 'ElectroAuto Centro',
-            }
-        ],
+        perfil: perfilSeguro,
+        cliente_id: userId,
+        vehiculos: vehiculos || [],
+        ordenesRecientes: ordenesMapeadas,
         inversionAnual: {
-            total: 490000,
-            mecanica: 180000,
-            repuestos: 310000
+            total,
+            mecanica: Math.round(total * 0.7),
+            repuestos: Math.round(total * 0.3)
         }
     };
+}
+
+function EmptyGarageState() {
+    return (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 border border-blue-100/50 shadow-sm">
+                <Car className="w-10 h-10 text-blue-500" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 tracking-tight mb-2">Bienvenido a tu Garage</h2>
+            <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8 leading-relaxed">
+                Aún no tienes vehículos ni servicios registrados. Tu historial aparecerá aquí automáticamente cuando visites uno de nuestros talleres asociados.
+            </p>
+            <Link href="/onboarding" className="inline-flex items-center justify-center h-12 w-full rounded-xl bg-blue-600 text-white font-bold text-sm shadow-sm shadow-blue-200 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                ¿Tienes historial previo? Buscar datos <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+        </div>
+    );
 }
 
 // ──────────────────────────────────────────
@@ -321,16 +373,114 @@ function BankActivityItem({ orden }: { orden: OrdenReciente }) {
 // PAGE
 // ──────────────────────────────────────────
 export default function MiGaragePage() {
+    const { user, logout } = useAuth();
     const [data, setData] = useState<GarageData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [notifEstado, setNotifEstado] = useState<string | null>(null);
+    const router = useRouter();
+
+    // Dynamically fetch GetAPI technical specs for vehicles that don't have it
+    useEffect(() => {
+        if (!data || data.vehiculos.length === 0) return;
+
+        let isMounted = true;
+        const fetchSpecs = async () => {
+            const updatedVehicles = [...data.vehiculos];
+            let hasChanges = false;
+
+            for (let i = 0; i < updatedVehicles.length; i++) {
+                const v = updatedVehicles[i];
+                // Only fetch if we don't already have the engine data and we have a patente
+                if (!v.motor && v.patente) {
+                    try {
+                        const res = await fetch(`/api/vehiculo?patente=${v.patente}`);
+                        if (res.ok) {
+                            const apiResponse = await res.json();
+                            if (apiResponse.success && apiResponse.data) {
+                                const techData = apiResponse.data;
+                                updatedVehicles[i] = {
+                                    ...v,
+                                    motor: techData.engine,
+                                    color: techData.color,
+                                    transmision: techData.transmission,
+                                    traccion: techData.traction || '2WD',
+                                    marca: techData.model?.brand?.name || v.marca,
+                                    modelo: techData.model?.name || v.modelo,
+                                    potencia_hp: techData.powerHp ? String(techData.powerHp) : v.potencia_hp,
+                                    torque_nm: techData.torqueNm ? String(techData.torqueNm) : v.torque_nm,
+                                };
+                                hasChanges = true;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error fetching GetAPI for plate', v.patente, e);
+                    }
+                }
+            }
+
+            if (isMounted && hasChanges) {
+                setData(prev => prev ? { ...prev, vehiculos: updatedVehicles } : prev);
+            }
+        };
+
+        fetchSpecs();
+
+        return () => { isMounted = false; };
+    }, [data?.vehiculos.length]);
 
     useEffect(() => {
-        (async () => {
-            const d = await fetchGarageData('mock-user-id');
-            setData(d);
-            setLoading(false);
-        })();
-    }, []);
+        if (!user) return;
+
+        let isMounted = true;
+
+        const loadData = async () => {
+            const d = await fetchGarageData(user.id);
+            if (isMounted) {
+                setData(d);
+                setLoading(false);
+            }
+        };
+
+        loadData();
+
+        return () => { isMounted = false; };
+    }, [user?.id]);
+
+    // ──────────────────────────────────────────
+    // NOTIFICACIONES EN TIEMPO REAL
+    // ──────────────────────────────────────────
+    useEffect(() => {
+        if (!user) return;
+
+        console.log("🔔 Suscribiendo a actualizaciones de órdenes para el usuario:", user.id);
+
+        const channel = supabase
+            .channel('ordenes-tracker')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'ordenes',
+                },
+                (payload) => {
+                    console.log('🔄 Update recibido en realtime:', payload);
+                    if (payload.new.cliente_id === user.id) {
+                        sileo.success({
+                            title: 'Estado de Orden',
+                            description: `Actualizado a: ${payload.new.estado.replace('_', ' ')}`,
+                            position: "top-center"
+                        });
+                        setNotifEstado(payload.new.estado);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user?.id]);
 
     if (loading || !data) return (
         <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
@@ -346,54 +496,124 @@ export default function MiGaragePage() {
             {/* ── HEADER FINANCIERO ── */}
             <header className="bg-white border-b border-slate-100 shadow-sm sticky top-0 z-30">
                 <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center shadow-md">
+                    <div className="flex items-center gap-3">
+                        <Link href="/conductores/mapa" className="w-9 h-9 border border-slate-200 rounded-full bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors shadow-sm active:scale-95 shrink-0">
+                            <ChevronLeft className="w-5 h-5 text-slate-600" />
+                        </Link>
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shrink-0">
                             <span className="text-white font-black text-sm">F</span>
                         </div>
-                        <div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">Mi Garage</p>
-                            <p className="text-sm font-bold text-slate-800 leading-tight">Resumen Financiero</p>
+                        <div className="flex flex-col justify-center">
+                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-0.5">Mi Garage</p>
+                            <p className="text-sm font-black text-slate-800 leading-none">Tu Vehículo</p>
                         </div>
                     </div>
-                    <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
-                        <User className="w-4 h-4 text-slate-600" />
+
+                    {/* CONTROLES DERECHOS (CAMPANITA + PERFIL) */}
+                    <div className="flex items-center gap-2">
+                        {/* CAMPANITA NOTIFICACIONES */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 hover:bg-slate-100 transition-colors outline-none relative focus:ring-2 focus:ring-[#0066FF]/50 shadow-sm">
+                                    <Bell className="w-4 h-4 text-slate-600" />
+                                    {notifEstado && (
+                                        <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-slate-50 rounded-full animate-pulse"></span>
+                                    )}
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-xl border-slate-100">
+                                <DropdownMenuLabel className="font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-2 inline-flex items-center gap-1.5 px-2">
+                                    <Bell className="w-3 h-3" />
+                                    Notificaciones
+                                </DropdownMenuLabel>
+                                {notifEstado ? (
+                                    <div className="p-3 bg-gradient-to-tr from-blue-50 to-cyan-50 rounded-xl border border-blue-100 mb-1">
+                                        <p className="text-[11px] text-blue-800/70 font-bold uppercase tracking-wide mb-1">Tu orden activa está:</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                                            <p className="text-sm font-black text-blue-700 uppercase tracking-tight">{notifEstado.replace('_', ' ')}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="py-6 px-4 flex flex-col items-center text-center">
+                                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center mb-2">
+                                            <CheckCircle2 className="w-4 h-4 text-slate-300" />
+                                        </div>
+                                        <p className="text-xs font-semibold text-slate-500">Estás al día</p>
+                                        <p className="text-[10px] font-medium text-slate-400 mt-0.5">No hay actualizaciones recientes.</p>
+                                    </div>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {/* PERFIL */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 hover:bg-slate-200 transition-colors outline-none focus:ring-2 focus:ring-[#0066FF]/50 shadow-sm shrink-0">
+                                    <User className="w-4 h-4 text-slate-600" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56 rounded-2xl shadow-xl border-slate-100 p-1">
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none text-slate-800">{user?.name || 'Cliente'}</p>
+                                        <p className="text-xs leading-none text-slate-500">{user?.email}</p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer" onClick={(e) => {
+                                    e.preventDefault();
+                                    console.log('Boton cerrar sesion clickeado!');
+                                    logout();
+                                }}>
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Cerrar sesión</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
             </header>
 
             <main className="max-w-md mx-auto px-4 py-6 space-y-6">
 
-                {/* ── INVERSIÓN TOTAL ── */}
-                <section>
-                    <InversionChart data={inversionAnual} />
-                </section>
+                {(!vActivo && ordenesRecientes.length === 0) ? (
+                    <EmptyGarageState />
+                ) : (
+                    <>
+                        {/* ── INVERSIÓN TOTAL ── */}
+                        <section>
+                            <InversionChart data={inversionAnual} />
+                        </section>
 
-                {/* ── VEHÍCULOS (HORIZONTAL CARD) ── */}
-                {vActivo && (
-                    <section>
-                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Mi Vehículo</h2>
-                        <VehicleCard v={vActivo} />
-                    </section>
-                )}
+                        {/* ── VEHÍCULOS (HORIZONTAL CARD) ── */}
+                        {vActivo && (
+                            <section>
+                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Mi Vehículo</h2>
+                                <VehicleCard v={vActivo} />
+                            </section>
+                        )}
 
-                {/* ── FICHA TÉCNICA (GRID) ── */}
-                {vActivo && (
-                    <section>
-                        <div className="flex items-center justify-between mb-3 ml-1">
-                            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ficha Técnica</h2>
-                        </div>
-                        <TechnicalGrid v={vActivo} />
-                    </section>
-                )}
+                        {/* ── FICHA TÉCNICA (GRID) ── */}
+                        {vActivo && (
+                            <section>
+                                <div className="flex items-center justify-between mb-3 ml-1">
+                                    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ficha Técnica</h2>
+                                </div>
+                                <TechnicalGrid v={vActivo} />
+                            </section>
+                        )}
 
-                {/* ── HISTORIAL "BANCARIO" ── */}
-                {ordenesRecientes.length > 0 && (
-                    <section>
-                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Movimientos Recientes</h2>
-                        <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-4">
-                            {ordenesRecientes.map(o => <BankActivityItem key={o.id} orden={o} />)}
-                        </div>
-                    </section>
+                        {/* ── HISTORIAL "BANCARIO" ── */}
+                        {ordenesRecientes.length > 0 && (
+                            <section>
+                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Movimientos Recientes</h2>
+                                <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-4">
+                                    {ordenesRecientes.map(o => <BankActivityItem key={o.id} orden={o} />)}
+                                </div>
+                            </section>
+                        )}
+                    </>
                 )}
 
             </main>

@@ -82,11 +82,7 @@ export function Header() {
 
                     {/* FLUSIZE Logo */}
                     <div className="flex items-center gap-2">
-                        <div className="relative w-10 h-10">
-                            <div className="absolute inset-0 bg-white rounded-tr-xl rounded-bl-xl transform skew-x-[-10deg]"></div>
-                            <div className="absolute top-1/2 left-0 w-6 h-1 bg-blue-600 transform -translate-y-1/2 skew-x-[-10deg] ml-1"></div>
-                            <div className="absolute bottom-2 left-1 w-4 h-1 bg-blue-600 skew-x-[-10deg]"></div>
-                        </div>
+                        <img src="/logo_flusize.png" alt="Flusize" className="w-10 h-10 object-contain bg-white rounded-lg p-1 shadow-sm" />
                         <div className="flex flex-col leading-none">
                             <span className="font-extrabold text-2xl tracking-wide text-white">FLUSIZE</span>
                             <span className="text-[0.6rem] font-medium text-blue-100 tracking-wider uppercase">Orden y Control</span>

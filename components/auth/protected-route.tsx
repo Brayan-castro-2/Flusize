@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    allowedRoles?: ('mecanico' | 'admin' | 'superadmin')[];
+    allowedRoles?: ('mecanico' | 'taller_admin' | 'admin' | 'superadmin')[];
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -17,20 +17,29 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     const [showContent, setShowContent] = useState(false);
 
     useEffect(() => {
-        if (!isLoading) {
-            if (!user) {
-                router.push('/login');
-            } else if (allowedRoles && !allowedRoles.includes(user.role as any)) {
-                if (user.role === 'mecanico') {
-                    router.push('/recepcion');
+        const checkAuth = async () => {
+            console.log('[ProtectedRoute Debug] Effect triggered. isLoading:', isLoading, 'user:', user?.email, 'role:', user?.role, 'allowedRoles:', allowedRoles);
+            if (!isLoading) {
+                if (!user) {
+                    console.log('[ProtectedRoute Debug] No user, clearing cookies and redirecting to /login');
+                    // Ensure the server cookie is also cleared so middleware doesn't redirect us back
+                    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => { });
+                    router.push('/login');
+                } else if (allowedRoles && !allowedRoles.includes(user.role as any)) {
+                    console.log('[ProtectedRoute Debug] User role not allowed, redirecting from', window.location.pathname);
+                    if (user.role === 'mecanico') {
+                        router.push('/recepcion');
+                    } else {
+                        router.push('/admin');
+                    }
                 } else {
-                    router.push('/admin');
+                    console.log('[ProtectedRoute Debug] User valid, showing content.');
+                    // Usuario válido, mostrar contenido inmediatamente
+                    setShowContent(true);
                 }
-            } else {
-                // Usuario válido, mostrar contenido inmediatamente
-                setShowContent(true);
             }
-        }
+        };
+        checkAuth();
     }, [user, isLoading, allowedRoles, router]);
 
     // Mostrar loading mientras se verifica la sesión

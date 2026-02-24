@@ -8,11 +8,7 @@ import { Check, Zap, ArrowLeft, Crown, Rocket } from 'lucide-react';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
-        <div className="relative w-8 h-8">
-            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-tr-xl rounded-bl-xl transform skew-x-[-10deg]"></div>
-            <div className="absolute top-1/2 left-0 w-5 h-1 bg-white transform -translate-y-1/2 skew-x-[-10deg] ml-1"></div>
-            <div className="absolute bottom-2 left-1 w-3 h-1 bg-white skew-x-[-10deg]"></div>
-        </div>
+        <img src="/logo_flusize.png" alt="Flusize" className="w-10 h-10 object-contain" />
         <div className="flex flex-col leading-none">
             <span className="font-extrabold text-2xl tracking-wide text-white">FLUSIZE</span>
             <span className="text-[0.6rem] font-medium text-cyan-400 tracking-wider">ORDEN Y CONTROL</span>
@@ -91,13 +87,50 @@ export default function PlanesPage() {
     const router = useRouter();
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
-    const handleSelectPlan = (planName: string) => {
+    const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+
+    const handleSelectPlan = async (planName: string) => {
+        setProcessingPlan(planName);
         setSelectedPlan(planName);
-        // Simulate checkout
-        setTimeout(() => {
-            alert(`¡Excelente elección! Plan ${planName} seleccionado.\n\nEn la versión completa, aquí irías al checkout.\n\nPor ahora, te redirigiremos al login.`);
+
+        try {
+            // 1. Obtener datos guardados del paso anterior
+            const savedData = sessionStorage.getItem('tallerRegistrationData');
+            if (!savedData) {
+                alert('No se encontraron los datos de registro. Por favor vuelve al paso anterior.');
+                router.push('/registro-taller');
+                return;
+            }
+
+            const formData = JSON.parse(savedData);
+
+            // 2. Llamar API para crear el taller y el usuario administrador
+            const res = await fetch('/api/admin-sys/create-taller', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: formData.nombreTaller,
+                    direccion: formData.direccion || formData.ciudad, // fallback
+                    emailAdmin: formData.email
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Error al crear la cuenta de taller');
+            }
+
+            // 3. Limpiar y redirigir
+            sessionStorage.removeItem('tallerRegistrationData');
+            alert(`¡Excelente elección! Tu taller ha sido registrado con éxito.\n\nPuedes ingresar ahora mismo en la pantalla de Login usando tu correo electrónico (${formData.email}) mediante un Enlace Mágico.\n\nContraseña temporal (opcional): ${data.password}`);
             router.push('/login');
-        }, 500);
+
+        } catch (error: any) {
+            console.error('Registration error:', error);
+            alert(`Ocurrió un error: ${error.message}`);
+            setProcessingPlan(null);
+        }
     };
 
     return (
@@ -151,8 +184,8 @@ export default function PlanesPage() {
                             <div
                                 key={plan.name}
                                 className={`relative rounded-2xl p-8 border-2 transition-all ${isHighlighted
-                                        ? 'border-cyan-500 bg-slate-800/80 shadow-2xl shadow-cyan-500/20 scale-105'
-                                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                                    ? 'border-cyan-500 bg-slate-800/80 shadow-2xl shadow-cyan-500/20 scale-105'
+                                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                                     }`}
                             >
                                 {isHighlighted && (
@@ -181,8 +214,8 @@ export default function PlanesPage() {
                                 <Button
                                     onClick={() => handleSelectPlan(plan.name)}
                                     className={`w-full h-12 mb-6 font-semibold rounded-xl transition-all ${isHighlighted
-                                            ? 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25'
-                                            : 'bg-slate-700 hover:bg-slate-600 text-white'
+                                        ? 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25'
+                                        : 'bg-slate-700 hover:bg-slate-600 text-white'
                                         }`}
                                 >
                                     {selectedPlan === plan.name ? 'Procesando...' : 'Seleccionar Plan'}

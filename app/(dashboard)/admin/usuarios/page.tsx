@@ -48,7 +48,7 @@ export default function UsuariosPage() {
     const [newEmail, setNewEmail] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [newName, setNewName] = useState('');
-    const [newRole, setNewRole] = useState<'mecanico' | 'admin' | 'superadmin'>('mecanico');
+    const [newRole, setNewRole] = useState<'mecanico' | 'taller_admin' | 'superadmin'>('mecanico');
     const { user: currentUser } = useAuth();
 
     useEffect(() => {
@@ -177,7 +177,7 @@ export default function UsuariosPage() {
                                             <SelectItem value="mecanico">Mecánico</SelectItem>
                                             {/* Solo superadmin puede crear otros admins */}
                                             {currentUser?.role === 'superadmin' && (
-                                                <SelectItem value="admin">Administrador (Coordinador)</SelectItem>
+                                                <SelectItem value="taller_admin">Administrador (Coordinador)</SelectItem>
                                             )}
                                             {currentUser?.role === 'superadmin' && (
                                                 <SelectItem value="superadmin">Dueño (Super Admin)</SelectItem>
@@ -221,9 +221,9 @@ export default function UsuariosPage() {
                         <CardContent className="p-4">
                             <div className="flex items-center gap-4">
                                 {/* Avatar */}
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${usuario.rol === 'admin' ? 'bg-[#0066FF]/20' : 'bg-gray-700/50'
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${usuario.rol === 'taller_admin' ? 'bg-[#0066FF]/20' : 'bg-gray-700/50'
                                     }`}>
-                                    {usuario.rol === 'admin' ? (
+                                    {usuario.rol === 'taller_admin' ? (
                                         <Shield className="w-6 h-6 text-[#0066FF]" />
                                     ) : (
                                         <Wrench className="w-6 h-6 text-gray-600" />
@@ -234,11 +234,11 @@ export default function UsuariosPage() {
                                 <div className="flex-1 min-w-0">
                                     <p className="text-gray-800 font-medium truncate">{usuario.nombre_completo}</p>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <Badge variant="outline" className={`text-xs ${usuario.rol === 'admin'
+                                        <Badge variant="outline" className={`text-xs ${usuario.rol === 'taller_admin'
                                             ? 'border-[#0066FF]/30 text-[#0066FF]'
                                             : 'border-gray-600 text-gray-600'
                                             }`}>
-                                            {usuario.rol === 'admin' ? 'Administrador' : 'Mecánico'}
+                                            {usuario.rol === 'taller_admin' ? 'Administrador' : 'Mecánico'}
                                         </Badge>
                                         {usuario.activo ? (
                                             <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">

@@ -149,10 +149,10 @@ export async function crearUsuario(
     email: string,
     password: string,
     nombreCompleto: string,
-    rol: 'admin' | 'mecanico' | 'superadmin'
+    rol: 'mecanico' | 'taller_admin' | 'superadmin'
 ): Promise<{ success: boolean; error?: string; user?: PerfilDB }> {
     if (isSupabase()) {
-        return supabaseService.crearUsuario(email, password, nombreCompleto, rol);
+        return supabaseService.crearUsuario(email, password, nombreCompleto, rol as 'mecanico' | 'taller_admin' | 'superadmin');
     }
     return localService.crearUsuario(email, password, nombreCompleto, rol);
 }

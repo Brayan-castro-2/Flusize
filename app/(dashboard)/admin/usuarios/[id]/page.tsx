@@ -97,9 +97,9 @@ export default function UsuarioDetailPage() {
             <Card className="bg-[#1a1a1a] border-[#333333]">
                 <CardContent className="p-6">
                     <div className="flex items-center gap-6">
-                        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${usuario.rol === 'admin' ? 'bg-[#0066FF]/20' : 'bg-gray-700/50'
+                        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${usuario.rol === 'taller_admin' ? 'bg-[#0066FF]/20' : 'bg-gray-700/50'
                             }`}>
-                            {usuario.rol === 'admin' ? (
+                            {usuario.rol === 'taller_admin' ? (
                                 <Shield className="w-10 h-10 text-[#0066FF]" />
                             ) : (
                                 <Wrench className="w-10 h-10 text-gray-400" />
@@ -109,11 +109,11 @@ export default function UsuarioDetailPage() {
                             <h2 className="text-xl font-bold text-white mb-2">{usuario.nombre_completo}</h2>
                             <div className="flex flex-wrap items-center gap-2">
                                 <Badge variant="outline" className={
-                                    usuario.rol === 'admin'
+                                    usuario.rol === 'taller_admin'
                                         ? 'border-[#0066FF]/30 text-[#0066FF]'
                                         : 'border-gray-600 text-gray-400'
                                 }>
-                                    {usuario.rol === 'admin' ? 'Administrador' : 'Mecánico'}
+                                    {usuario.rol === 'taller_admin' ? 'Administrador' : 'Mecánico'}
                                 </Badge>
                                 {usuario.activo ? (
                                     <Badge className="bg-green-500/20 text-green-400">
@@ -132,8 +132,8 @@ export default function UsuarioDetailPage() {
                             onClick={handleToggleActive}
                             variant="outline"
                             className={`rounded-xl ${usuario.activo
-                                    ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
-                                    : 'border-green-500/30 text-green-400 hover:bg-green-500/10'
+                                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
+                                : 'border-green-500/30 text-green-400 hover:bg-green-500/10'
                                 }`}
                         >
                             {usuario.activo ? 'Bloquear' : 'Activar'}

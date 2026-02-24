@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dccymmnjzhxneexscboo.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjY3ltbW5qemh4bmVleHNjYm9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxODA0MjIsImV4cCI6MjA4Mzc1NjQyMn0.IKpjys-3Rqqv2omj0LtFKowzQi5Z_M99JkhOgR29sx8'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 // ==========================================
 // TIPOS V3 - HUB & SPOKE (Global + Local)
@@ -65,7 +65,7 @@ export interface PerfilDB {
     id: string; // UUID
     email: string;
     nombre_completo: string;
-    rol: 'mecanico' | 'admin' | 'superadmin';
+    rol: 'mecanico' | 'taller_admin' | 'superadmin';
     activo: boolean;
     taller_id?: string; // UUID del taller asignado
     created_at: string;
@@ -157,6 +157,7 @@ export interface OrdenDB {
     kilometraje?: number | null;
     nivel_combustible?: string | null;
     observaciones_mecanico?: string | null;
+    notas_publicas?: string | null;
     fotos_urls?: string[] | null;
 
     // Access Token fields

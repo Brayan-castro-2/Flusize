@@ -35,7 +35,7 @@ export default function SetupPage() {
 
         try {
             // Crear usuario en localStorage
-            const result = await crearUsuario(adminEmail, adminPassword, adminName, 'admin');
+            const result = await crearUsuario(adminEmail, adminPassword, adminName, 'superadmin');
 
             if (!result.success) {
                 throw new Error(result.error || 'Error al crear usuario');

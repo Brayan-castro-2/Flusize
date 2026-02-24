@@ -44,6 +44,8 @@ export interface GetAPIVehicleResponse {
     color?: string;
     tipo?: string;
     combustible?: string;
+    transmision?: string;
+    traccion?: string;
 }
 
 export interface GetAPIError {
@@ -53,7 +55,7 @@ export interface GetAPIError {
 
 export async function consultarPatenteGetAPI(patente: string): Promise<GetAPIVehicleResponse | null> {
     const apiKey = process.env.NEXT_PUBLIC_GETAPI_KEY;
-    
+
     if (!apiKey) {
         console.warn('⚠️ NEXT_PUBLIC_GETAPI_KEY no configurada. Usando datos mock.');
         return null;
@@ -61,9 +63,9 @@ export async function consultarPatenteGetAPI(patente: string): Promise<GetAPIVeh
 
     try {
         const patenteNormalizada = patente.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        
+
         console.log(`🔍 Consultando patente ${patenteNormalizada} en GetAPI...`);
-        
+
         // Usar nuestra API route para evitar problemas de CORS
         const response = await fetch(`/api/vehiculo?patente=${patenteNormalizada}`, {
             method: 'GET',
@@ -77,7 +79,7 @@ export async function consultarPatenteGetAPI(patente: string): Promise<GetAPIVeh
                 console.log(`❌ Patente ${patenteNormalizada} no encontrada en GetAPI`);
                 return null;
             }
-            
+
             if (response.status === 429) {
                 console.error('⚠️ Límite de consultas excedido en GetAPI');
                 throw new Error('Límite de consultas excedido. Intenta nuevamente en unos minutos.');
@@ -95,7 +97,7 @@ export async function consultarPatenteGetAPI(patente: string): Promise<GetAPIVeh
 
         const apiResponse = await response.json() as GetAPIResponse;
         console.log(`✅ Vehículo encontrado en GetAPI:`, apiResponse);
-        
+
         if (apiResponse.success && apiResponse.data) {
             const vehiculo = apiResponse.data;
             const transformed: GetAPIVehicleResponse = {
@@ -107,11 +109,14 @@ export async function consultarPatenteGetAPI(patente: string): Promise<GetAPIVeh
                 color: vehiculo.color,
                 tipo: vehiculo.model.typeVehicle.name,
                 combustible: vehiculo.fuel,
+                transmision: vehiculo.transmission,
+                // GetAPI doesn't always have traction, mapping it if it exists
+                traccion: (vehiculo as any).traction || '2WD',
             };
             console.log(`✅ Datos transformados:`, transformed);
             return transformed;
         }
-        
+
         console.warn('⚠️ Respuesta de API sin datos válidos');
         return null;
     } catch (error) {

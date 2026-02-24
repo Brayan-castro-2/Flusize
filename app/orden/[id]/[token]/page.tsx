@@ -14,6 +14,7 @@ interface PublicOrderData {
     fecha_ingreso: string;
     fecha_estimada_entrega?: string;
     descripcion_trabajo?: string;
+    notas_publicas?: string;
     fotos_urls: string[];
     taller: {
         nombre: string;
@@ -166,6 +167,18 @@ export default function PublicOrderPage() {
                                 <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
                                     {order.descripcion_trabajo}
                                 </p>
+                            </div>
+                        )}
+
+                        {order.notas_publicas && (
+                            <div className="mt-4">
+                                <h3 className="font-semibold text-blue-600 mb-2 flex items-center gap-2">
+                                    <AlertCircle className="w-5 h-5" />
+                                    Mensaje del Taller
+                                </h3>
+                                <div className="text-blue-900 bg-blue-50/50 border border-blue-100 p-4 rounded-xl whitespace-pre-wrap">
+                                    {order.notas_publicas}
+                                </div>
                             </div>
                         )}
                     </CardContent>

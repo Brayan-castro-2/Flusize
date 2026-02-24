@@ -10,9 +10,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 {/* Logo */}
                 <div className="h-16 flex items-center px-6 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
-                            <span className="text-white font-black text-sm leading-none">F</span>
-                        </div>
+                        <img src="/logo_flusize.png" alt="Flusize" className="w-8 h-8 object-contain" />
                         <div>
                             <span className="font-extrabold text-lg tracking-tight text-slate-800 leading-none block">Flusize</span>
                             <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest leading-none block mt-0.5">Super Admin</span>
@@ -58,9 +56,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 {/* Mobile Header */}
                 <header className="md:hidden h-16 bg-white border-b border-slate-100 flex items-center px-4 shrink-0">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
-                            <span className="text-white font-black text-sm">F</span>
-                        </div>
+                        <img src="/logo_flusize.png" alt="Flusize" className="w-8 h-8 object-contain" />
                         <span className="font-bold text-slate-800">Flusize Admin</span>
                     </div>
                 </header>

@@ -105,7 +105,7 @@ export default function CitasPage() {
 
     const citasPendientes = citas.filter(c => c.estado === 'pendiente');
     const citasHoy = citasPendientes.filter(c => {
-        const citaDate = new Date(c.fecha_inicio);
+        const citaDate = new Date(c.fecha_inicio as string);
         const today = new Date();
         return citaDate.toDateString() === today.toDateString();
     });
@@ -248,7 +248,7 @@ export default function CitasPage() {
                                             <div className="flex items-center gap-2 mb-2">
                                                 <Clock className="w-4 h-4 text-blue-400" />
                                                 <span className="text-white font-semibold">
-                                                    {new Date(cita.fecha_inicio).toLocaleTimeString('es-CL', {
+                                                    {new Date(cita.fecha_inicio as string).toLocaleTimeString('es-CL', {
                                                         hour: '2-digit',
                                                         minute: '2-digit'
                                                     })}
@@ -291,7 +291,7 @@ export default function CitasPage() {
                                             <div className="flex items-center gap-2 mb-2">
                                                 <Calendar className="w-4 h-4 text-purple-400" />
                                                 <span className="text-white font-semibold">
-                                                    {new Date(cita.fecha_inicio).toLocaleDateString('es-CL', {
+                                                    {new Date(cita.fecha_inicio as string).toLocaleDateString('es-CL', {
                                                         weekday: 'long',
                                                         day: '2-digit',
                                                         month: 'long',

@@ -18,7 +18,7 @@ interface NavItem {
     href: string;
     label: string;
     icon: React.ReactNode;
-    roles: ('admin' | 'mecanico')[];
+    roles: string[];
     showBadge?: boolean;
 }
 
@@ -27,38 +27,38 @@ const navItems: NavItem[] = [
         href: '/recepcion',
         label: 'Recepción',
         icon: <ClipboardList className="w-5 h-5" />,
-        roles: ['mecanico', 'admin'],
+        roles: ['mecanico', 'taller_admin', 'superadmin'],
     },
     {
         href: '/admin',
         label: 'Dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
-        roles: ['admin'],
+        roles: ['taller_admin', 'superadmin'],
     },
     {
         href: '/admin/ordenes',
         label: 'Órdenes',
         icon: <FileText className="w-5 h-5" />,
-        roles: ['admin'],
+        roles: ['taller_admin', 'superadmin'],
     },
     {
         href: '/admin/agenda',
         label: 'Agenda',
         icon: <Calendar className="w-5 h-5" />,
-        roles: ['admin'],
+        roles: ['taller_admin', 'superadmin'],
         showBadge: true,
     },
     {
         href: '/admin/usuarios',
         label: 'Usuarios',
         icon: <Users className="w-5 h-5" />,
-        roles: ['admin'],
+        roles: ['taller_admin', 'superadmin'],
     },
     {
         href: '/admin/clientes',
         label: 'Gestión Clientes',
         icon: <Users className="w-5 h-5" />,
-        roles: ['admin'],
+        roles: ['taller_admin', 'superadmin'],
         showBadge: false, // Could be true if we track new customers
     },
 ];
@@ -109,7 +109,7 @@ export function Sidebar() {
             </aside>
 
             {/* Mobile Bottom Navigation - Solo para admin */}
-            {user.role === 'admin' && (
+            {['taller_admin', 'superadmin'].includes(user.role) && (
                 <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-lg border-t border-[#333333] safe-area-inset-bottom">
                     <div className="flex items-center justify-around py-2 px-2">
                         {filteredItems.map((item) => {

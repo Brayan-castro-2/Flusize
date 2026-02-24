@@ -28,6 +28,7 @@ import {
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
+    ArrowRight,
     AlertTriangle
 } from 'lucide-react';
 import { obtenerClientes } from '@/lib/storage-adapter';

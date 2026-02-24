@@ -1,800 +1,546 @@
 'use client';
-// @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import {
-  MapPin,
-  Search,
-  Car,
-  Wrench,
-  MessageCircle,
-  Star,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Menu,
-  X,
-  Phone,
-  ArrowRight,
-  ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
-  Tag,
-  Zap
-} from 'lucide-react';
+
+import React, { useRef, useState, useEffect, useMemo } from 'react';
+import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import MapWrapper from '@/components/drivers/MapWrapper';
+import FomoMap from '@/components/landing/FomoMap';
+import {
+  ArrowRight,
+  Search,
+  MapPin,
+  Zap,
+  MessageCircle,
+  Wrench,
+  ShieldCheck,
+  CheckCircle2,
+  Car,
+  Clock,
+  Banknote
+} from 'lucide-react';
 
-
-// --- DATOS MOCK ---
-
-const regionsOfChile = [
-  { id: 1, name: "Arica y Parinacota", communes: ["Arica", "Putre"] },
-  { id: 2, name: "Tarapacá", communes: ["Iquique", "Alto Hospicio"] },
-  { id: 5, name: "Valparaíso", communes: ["Valparaíso", "Viña del Mar", "Quilpué"] },
-  { id: 13, name: "Metropolitana", communes: ["Santiago", "Providencia", "Las Condes", "Maipú", "Puente Alto"] },
-  { id: 8, name: "Biobío", communes: ["Concepción", "Talcahuano", "Los Ángeles"] },
-];
-
-const mockWorkshops = [
-  { id: 1, name: "Mecánica FullExpress", type: "Taller", region: "Metropolitana", commune: "Santiago", rating: 4.8, lat: 40, lng: 30, image: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=80&w=400" },
-  { id: 2, name: "Vulcanización El Rápido", type: "Vulcanización", region: "Metropolitana", commune: "Maipú", rating: 4.5, lat: 60, lng: 70, image: "https://images.unsplash.com/photo-1578844251758-2f71da645217?auto=format&fit=crop&q=80&w=400" },
-  { id: 3, name: "Repuestos del Sur", type: "Repuestos", region: "Biobío", commune: "Concepción", rating: 4.9, lat: 20, lng: 50, image: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&q=80&w=400" },
-  { id: 4, name: "Frenos Santiago", type: "Taller", region: "Metropolitana", commune: "Providencia", rating: 4.7, lat: 45, lng: 40, image: "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&q=80&w=400" },
-];
-
-const mockPromotions = [
-  { id: 1, title: "20% DSCTO Cambio de Aceite", shop: "Mecánica FullExpress", image: "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&q=80&w=800", expiry: "Solo por hoy" },
-  { id: 2, title: "Revisión de Frenos GRATIS", shop: "Frenos Santiago", image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=800", expiry: "Hasta agotar cupos" },
-  { id: 3, title: "3x2 en Neumáticos", shop: "Vulcanización El Rápido", image: "https://images.unsplash.com/photo-1578844251758-2f71da645217?auto=format&fit=crop&q=80&w=800", expiry: "Todo el mes" },
-];
-
-const mockTrackingData = {
-  "AB-1234": {
-    found: true,
-    plate: "AB-12-34",
-    model: "Toyota Yaris 2018",
-    status: "En Reparación",
-    progress: 60, // porcentaje
-    estimatedTime: "2 días",
-    costs: {
-      labor: 85000,
-      parts: 120000,
-      total: 205000
-    },
-    partsList: [
-      { name: "Pastillas de freno", price: 45000 },
-      { name: "Disco de freno", price: 75000 }
-    ],
-    mechanicNotes: "Discos rectificados. Instalando pastillas nuevas."
-  }
-};
-
-const mockReviews = [
-  { id: 1, user: "Juan Pérez", comment: "Excelente servicio, pude ver el costo antes de ir a buscar el auto.", rating: 5, date: "Hace 2 días" },
-  { id: 2, user: "María González", comment: "Muy útil para encontrar vulcanizaciones abiertas un domingo.", rating: 4, date: "Hace 1 semana" },
-  { id: 3, user: "Carlos Tapia", comment: "La app me avisó justo cuando mi auto estaba listo. Recomendado.", rating: 5, date: "Ayer" },
-];
-
-// --- COMPONENTES ---
-
-const Logo = () => (
-  <div className="flex items-center gap-2">
-    {/* Logo simplificado basado en la imagen: Forma de F estilizada con degradado */}
-    <div className="relative w-8 h-8">
-      <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-tr-xl rounded-bl-xl transform skew-x-[-10deg]"></div>
-      <div className="absolute top-1/2 left-0 w-5 h-1 bg-white transform -translate-y-1/2 skew-x-[-10deg] ml-1"></div>
-      <div className="absolute bottom-2 left-1 w-3 h-1 bg-white skew-x-[-10deg]"></div>
-    </div>
-    <div className="flex flex-col leading-none">
-      <span className="font-extrabold text-2xl tracking-wide text-white">FLUSIZE</span>
-      <span className="text-[0.6rem] font-medium text-cyan-400 tracking-wider">ORDEN Y CONTROL</span>
-    </div>
-  </div>
-);
-
-const Navbar = ({ activeSection, setActiveSection }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
+// --- MAIN PAGE COMPONENT ---
+export default function LandingPage() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   return (
-    <nav className="bg-slate-900 border-b border-slate-800 text-white fixed w-full z-50 shadow-lg backdrop-blur-sm bg-slate-900/95">
+    <div className="bg-slate-50 min-h-screen font-sans overflow-x-hidden text-slate-900">
+      {/* Scroll Progress Bar */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-600 origin-left z-50 rounded-r-full"
+        style={{ scaleX }}
+      />
+
+      {/* Background Mesh (Subtle Light Mode) */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-cyan-100/50 blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-100/40 blur-[150px]" />
+      </div>
+
+
+      <main>
+        <HeroSection />
+        <SectionB2BMagicLink />
+        <SectionB2CGarage />
+        <PricingSection />
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
+// --- NAVBAR ---
+const Navbar = () => {
+  return (
+    <nav className="fixed w-full z-40 bg-white/70 backdrop-blur-xl border-b border-white/50 shadow-sm transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          <div className="cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.scrollTo(0, 0)}>
-            <Logo />
+        <div className="flex justify-between items-center h-20">
+          <div className="flex items-center gap-2 cursor-pointer">
+            <img src="/logo_flusize.png" alt="Flusize" className="h-8 w-8 object-contain" />
+            <span className="font-extrabold text-xl tracking-tight text-slate-800">FLUSIZE</span>
           </div>
 
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
-              {['Inicio', 'Promociones', 'Buscar Taller', 'Mi Auto', 'Reseñas'].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => {
-                    setActiveSection(item);
-                    const element = document.getElementById(item.toLowerCase().replace(' ', '-'));
-                    if (element) element.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium tracking-wide"
-                >
-                  {item}
-                </button>
-              ))}
-              <Link href="/login">
-                <button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-5 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all transform hover:scale-105">
-                  Soy Taller
-                </button>
-              </Link>
-              <Link href="/conductores/mapa">
-                <button className="bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-2.5 rounded-full font-bold text-sm transition-all transform hover:scale-105">
-                  Soy Cliente
-                </button>
-              </Link>
-            </div>
-          </div>
-
-          <div className="-mr-2 flex md:hidden">
-            <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-md text-gray-400 hover:text-white hover:bg-slate-800">
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+          <div className="hidden md:flex items-center gap-4">
+            <Link href="/login">
+              <button className="px-5 py-2.5 rounded-full font-bold text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors">
+                Soy Taller
+              </button>
+            </Link>
+            <Link href="/conductores/mapa">
+              <button className="px-6 py-2.5 rounded-full font-bold text-sm bg-slate-900 text-white shadow-lg shadow-slate-900/20 hover:scale-105 transition-transform">
+                Soy Conductor
+              </button>
+            </Link>
           </div>
         </div>
       </div>
-
-      {isOpen && (
-        <div className="md:hidden bg-slate-900 border-t border-slate-800">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            {['Inicio', 'Promociones', 'Buscar Taller', 'Mi Auto', 'Reseñas'].map((item) => (
-              <button
-                key={item}
-                onClick={() => {
-                  setIsOpen(false);
-                  const element = document.getElementById(item.toLowerCase().replace(' ', '-'));
-                  if (element) element.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="text-gray-300 hover:text-cyan-400 block px-3 py-2 rounded-md text-base font-medium w-full text-left"
-              >
-                {item}
-              </button>
-            ))}
-            <div className="flex flex-col gap-2 mt-4 p-2">
-              <Link href="/login" className="block w-full">
-                <button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-5 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all">
-                  Soy Taller
-                </button>
-              </Link>
-              <Link href="/conductores/mapa" className="block w-full">
-                <button className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 px-5 py-2.5 rounded-full font-bold text-sm text-white transition-all">
-                  Soy Cliente
-                </button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </nav>
   );
 };
 
-const Hero = () => (
-  <div id="inicio" className="relative bg-slate-900 pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
-    {/* Fondo abstracto con gradientes Cyan/Azul */}
-    <div className="absolute inset-0">
-      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486006920555-c77dcf18193c?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
-      <div className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-l from-cyan-900/20 to-transparent"></div>
-      <div className="absolute bottom-0 left-0 w-1/2 h-2/3 bg-gradient-to-t from-slate-900 via-slate-900 to-transparent"></div>
-    </div>
+// --- NEURAL BACKGROUND (Removed in favor of Video Background) ---
+// const NeuralBackground = () => { ... }
 
-    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center z-10">
-      <div className="md:w-1/2 mb-12 md:mb-0">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 mb-6 backdrop-blur-sm">
-          <Zap className="h-4 w-4" />
-          <span className="text-sm font-semibold">Plataforma líder en gestión automotriz</span>
-        </div>
-        <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-6 leading-tight">
-          Impulsa tu taller,<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">conecta con el futuro.</span>
-        </h1>
-        <p className="text-lg text-slate-400 mb-8 max-w-lg leading-relaxed">
-          Flusize ofrece orden y control para talleres que quieren crecer. Encuentra servicios, gestiona reparaciones y vende repuestos en un solo lugar.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button onClick={() => document.getElementById('buscar-taller').scrollIntoView({ behavior: 'smooth' })} className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 transform hover:-translate-y-1">
-            <Search className="h-5 w-5" /> Buscar Servicio
-          </button>
-          <button onClick={() => document.getElementById('mi-auto').scrollIntoView({ behavior: 'smooth' })} className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all border border-slate-700 flex items-center justify-center gap-2">
-            <Car className="h-5 w-5 text-cyan-400" /> Estado de mi Auto
-          </button>
-        </div>
-      </div>
-
-      {/* Visual Abstracto del Dashboard con Branding Nuevo */}
-      <div className="md:w-1/2 w-full pl-0 md:pl-10 relative">
-        <div className="absolute -top-10 -right-10 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="bg-slate-800/80 backdrop-blur-md rounded-2xl p-6 border border-slate-700 shadow-2xl transform rotate-1 hover:rotate-0 transition-all duration-500 relative z-10">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <CheckCircle className="text-white h-7 w-7" />
-              </div>
-              <div>
-                <p className="text-white font-bold text-lg">Vehículo Listo</p>
-                <p className="text-cyan-400 text-sm font-medium">Patente: JS-99-22</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-400">Total a pagar</p>
-              <span className="text-white font-bold text-xl">$180.000</span>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="relative pt-1">
-              <div className="flex mb-2 items-center justify-between text-xs font-semibold text-slate-300">
-                <span>Progreso</span>
-                <span className="text-cyan-400">100%</span>
-              </div>
-              <div className="flex h-2 mb-4 overflow-hidden bg-slate-700 rounded-full">
-                <div className="w-full bg-gradient-to-r from-cyan-400 to-blue-500"></div>
-              </div>
-            </div>
-            <div className="flex justify-between text-xs text-slate-400 border-t border-slate-700 pt-3">
-              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Entregado hace 5min</span>
-              <span className="text-cyan-400 font-bold cursor-pointer hover:underline">Ver detalle</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const PromotionsCarousel = () => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % mockPromotions.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % mockPromotions.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? mockPromotions.length - 1 : prev - 1));
-
+// --- HERO SECTION ---
+const HeroSection = () => {
   return (
-    <div id="promociones" className="bg-slate-50 py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-              <Tag className="text-cyan-500" /> Promociones Destacadas
-            </h2>
-            <p className="text-gray-500 mt-2">Aprovecha ofertas exclusivas de nuestros talleres afiliados.</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={prevSlide} className="p-2 rounded-full bg-white border border-gray-200 hover:bg-cyan-50 text-slate-600 transition-colors">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button onClick={nextSlide} className="p-2 rounded-full bg-white border border-gray-200 hover:bg-cyan-50 text-slate-600 transition-colors">
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+    <section className="relative pt-40 pb-32 flex flex-col items-center justify-center min-h-screen overflow-hidden">
+      {/* Cinematic Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover z-0"
+      >
+        <source src="/hero-bg.mp4" type="video/mp4" />
+      </video>
 
-        <div className="relative overflow-hidden rounded-2xl shadow-xl h-[300px] md:h-[400px]">
-          {mockPromotions.map((promo, index) => (
-            <div
-              key={promo.id}
-              className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent z-10"></div>
-              <img src={promo.image} alt={promo.title} className="w-full h-full object-cover" />
+      {/* Dark Overlay for Contrast */}
+      <div className="absolute inset-0 bg-black/60 z-0 pointer-events-none" />
 
-              <div className="absolute top-0 left-0 h-full flex flex-col justify-center p-8 md:p-16 z-20 max-w-2xl">
-                <span className="inline-block px-3 py-1 bg-cyan-500 text-white text-xs font-bold rounded-full mb-4 w-fit uppercase tracking-wider">
-                  {promo.expiry}
-                </span>
-                <h3 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight">
-                  {promo.title}
-                </h3>
-                <p className="text-xl text-cyan-300 font-medium mb-8 flex items-center gap-2">
-                  <MapPin className="h-5 w-5" /> {promo.shop}
-                </p>
-                <button className="px-8 py-3 bg-white text-slate-900 font-bold rounded-lg hover:bg-cyan-50 transition-colors w-fit shadow-lg">
-                  Canjear Oferta
-                </button>
-              </div>
+      {/* Gradient Transition to next section - raised z-index to cover text bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-slate-50 to-transparent z-10 pointer-events-none" />
+
+      <div className="max-w-4xl mx-auto px-4 text-center z-10 flex flex-col items-center">
+
+        <motion.div
+          className="relative z-10 flex flex-col items-center"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 1 }}
+        >
+          {/* Neon Badge & Branding */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="mb-8">
+              <span className="font-black text-5xl tracking-[0.2em] text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">FLUSIZE</span>
             </div>
-          ))}
-
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-30">
-            {mockPromotions.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`w-2 h-2 rounded-full transition-all ${idx === currentSlide ? 'bg-cyan-400 w-8' : 'bg-white/50 hover:bg-white'}`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ServiceLocator = () => {
-  const [selectedRegion, setSelectedRegion] = useState("");
-  const [viewMode, setViewMode] = useState("list"); // 'list' or 'map'
-  const [activePin, setActivePin] = useState(null);
-
-  const regionData = regionsOfChile.find(r => r.name === selectedRegion);
-
-  return (
-    <div id="buscar-taller" className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-slate-900">Encuentra tu servicio ideal</h2>
-          <p className="mt-4 text-gray-600">Geolocalización en tiempo real de talleres y repuestos Flusize.</p>
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-6 mb-8">
-          <div className="bg-slate-50 rounded-2xl shadow-sm border border-slate-100 p-6 flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Región</label>
-                <select
-                  className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
-                  onChange={(e) => setSelectedRegion(e.target.value)}
-                  value={selectedRegion}
-                >
-                  <option value="">Todas las regiones</option>
-                  {regionsOfChile.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Comuna</label>
-                <select
-                  className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
-                  disabled={!selectedRegion}
-                >
-                  <option value="">Selecciona Comuna</option>
-                  {regionData?.communes.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-cyan-400/30 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+              <Zap className="h-4 w-4" />
+              <span className="text-sm font-bold tracking-wide">La Nueva Era Automotriz</span>
             </div>
           </div>
 
-          <div className="flex items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
-            <button
-              onClick={() => setViewMode("list")}
-              className={`flex-1 flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${viewMode === 'list' ? 'bg-white text-cyan-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              <Menu className="h-4 w-4" /> Lista
-            </button>
-            <button
-              onClick={() => setViewMode("map")}
-              className={`flex-1 flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${viewMode === 'map' ? 'bg-white text-cyan-600 shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              <MapPin className="h-4 w-4" /> Mapa
-            </button>
-          </div>
-        </div>
+          <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[1.1] mb-6 drop-shadow-xl">
+            El Sistema Operativo del <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 drop-shadow-sm">
+              Taller del Futuro
+            </span>
+          </h1>
 
-        {viewMode === "list" ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {mockWorkshops.map((workshop) => (
-              <div key={workshop.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100 group overflow-hidden">
-                <div className="h-48 overflow-hidden relative">
-                  <img src={workshop.image} alt={workshop.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-slate-900 flex items-center gap-1 shadow-sm">
-                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" /> {workshop.rating}
-                  </div>
-                  <div className="absolute bottom-4 left-4 bg-cyan-600 px-3 py-1 rounded-full text-xs font-bold text-white shadow-md">
-                    {workshop.type}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">{workshop.name}</h3>
-                  <p className="text-gray-500 text-sm mb-4 flex items-center gap-1">
-                    <MapPin className="h-4 w-4 text-cyan-500" /> {workshop.commune}, {workshop.region}
-                  </p>
-                  <button className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-cyan-700 font-bold rounded-lg transition-colors border border-slate-200">
-                    Ver Detalles
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="relative w-full h-[500px] rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
-            {/* Real Map Component */}
-            <MapWrapper />
-
-            {/* Overlay with CTA */}
-            <div className="absolute bottom-6 right-6 bg-white/95 backdrop-blur p-4 rounded-xl shadow-lg max-w-xs z-10">
-              <p className="text-sm font-semibold text-slate-900 mb-2">¿Te gusta lo que ves?</p>
-              <Link href="/conductores/mapa">
-                <button className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-lg transition-all shadow-lg">
-                  Ver Mapa Completo
-                </button>
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const VehicleTracker = () => {
-  const [searchPlate, setSearchPlate] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setResult(null);
-
-    setTimeout(() => {
-      setLoading(false);
-      if (mockTrackingData[searchPlate] || searchPlate === "AB-1234") {
-        setResult(mockTrackingData["AB-1234"]);
-      } else {
-        setError("No se encontró una orden activa con esa patente.");
-      }
-    }, 1500);
-  };
-
-  return (
-    <div id="mi-auto" className="py-24 bg-gradient-to-b from-slate-900 to-slate-800 text-white relative overflow-hidden">
-      {/* Elementos decorativos de fondo */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[100px]"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <div className="inline-block px-4 py-1 rounded-full bg-cyan-500/10 text-cyan-400 font-bold text-sm mb-4 border border-cyan-500/20">
-              Seguimiento 24/7
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Transparencia total <br /> <span className="text-cyan-400">en tiempo real.</span>
-            </h2>
-            <p className="text-slate-300 text-lg mb-8 leading-relaxed">
-              Monitorea el progreso de tu vehículo, revisa los repuestos instalados y aprueba presupuestos directamente desde tu celular. Sin llamadas, sin esperas.
-            </p>
-
-            <form onSubmit={handleSearch} className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10 shadow-xl">
-              <label className="block text-sm font-medium text-cyan-100 mb-2">Ingresa tu Patente o N° de Orden</label>
-              <div className="flex gap-4">
-                <input
-                  type="text"
-                  placeholder="Ej: AB-1234"
-                  className="flex-1 bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-cyan-500 outline-none text-white placeholder-slate-500 uppercase tracking-widest"
-                  value={searchPlate}
-                  onChange={(e) => setSearchPlate(e.target.value.toUpperCase())}
-                />
-                <button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-lg font-bold transition-all flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                  {loading ? <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div> : <ArrowRight />}
-                </button>
-              </div>
-              {error && <p className="mt-3 text-red-400 text-sm flex items-center gap-2"><AlertCircle className="h-4 w-4" /> {error}</p>}
-              {!result && !loading && !error && <p className="mt-3 text-slate-500 text-xs flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Datos encriptados. Prueba: AB-1234</p>}
-            </form>
-          </div>
-
-          <div className="relative">
-            {result ? (
-              <div className="bg-white rounded-2xl p-6 md:p-8 text-slate-900 shadow-2xl animate-fade-in border-t-4 border-cyan-500">
-                <div className="flex justify-between items-start mb-6 border-b border-gray-100 pb-4">
-                  <div>
-                    <h3 className="text-2xl font-bold text-slate-800">{result.model}</h3>
-                    <p className="text-gray-500 font-mono tracking-wider bg-gray-100 px-2 rounded w-fit">{result.plate}</p>
-                  </div>
-                  <div className="bg-cyan-100 text-cyan-800 px-4 py-1 rounded-full text-sm font-bold border border-cyan-200">
-                    {result.status}
-                  </div>
-                </div>
-
-                <div className="mb-8 bg-slate-50 p-4 rounded-xl">
-                  <div className="flex justify-between text-sm font-semibold text-slate-600 mb-2">
-                    <span>Progreso de reparación</span>
-                    <span className="text-cyan-600">{result.progress}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-                    <div className="bg-gradient-to-r from-cyan-400 to-blue-600 h-full rounded-full transition-all duration-1000 relative" style={{ width: `${result.progress}%` }}>
-                      <div className="absolute top-0 right-0 bottom-0 w-full animate-pulse bg-white/20"></div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-3 flex items-center gap-1">
-                    <Clock className="h-3 w-3 text-cyan-500" /> Entrega estimada: <span className="font-bold">{result.estimatedTime}</span>
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-bold text-slate-700 flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-cyan-500" /> Detalle de Costos
-                  </h4>
-                  <div className="space-y-2">
-                    {result.partsList.map((part, idx) => (
-                      <div key={idx} className="flex justify-between text-sm text-gray-600 border-b border-dashed border-gray-200 pb-1">
-                        <span>{part.name}</span>
-                        <span>${part.price.toLocaleString('es-CL')}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between text-sm text-gray-600 pt-1">
-                      <span>Mano de Obra</span>
-                      <span>${result.costs.labor.toLocaleString('es-CL')}</span>
-                    </div>
-                    <div className="bg-slate-900 text-white p-3 rounded-lg mt-3 flex justify-between font-bold text-lg shadow-lg">
-                      <span>Total</span>
-                      <span>${result.costs.total.toLocaleString('es-CL')}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 flex flex-col items-center justify-center text-center h-full min-h-[400px]">
-                <div className="bg-cyan-500/10 p-6 rounded-full mb-6">
-                  <Car className="h-16 w-16 text-cyan-400" />
-                </div>
-                <h3 className="text-xl font-bold text-white">Visualiza tu estado</h3>
-                <p className="text-slate-400 mt-2 max-w-xs">Ingresa tu patente para ver el detalle privado y en tiempo real de tu reparación en talleres Flusize.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const CommunityReviews = () => {
-  const [showModal, setShowModal] = useState(false);
-
-  return (
-    <div id="reseñas" className="py-20 bg-slate-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-slate-900">Experiencias Reales</h2>
-          <p className="mt-4 text-gray-600 max-w-2xl mx-auto">
-            La comunidad Flusize crece cada día. Conoce las opiniones de quienes ya disfrutan de un servicio transparente.
+          <p className="text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-md font-medium">
+            Conectamos tu taller con el cliente en tiempo real. Adiós a las llamadas infinitas. Bienvenido a la digitalización absoluta y satisfacción garantizada.
           </p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          {mockReviews.map((review) => (
-            <div key={review.id} className="bg-white rounded-2xl p-8 relative shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-4 w-4 ${i < review.rating ? "text-cyan-400 fill-cyan-400" : "text-gray-200"}`}
-                  />
-                ))}
-              </div>
-              <p className="text-slate-600 italic mb-6 text-sm leading-relaxed">"{review.comment}"</p>
-              <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
-                <div className="h-10 w-10 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center font-bold text-cyan-700">
-                  {review.user.charAt(0)}
+          <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+            <a href="#planes" className="w-full sm:w-auto">
+              <button className="w-full px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-2xl font-bold shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] hover:scale-105 transition-all flex items-center justify-center gap-2 text-lg border border-white/10">
+                <Wrench className="h-5 w-5" /> Ver Planes para Talleres
+              </button>
+            </a>
+            <Link href="/conductores/mapa" className="w-full sm:w-auto">
+              <button className="w-full px-8 py-4 bg-white/10 backdrop-blur-md text-white border-2 border-white/20 hover:border-white/50 hover:bg-white/20 rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2 text-lg group">
+                <Car className="h-5 w-5 text-slate-300 group-hover:text-white transition-colors" /> Soy Conductor
+              </button>
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    </section >
+  );
+};
+
+// --- SECTION 1: MAGIC LINK (B2B) ---
+const SectionB2BMagicLink = () => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <section ref={ref} className="py-24 bg-white relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">
+              Elimina las llamadas preguntando <span className="text-blue-600 underline decoration-blue-200 underline-offset-4">¿está listo mi auto?</span>
+            </h2>
+            <p className="text-lg text-slate-500 mb-8 leading-relaxed">
+              Envía un <strong>Link Mágico</strong> por WhatsApp. Tu cliente ve el avance en tiempo real, desde el diagnóstico hasta la entrega, con la cotización transparente siempre a mano.
+            </p>
+            <ul className="space-y-4">
+              {[
+                "Línea de tiempo en vivo automática",
+                "Transparencia que genera confianza absoluta",
+                "Zero fricción logística para tu equipo"
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-3 text-slate-700 font-medium">
+                  <div className="w-6 h-6 rounded-full bg-cyan-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4 text-cyan-600" />
+                  </div>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Abstract Visualization */}
+          <motion.div
+            className="relative h-[400px] w-full rounded-[2rem] bg-slate-50 border border-slate-100 shadow-2xl flex items-center justify-center overflow-hidden"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.1),_transparent_70%)]" />
+
+            {/* Nodes Animation */}
+            <div className="flex flex-col gap-6 items-center relative z-10 w-full px-10">
+
+              <motion.div
+                className="w-full max-w-sm bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4"
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <Wrench className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900 text-sm">{review.user}</p>
-                  <p className="text-xs text-gray-400">{review.date}</p>
+                  <p className="font-bold text-slate-800 text-sm">Estado actualizado</p>
+                  <p className="text-xs text-slate-400">Taller Flusize</p>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              </motion.div>
 
-        <div className="text-center">
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-8 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:border-cyan-500 hover:text-cyan-600 transition-all shadow-sm"
-          >
-            <MessageCircle className="h-5 w-5" /> Compartir mi experiencia
-          </button>
+              {/* Connecting Line */}
+              <div className="h-10 w-0.5 bg-gradient-to-b from-blue-200 to-cyan-200 relative">
+                <motion.div
+                  className="absolute top-0 left-[-3px] w-2 h-2 rounded-full bg-cyan-500"
+                  animate={{ top: ["0%", "100%"] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                />
+              </div>
+
+              <motion.div
+                className="w-full max-w-sm bg-white p-4 rounded-2xl shadow-lg border border-cyan-100 flex items-center justify-between"
+                animate={{ y: [0, 5, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center">
+                    <ShieldCheck className="w-6 h-6 text-cyan-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800 text-sm">Link Mágico Recibido</p>
+                    <p className="text-xs text-slate-400">"El auto está en reparación"</p>
+                  </div>
+                </div>
+                <div className="bg-green-100/50 p-2 rounded-lg">
+                  <MessageCircle className="w-5 h-5 text-green-500" />
+                </div>
+              </motion.div>
+
+            </div>
+          </motion.div>
+
         </div>
       </div>
-
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full relative animate-fade-in shadow-2xl">
-            <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-              <X className="h-6 w-6" />
-            </button>
-            <h3 className="text-2xl font-bold mb-4 text-slate-800">Tu opinión importa</h3>
-            <form className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase">Nombre</label>
-                <input type="text" className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-cyan-500 outline-none transition-all" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase">Comentario</label>
-                <textarea className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 h-32 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"></textarea>
-              </div>
-              <button type="button" onClick={() => setShowModal(false)} className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-lg hover:shadow-lg transition-all">
-                Publicar Reseña
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+    </section>
   );
 };
 
+// --- SECTION 2: MAP FOMO (B2B) ---
+const SectionB2BFOMO = () => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <section ref={ref} className="py-24 bg-slate-900 border-y border-slate-800 relative overflow-hidden">
+      {/* Background removed as requested by user to keep focus on the map */}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-6">
+              Tu competencia ya está recibiendo <span className="text-cyan-400">clientes desde nuestro mapa.</span> ¿Y tú?
+            </h2>
+            <p className="text-lg text-slate-400 leading-relaxed">
+              Al registrarte, tu taller aparece en el mapa público. Miles de conductores buscan servicios especializados diariamente y cotizan mediante un clic a WhatsApp.
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Floating Map UI Abstraction */}
+        <div className="relative h-[500px] w-full max-w-5xl mx-auto mt-10">
+          <motion.div
+            className="absolute inset-0 rounded-[2rem] bg-slate-800 border border-slate-700 shadow-2xl overflow-hidden flex items-center justify-center p-8"
+            initial={{ opacity: 0, y: 50 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          >
+            {/* True Map Background (Southern Chile) */}
+            <FomoMap />
+
+            {/* Floating Pins */}
+            {[
+              { color: "bg-cyan-500", top: "35%", left: "47%", delay: 0.5, name: "AutoCenter" },
+              { color: "bg-emerald-500", top: "45%", left: "48%", delay: 1.1, name: "Mecánica Pro" },
+              { color: "bg-blue-500", top: "54%", left: "48%", delay: 0.8, name: "Frenos Express" },
+            ].map((pin, i) => (
+              <motion.div
+                key={i}
+                className="absolute flex flex-col items-center"
+                style={{ top: pin.top, left: pin.left }}
+                initial={{ opacity: 0, scale: 0, y: 20 }}
+                animate={isInView ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0, y: 20 }}
+                transition={{ duration: 0.5, delay: pin.delay, type: "spring" }}
+              >
+                <div className="bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg mb-2 border border-slate-700 flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${pin.color} animate-pulse`}></span>
+                  {pin.name}
+                </div>
+                <MapPin className={`w-8 h-8 ${pin.color.replace('bg-', 'text-')} fill-current`} />
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// --- SECTION 3: MY GARAGE (B2C) ---
+const SectionB2CGarage = () => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <section ref={ref} className="py-24 bg-slate-50 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center flex-row-reverse">
+
+          {/* Visual: Phone Mockup Abstraction */}
+          <motion.div
+            className="relative w-full max-w-[320px] mx-auto h-[600px] bg-slate-900 rounded-[3rem] border-[8px] border-slate-200 shadow-2xl p-6 overflow-hidden flex flex-col"
+            initial={{ opacity: 0, rotateY: 30, x: -50 }}
+            animate={isInView ? { opacity: 1, rotateY: 0, x: 0 } : { opacity: 0, rotateY: 30, x: -50 }}
+            transition={{ duration: 1, type: "spring" }}
+          >
+            {/* Status bar mock */}
+            <div className="w-full flex justify-between items-center mb-6 px-2">
+              <span className="text-white text-xs font-bold">9:41</span>
+              <div className="flex gap-1">
+                <div className="w-3 h-3 rounded-full bg-white"></div>
+                <div className="w-4 h-3 rounded-sm bg-white"></div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800 rounded-2xl p-4 mb-4">
+              <h4 className="text-white font-bold text-lg">Toyota Hilux 2022</h4>
+              <p className="text-cyan-400 text-sm font-medium">Patente: KF-VG-45</p>
+            </div>
+
+            <div className="bg-slate-800 rounded-2xl p-4 mb-4 flex gap-4">
+              <div className="bg-cyan-500/20 p-3 rounded-xl">
+                <Banknote className="w-6 h-6 text-cyan-400" />
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs">Inversión anual</p>
+                <p className="text-white font-bold text-xl">$450.000</p>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-white rounded-t-3xl mt-4 p-5">
+              <h4 className="font-bold text-slate-900 text-sm mb-4">Historial de Ordenes</h4>
+
+              {[1, 2, 3].map((val, i) => (
+                <motion.div
+                  key={val}
+                  className="border-b border-slate-100 pb-3 mb-3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
+                  transition={{ delay: 0.8 + (i * 0.2) }}
+                >
+                  <div className="flex justify-between items-center">
+                    <p className="font-bold text-slate-800 text-sm">Cambio de Aceite</p>
+                    <span className="text-xs font-bold bg-green-100 text-green-700 px-2 rounded-full">Listo</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">Hace {val} mes{val > 1 ? 'es' : ''}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-200/50 border border-slate-200/80 text-slate-700 mb-6 shadow-sm">
+              <Car className="h-4 w-4" />
+              <span className="text-sm font-bold tracking-wide">Para el Conductor</span>
+            </div>
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">
+              La tranquilidad de tener el <span className="text-blue-600">historial en tu bolsillo.</span>
+            </h2>
+            <p className="text-lg text-slate-500 mb-8 leading-relaxed">
+              <strong>Mi Garage</strong> consolida todo lo que pasa con tus vehículos. Todas las reparaciones, inversiones, fechas y recambios bajo control, inmutable y disponible en cualquier momento de manera gratuita.
+            </p>
+
+            <Link href="/conductores/mapa">
+              <button className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-900/20">
+                Buscar mi historial automotriz <ArrowRight className="w-5 h-5" />
+              </button>
+            </Link>
+          </motion.div>
+
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// --- PRICING SECTION ---
+const PricingSection = () => {
+  const plans = [
+    {
+      name: 'Plan Presencia',
+      description: 'Tu vitrina digital en el mundo automotriz.',
+      features: [
+        'Perfil público en el Mapa Flusize.',
+        'Perfil Link-in-Bio para tus redes.',
+        'Botón de contacto directo a tu WhatsApp.',
+        'Integración con todas tus redes sociales.'
+      ],
+      popular: false,
+      waLink: "https://wa.me/56975243510?text=Hola,%20quiero%20estar%20en%20el%20Mapa%20de%20Flusize%20(Plan%20Presencia)",
+    },
+    {
+      name: 'Plan Pro Tracking',
+      description: 'Transparencia que multiplica tus ventas y fideliza.',
+      features: [
+        'Todo lo del Plan Presencia.',
+        'Transparencia Total: Link Mágico de seguimiento.',
+        'Historial de órdenes (hasta 15 días).',
+        'Agregar y eliminar mecánicos de tu equipo.',
+        'Envío de boletas/comprobantes al cliente.'
+      ],
+      popular: true,
+      waLink: "https://wa.me/56975243510?text=Hola,%20quiero%20el%20Plan%20Pro%20Tracking%20con%20el%20Link%20Mágico",
+    },
+    {
+      name: 'Plan SaaS Completo',
+      description: 'El sistema operativo total para escalar tu taller.',
+      features: [
+        'Todo lo del Plan Pro Tracking.',
+        'Historial de órdenes ilimitado.',
+        'Panel SaaS completo (Gestión avanzada).',
+        'Reportes financieros y de inversión B2B.',
+        'Soporte técnico prioritario.'
+      ],
+      popular: false,
+      waLink: "https://wa.me/56975243510?text=Hola,%20necesito%20el%20SaaS%20Completo%20de%20Flusize%20para%20mi%20taller",
+    }
+  ];
+
+  return (
+    <section id="planes" className="py-32 bg-slate-50 relative overflow-hidden text-slate-900 border-t border-slate-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center max-w-3xl mx-auto mb-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
+              Planes diseñados para tu <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">crecimiento</span>
+            </h2>
+            <p className="text-lg text-slate-500 font-medium">
+              Elige el plan que mejor se adapte a las necesidades de tu centro automotriz y comienza a digitalizar tu operación hoy mismo.
+            </p>
+          </motion.div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 items-center max-w-6xl mx-auto">
+          {plans.map((plan, index) => (
+            <motion.div
+              key={plan.name}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.6, delay: index * 0.15 }}
+              className={`relative flex flex-col p-8 rounded-[2rem] bg-white transition-all duration-300 ${plan.popular
+                ? 'border-2 border-blue-600 shadow-2xl shadow-blue-500/10 md:-translate-y-4 z-10'
+                : 'border border-slate-200 shadow-xl shadow-slate-200/50 hover:border-slate-300 z-0'
+                }`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-4 left-0 right-0 flex justify-center">
+                  <span className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-md">
+                    Más Popular
+                  </span>
+                </div>
+              )}
+
+              <div className="mb-8">
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-3">{plan.name}</h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed min-h-[40px]">{plan.description}</p>
+              </div>
+
+              <ul className="space-y-4 mb-10 flex-1">
+                {plan.features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle2 className={`w-5 h-5 shrink-0 ${plan.popular ? 'text-blue-500' : 'text-slate-400'}`} />
+                    <span className={`text-sm font-medium leading-snug ${plan.popular ? 'text-slate-700' : 'text-slate-600'}`}>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href={plan.waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`w-full py-4 px-4 rounded-xl font-bold flex items-center justify-center transition-all ${plan.popular
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-cyan-600 hover:scale-[1.02]'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:scale-[1.02]'
+                  }`}
+              >
+                Contactar a Ventas
+              </a>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// --- FOOTER ---
 const Footer = () => (
-  <footer className="bg-slate-900 text-slate-300 py-16 border-t border-slate-800">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
-      <div className="col-span-1 md:col-span-2 space-y-4">
-        <Logo />
-        <p className="max-w-sm text-sm text-slate-400 leading-relaxed">
-          Orden y control para talleres que quieren crecer. Conectamos conductores con servicios de calidad, garantizando transparencia, rapidez y confianza en cada reparación.
-        </p>
+  <footer className="bg-white text-slate-500 py-16 border-t border-slate-100">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+
+      <div className="flex items-center gap-2 opacity-50">
+        <img src="/logo_flusize.png" alt="Flusize" className="h-6 w-6 object-contain grayscale" />
+        <span className="font-extrabold tracking-tight text-slate-800">FLUSIZE</span>
       </div>
 
-      <div>
-        <h4 className="font-bold text-white mb-6">Plataforma</h4>
-        <ul className="space-y-3 text-sm">
-          <li><a href="#" className="hover:text-cyan-400 transition-colors">Buscar Taller</a></li>
-          <li><a href="#" className="hover:text-cyan-400 transition-colors">Venta de Repuestos</a></li>
-          <li><a href="#" className="hover:text-cyan-400 transition-colors">Promociones</a></li>
-          <li><a href="#" className="hover:text-cyan-400 transition-colors">Seguimiento de Orden</a></li>
-        </ul>
+      <div className="flex gap-6 text-sm font-medium">
+        <Link href="/login" className="hover:text-cyan-600 transition-colors">Taller</Link>
+        <Link href="/conductores/mapa" className="hover:text-cyan-600 transition-colors">Conductores</Link>
+        <a href="#" className="hover:text-cyan-600 transition-colors">Términos</a>
       </div>
 
-      <div>
-        <h4 className="font-bold text-white mb-6">Contacto</h4>
-        <ul className="space-y-3 text-sm">
-          <li className="flex items-center gap-2 group cursor-pointer hover:text-white">
-            <div className="bg-slate-800 p-2 rounded-lg group-hover:bg-cyan-500 transition-colors"><MapPin className="h-4 w-4" /></div>
-            Santiago, Chile
-          </li>
-          <li className="flex items-center gap-2 group cursor-pointer hover:text-white">
-            <div className="bg-slate-800 p-2 rounded-lg group-hover:bg-cyan-500 transition-colors"><Phone className="h-4 w-4" /></div>
-            +56 9 1234 5678
-          </li>
-          <li className="flex items-center gap-2 group cursor-pointer hover:text-white">
-            <div className="bg-slate-800 p-2 rounded-lg group-hover:bg-cyan-500 transition-colors"><MessageCircle className="h-4 w-4" /></div>
-            contacto@flusize.cl
-          </li>
-        </ul>
-      </div>
-    </div>
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center text-xs text-slate-600">
-      <p>© 2024 Flusize App. Todos los derechos reservados.</p>
-      <div className="flex gap-4 mt-4 md:mt-0">
-        <a href="#" className="hover:text-cyan-400">Términos y Condiciones</a>
-        <a href="#" className="hover:text-cyan-400">Privacidad</a>
+      <div className="text-sm">
+        © {new Date().getFullYear()} Flusize. El OS del Taller.
       </div>
     </div>
   </footer>
 );
-
-const WhatsAppButton = () => (
-  <a
-    href="https://wa.me/56912345678"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 hover:scale-110 transition-all z-50 flex items-center justify-center group"
-    title="Contactar por WhatsApp"
-  >
-    <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20 group-hover:opacity-40"></div>
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="32"
-      height="32"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
-    </svg>
-  </a>
-);
-
-const DesignPreviews = () => (
-  <div className="py-20 bg-slate-900 border-t border-slate-800">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-10">
-        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold uppercase tracking-widest mb-4">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500" />
-          </span>
-          En desarrollo
-        </span>
-        <h2 className="text-3xl font-bold text-white mt-2">Diseños en Progreso</h2>
-        <p className="mt-3 text-slate-400 max-w-xl mx-auto text-sm">
-          Vistas de diseño (datos de prueba). Accede para revisar el look & feel antes de la integración completa.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Super Admin */}
-        <Link href="/super-admin" className="group block">
-          <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 p-6 transition-all duration-300 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 mb-5">
-              <svg className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">Super Admin</h3>
-            <p className="text-sm text-slate-400 leading-relaxed mb-4">Panel SaaS para dueños de Flusize. GMV, MRR, gestión de talleres y actividad en tiempo real.</p>
-            <div className="flex flex-wrap gap-2 mb-5">
-              {["Métricas", "Gráficos", "Talleres", "Feed"].map(t => (
-                <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">{t}</span>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 text-cyan-400 text-sm font-semibold group-hover:gap-3 transition-all">
-              Ver diseño <ArrowRight className="h-4 w-4" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Mi Garage */}
-        <Link href="/mi-garage" className="group block">
-          <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 p-6 transition-all duration-300 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 mb-5">
-              <Car className="h-6 w-6 text-cyan-400" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">Mi Garage</h3>
-            <p className="text-sm text-slate-400 leading-relaxed mb-4">Dashboard mobile para propietarios de vehículos. Historial, gastos, ficha técnica y acciones rápidas.</p>
-            <div className="flex flex-wrap gap-2 mb-5">
-              {["Vehículos", "Gastos", "Ficha", "Mobile"].map(t => (
-                <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">{t}</span>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 text-cyan-400 text-sm font-semibold group-hover:gap-3 transition-all">
-              Ver diseño <ArrowRight className="h-4 w-4" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Order Tracking */}
-        <Link href="/order-tracking-design" className="group block">
-          <div className="relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 p-6 transition-all duration-300 hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 mb-5">
-              <Wrench className="h-6 w-6 text-cyan-400" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">Order Tracking</h3>
-            <p className="text-sm text-slate-400 leading-relaxed mb-4">Rediseño de la página pública de seguimiento. Timeline animado, checklist, upsell y footer del taller.</p>
-            <div className="flex flex-wrap gap-2 mb-5">
-              {["Timeline", "Checklist", "WhatsApp", "Mobile"].map(t => (
-                <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">{t}</span>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 text-cyan-400 text-sm font-semibold group-hover:gap-3 transition-all">
-              Ver diseño <ArrowRight className="h-4 w-4" />
-            </div>
-          </div>
-        </Link>
-      </div>
-    </div>
-  </div>
-);
-
-export default function App() {
-  const [activeSection, setActiveSection] = useState('Inicio');
-
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-cyan-200 selection:text-cyan-900">
-      <Navbar activeSection={activeSection} setActiveSection={setActiveSection} />
-      <Hero />
-      <PromotionsCarousel />
-      <ServiceLocator />
-      <VehicleTracker />
-      <CommunityReviews />
-      <DesignPreviews />
-      <Footer />
-      <WhatsAppButton />
-    </div>
-  );
-}

@@ -3,7 +3,7 @@
  * Usa Resend (gratis hasta 100 emails/día)
  */
 
-import { OrdenConDetallesDB } from './types';
+import { OrdenDB } from './supabase';
 
 interface EmailRecipient {
     email?: string;
@@ -14,7 +14,7 @@ interface EmailRecipient {
  * Envía notificación cuando se crea una nueva orden
  */
 export async function sendOrderCreatedNotification(
-    orden: OrdenConDetallesDB,
+    orden: OrdenDB,
     cliente: EmailRecipient,
     publicLink: string
 ): Promise<boolean> {
@@ -27,7 +27,7 @@ export async function sendOrderCreatedNotification(
     console.log('📧 [DEV] Enviando email a:', cliente.email);
     console.log('📧 [DEV] Asunto: Tu vehículo ingresó al taller');
     console.log('📧 [DEV] Enlace público:', publicLink);
-    console.log('📧 [DEV] Orden:', orden.id, '-', orden.patente);
+    console.log('📧 [DEV] Orden:', orden.id, '-', orden.patente_vehiculo);
 
     // Simular envío exitoso en desarrollo
     return true;
@@ -37,7 +37,7 @@ export async function sendOrderCreatedNotification(
  * Envía notificación cuando cambia el estado de una orden
  */
 export async function sendOrderStatusUpdate(
-    orden: OrdenConDetallesDB,
+    orden: OrdenDB,
     nuevoEstado: string,
     publicLink: string
 ): Promise<boolean> {

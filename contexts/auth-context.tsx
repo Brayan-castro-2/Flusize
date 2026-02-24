@@ -1,32 +1,21 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import {
-    loginConCredenciales,
-    logout as logoutService,
-    obtenerSesionActual,
-    inicializarLocalStorage,
-    type PerfilDB
-} from '@/lib/storage-adapter';
-import { ORDERS_QUERY_KEY } from '@/hooks/use-orders';
-import { USERS_QUERY_KEY } from '@/hooks/use-users';
-import { obtenerOrdenes, obtenerPerfiles } from '@/lib/storage-adapter';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
-// Usuario del contexto
 export interface AuthUser {
     id: string;
     email: string;
     name: string;
-    role: 'mecanico' | 'admin' | 'superadmin';
+    role: 'cliente' | 'taller_admin' | 'mecanico' | 'superadmin' | 'admin';
     isActive: boolean;
-    tallerId?: string; // UUID del taller asignado
+    tallerId?: string;
 }
 
 interface AuthContextType {
     user: AuthUser | null;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => Promise<void>;
 }
 
@@ -35,115 +24,106 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const queryClient = useQueryClient();
+    const router = useRouter();
 
-    // Inicializar sesión al cargar
     useEffect(() => {
+        let mounted = true;
+
         const initSession = async () => {
+            console.log('[AuthContext Debug] initSession started');
             try {
-                // Inicializar localStorage con datos por defecto
-                inicializarLocalStorage();
+                const { data: { session }, error } = await supabase.auth.getSession();
+                console.log('[AuthContext Debug] getSession result:', session?.user?.email, error);
 
-                // Obtener sesión guardada
-                const result = await obtenerSesionActual();
-
-                if (result.user && result.perfil) {
-                    const authUser: AuthUser = {
-                        id: result.user.id,
-                        email: result.user.email,
-                        name: result.perfil.nombre_completo,
-                        role: result.perfil.rol,
-                        isActive: result.perfil.activo,
-                        tallerId: result.perfil.taller_id,
-                    };
-                    setUser(authUser);
-                    console.log('Sesión restaurada:', authUser.name);
+                if (session?.user) {
+                    await fetchAndSetUser(session.user);
+                } else {
+                    console.log('[AuthContext Debug] No session user, setting user null');
+                    if (mounted) {
+                        setUser(null);
+                        setIsLoading(false);
+                    }
                 }
             } catch (error) {
-                console.error('Error inicializando sesión:', error);
-            } finally {
-                setIsLoading(false);
+                console.error('[AuthContext Debug] Error init session:', error);
+                if (mounted) setIsLoading(false);
             }
         };
 
         initSession();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                await fetchAndSetUser(session.user);
+                router.push('/validando-sesion'); // Forzar lectura de cookie en middleware
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null);
+                router.push('/login');
+            }
+        });
+
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
-    const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const fetchAndSetUser = async (authUser: any) => {
+        console.log('[AuthContext Debug] fetchAndSetUser started for id:', authUser.id);
         try {
-            console.log('Iniciando login para:', email);
+            // Consultar rol real
+            const { data: perfil, error } = await supabase
+                .from('perfiles')
+                .select('*')
+                .eq('id', authUser.id)
+                .maybeSingle();
 
-            // Resolver alias cortos a emails completos (para credenciales demo)
-            let emailResolved = email.trim();
-            if (!emailResolved.includes('@')) {
-                // Alias → email completo
-                const aliasMap: Record<string, string> = {
-                    'admin': 'admin@taller.demo',
-                    'mecanico': 'mecanico@taller.demo',
-                    'cliente': 'cliente@taller.demo',
-                };
-                emailResolved = aliasMap[emailResolved.toLowerCase()] || emailResolved;
-            }
+            console.log('[AuthContext Debug] perfil fetched:', perfil?.rol, 'error:', error);
 
-            // Usar el servicio de localStorage
-            const result = await loginConCredenciales(emailResolved, password);
+            // Determinar Rol
+            const role = perfil ? (perfil.rol || 'taller_admin') : 'cliente';
 
-            if (result.error || !result.user || !result.perfil) {
-                return { success: false, error: result.error || 'Error de autenticación' };
-            }
-
-            // Verificar si el usuario está activo
-            if (!result.perfil.activo) {
-                return { success: false, error: 'Usuario desactivado. Contacta al administrador.' };
-            }
-
-            // Convertir perfil a AuthUser
-            const authUser: AuthUser = {
-                id: result.user.id,
-                email: result.user.email,
-                name: result.perfil.nombre_completo,
-                role: result.perfil.rol,
-                isActive: result.perfil.activo,
-                tallerId: result.perfil.taller_id,
+            const mappedUser: AuthUser = {
+                id: authUser.id,
+                email: authUser.email || '',
+                name: perfil ? (perfil.nombre_completo || 'Usuario de Taller') : 'Cliente',
+                role: role as any,
+                isActive: perfil ? perfil.activo : true,
+                tallerId: perfil ? perfil.taller_id : undefined
             };
 
-            setUser(authUser);
-            console.log('Login completado:', authUser.name);
-
-            // Prefetch de datos en background para navegación instantánea
-            console.log('🚀 Precargando datos en background...');
-            queryClient.prefetchQuery({
-                queryKey: ORDERS_QUERY_KEY,
-                queryFn: () => obtenerOrdenes(),
-            });
-            queryClient.prefetchQuery({
-                queryKey: USERS_QUERY_KEY,
-                queryFn: () => obtenerPerfiles(),
-            });
-            console.log('✅ Prefetch iniciado');
-
-            return { success: true };
-        } catch (error: any) {
-            console.error('Excepción en login:', error);
-            return { success: false, error: 'Error de conexión' };
+            console.log('[AuthContext Debug] mappedUser created:', mappedUser);
+            setUser(mappedUser);
+        } catch (error) {
+            console.error('[AuthContext Debug] Error fetching role', error);
+        } finally {
+            console.log('[AuthContext Debug] fetchAndSetUser finally, setting isLoading false');
+            setIsLoading(false);
         }
     };
 
     const logout = async () => {
+        console.log('Iniciando proceso de logout...');
         try {
-            await logoutService();
-            setUser(null);
-            // Forzar recarga para limpiar estado
-            window.location.href = '/login';
+            // Eliminar sesión del servidor
+            await fetch('/api/auth/logout', { method: 'POST' }).catch(err => console.error('Fetch error:', err));
+            console.log('API logout llamada');
+
+            // Eliminar sesión del cliente
+            await supabase.auth.signOut().catch(err => console.error('Supabase error:', err));
+            console.log('Supabase signOut llamado');
+
         } catch (e) {
-            console.error('Error en logout:', e);
+            console.error('Error general en logout:', e);
+        } finally {
             setUser(null);
-            window.location.href = '/login';
+            console.log('Redirigiendo a /...');
+            window.location.href = '/';
         }
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+        <AuthContext.Provider value={{ user, isLoading, logout }}>
             {children}
         </AuthContext.Provider>
     );

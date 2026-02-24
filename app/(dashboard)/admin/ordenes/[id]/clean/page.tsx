@@ -13,7 +13,7 @@ import Link from 'next/link';
 export default function OrdenDetailCleanPage() {
     const params = useParams();
     const router = useRouter();
-    const orderId = Number(params.id);
+    const orderId = params.id as string;
 
     const { user, isLoading: authLoading } = useAuth();
 
@@ -27,7 +27,7 @@ export default function OrdenDetailCleanPage() {
             router.push('/login');
             return;
         }
-        if (Number.isFinite(orderId)) {
+        if (orderId) {
             router.replace(`/admin/ordenes/clean?id=${orderId}`);
         }
     }, [authLoading, user, router, orderId]);
@@ -82,7 +82,7 @@ export default function OrdenDetailCleanPage() {
                     <p className="text-sm text-slate-400">{new Date(order.fecha_ingreso).toLocaleString('es-CL')}</p>
                 </div>
                 <div className="flex gap-2">
-                    {user?.role === 'admin' ? (
+                    {['superadmin', 'taller_admin'].includes(user?.role || '') ? (
                         <Button onClick={handleTicket} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 rounded-xl">
                             <Printer className="w-4 h-4 mr-2" />
                             <span className="hidden sm:inline">Boleta/Ticket</span>

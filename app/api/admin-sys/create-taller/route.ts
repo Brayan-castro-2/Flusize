@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Usamos service role para poder crear usuarios y talleres sin restricciones
-const supabaseAdmin = createClient(
+const getSupabaseAdmin = () => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -23,6 +23,7 @@ function generateSlug(name: string) {
 }
 
 export async function POST(req: NextRequest) {
+    const supabaseAdmin = getSupabaseAdmin();
     try {
         const body = await req.json();
         const { nombre, direccion, emailAdmin } = body;
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
                 id: userId,
                 email: emailAdmin,
                 nombre_completo: 'Admin ' + nombre,
-                rol: 'admin',
+                rol: 'taller_admin',
                 activo: true,
                 taller_id: taller.id
             });

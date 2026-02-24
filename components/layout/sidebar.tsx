@@ -21,7 +21,7 @@ interface NavItem {
     href: string;
     label: string;
     icon: React.ReactNode;
-    roles: ('admin' | 'mecanico' | 'superadmin')[];
+    roles: ('taller_admin' | 'mecanico' | 'superadmin' | 'admin')[];
     showBadge?: boolean;
 }
 
@@ -30,38 +30,38 @@ const navItems: NavItem[] = [
         href: '/recepcion',
         label: 'Recepción',
         icon: <ClipboardList className="w-5 h-5" />,
-        roles: ['mecanico', 'admin', 'superadmin'],
+        roles: ['mecanico', 'taller_admin', 'superadmin', 'admin'],
     },
     {
         href: '/admin',
         label: 'Dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
-        roles: ['admin', 'superadmin'],
+        roles: ['taller_admin', 'superadmin', 'admin'],
     },
     {
         href: '/admin/ordenes',
         label: 'Órdenes',
         icon: <FileText className="w-5 h-5" />,
-        roles: ['admin', 'superadmin', 'mecanico'],
+        roles: ['taller_admin', 'superadmin', 'mecanico', 'admin'],
     },
     {
         href: '/admin/agenda',
         label: 'Agenda',
         icon: <Calendar className="w-5 h-5" />,
-        roles: ['admin', 'superadmin'],
+        roles: ['taller_admin', 'superadmin', 'admin'],
         showBadge: true,
     },
     {
         href: '/admin/usuarios',
         label: 'Usuarios',
         icon: <Users className="w-5 h-5" />,
-        roles: ['admin', 'superadmin'],
+        roles: ['taller_admin', 'superadmin', 'admin'],
     },
     {
         href: '/admin/clientes',
         label: 'Gestión Clientes',
         icon: <Users className="w-5 h-5" />,
-        roles: ['admin', 'superadmin'],
+        roles: ['taller_admin', 'superadmin', 'admin'],
         showBadge: false,
     },
 ];
@@ -127,7 +127,7 @@ export function Sidebar() {
             </aside>
 
             {/* Mobile Bottom Navigation - Para admin y superadmin */}
-            {(user.role === 'admin' || user.role === 'superadmin') && (
+            {(user.role === 'taller_admin' || user.role === 'superadmin' || user.role === 'admin') && (
                 <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-lg border-t border-[#333333] safe-area-inset-bottom">
                     {isPending && (
                         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gray-800 overflow-hidden">

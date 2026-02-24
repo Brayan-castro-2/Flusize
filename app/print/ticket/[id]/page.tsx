@@ -28,7 +28,7 @@ export default function TicketPage() {
             router.push('/login');
             return;
         }
-        if (user.role !== 'admin') {
+        if (!['taller_admin', 'superadmin', 'mecanico', 'cliente'].includes(user.role)) {
             router.push('/recepcion');
             return;
         }
@@ -98,7 +98,7 @@ export default function TicketPage() {
         window.open(url, '_blank');
     };
 
-    if (authLoading || (!authLoading && (!user || user.role !== 'admin'))) {
+    if (authLoading || (!authLoading && (!user || !['taller_admin', 'superadmin', 'mecanico'].includes(user.role)))) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-100">
                 <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -198,7 +198,7 @@ export default function TicketPage() {
                         <span>TOTAL:</span>
                         <span>${orden.precio_total ? orden.precio_total.toLocaleString('es-CL') : 'Por definir'}</span>
                     </div>
-                    {orden.metodo_pago && (
+                    {user && ['taller_admin', 'superadmin', 'mecanico'].includes(user.role) && orden.metodo_pago && (
                         <div className="flex justify-between items-center text-xs mt-1">
                             <span>Pago:</span>
                             <span className="uppercase">{orden.metodo_pago}</span>

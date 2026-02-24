@@ -55,6 +55,7 @@ export default function OrdenesCleanPage() {
     const [estado, setEstado] = useState('pendiente');
     const [asignadoA, setAsignadoA] = useState<string>('');
     const [detalleTrabajos, setDetalleTrabajos] = useState('');
+    const [notasPublicas, setNotasPublicas] = useState('');
     const [kmIngreso, setKmIngreso] = useState<string>('');
     const [kmSalida, setKmSalida] = useState<string>('');
     const [clienteNombre, setClienteNombre] = useState<string>('');
@@ -123,6 +124,7 @@ export default function OrdenesCleanPage() {
                     setEstado(ordenData.estado);
                     setAsignadoA(ordenData.asignado_a || '');
                     setDetalleTrabajos(ordenData.detalle_trabajos || '');
+                    setNotasPublicas(ordenData.notas_publicas || '');
                     setMetodosPago(ordenData.metodos_pago || []);
 
                     // KM Logic
@@ -184,7 +186,7 @@ export default function OrdenesCleanPage() {
 
     const handleGuardarTodo = async () => {
         if (!order) return;
-        if (user?.role !== 'admin') return;
+        if (user?.role !== 'taller_admin') return;
 
         const precio = parsePrecio(precioFinal);
         if (precio < 0) {
@@ -225,6 +227,7 @@ export default function OrdenesCleanPage() {
             metodos_pago: metodosPago.length > 0 ? metodosPago : null,
             asignado_a: asignadoA || null,
             detalle_trabajos: detalleTrabajos || null,
+            notas_publicas: notasPublicas || null,
         };
 
         // LÓGICA DE FECHAS
@@ -279,7 +282,7 @@ export default function OrdenesCleanPage() {
 
     const handleMarcarListo = async () => {
         if (!order) return;
-        if (user?.role !== 'admin') return;
+        if (user?.role !== 'taller_admin') return;
 
         setIsSaving(true);
         const now = new Date().toISOString();
@@ -379,7 +382,7 @@ export default function OrdenesCleanPage() {
                 </div>
                 {/* Header Buttons */}
                 <div className="flex gap-2">
-                    {user?.role === 'admin' && (
+                    {user?.role === 'taller_admin' && (
                         <Button onClick={handleTicket} className="bg-slate-900 text-white hover:bg-white hover:text-slate-900 border border-slate-900 rounded-xl transition-colors shadow-sm">
                             <Printer className="w-4 h-4 mr-2" />
                             <span className="hidden sm:inline">Boleta/Ticket</span>
@@ -412,7 +415,7 @@ export default function OrdenesCleanPage() {
                         <span className="text-slate-900">{vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-'}</span>
                     </div>
 
-                    {user?.role === 'admin' && (
+                    {user?.role === 'taller_admin' && (
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-slate-600">Nombre del Cliente</Label>
@@ -435,7 +438,7 @@ export default function OrdenesCleanPage() {
                         </div>
                     )}
 
-                    {user?.role === 'admin' ? (
+                    {user?.role === 'taller_admin' ? (
                         <>
                             {/* Editor Fields */}
                             <div className="grid md:grid-cols-2 gap-4">
@@ -459,7 +462,7 @@ export default function OrdenesCleanPage() {
                                         </SelectTrigger>
                                         <SelectContent className="bg-white border-slate-200">
                                             <SelectItem value="none" className="text-slate-700">Sin asignar</SelectItem>
-                                            {perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'admin').map((perfil) => (
+                                            {perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'taller_admin').map((perfil) => (
                                                 <SelectItem key={perfil.id} value={perfil.id} className="text-slate-700 hover:bg-slate-50">
                                                     {perfil.nombre_completo}
                                                 </SelectItem>
@@ -531,6 +534,16 @@ export default function OrdenesCleanPage() {
                                     onChange={(e) => setDetalleTrabajos(e.target.value)}
                                     className="min-h-[100px] bg-white border-slate-300 text-slate-900 rounded-xl"
                                     placeholder="Describe los trabajos realizados en el vehículo..."
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-blue-600 font-medium">Notas para el Cliente (Link Mágico)</Label>
+                                <Textarea
+                                    value={notasPublicas}
+                                    onChange={(e) => setNotasPublicas(e.target.value)}
+                                    className="min-h-[80px] bg-blue-50 border-blue-200 text-slate-900 rounded-xl focus:border-blue-500 placeholder:text-blue-300"
+                                    placeholder="Este mensaje será visible para el cliente cuando revise el estado de su orden..."
                                 />
                             </div>
 
@@ -663,7 +676,7 @@ export default function OrdenesCleanPage() {
                             {/* Botones de Boleta, PDF e Imprimir - Aparecen solo después de guardar */}
                             {saveSuccess && (
                                 <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-slate-200">
-                                    {user?.role === 'admin' && (
+                                    {user?.role === 'taller_admin' && (
                                         <Button onClick={handleTicket} className="flex-1 sm:flex-none bg-slate-900 text-white hover:bg-white hover:text-slate-900 border border-slate-900 rounded-xl transition-colors shadow-sm">
                                             <Printer className="w-4 h-4 mr-2" />
                                             Boleta/Ticket

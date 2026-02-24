@@ -8,7 +8,7 @@ Sistema listo para venta masiva en Puerto Montt. MVP comercial con estabilidad y
 
 ---
 
-## 📋 SPRINT 1: ECOSISTEMA MVP (CEO Approved)
+## 📋 SPRINT 1: ECOSISTEMA  (CEO Approved)
 
 ### ✅ COMPLETADO
 - [x] Panel Super Admin (`/admin-sys`)

@@ -16,60 +16,20 @@ export async function getCurrentUserTallerId(): Promise<string | null> {
     try {
         const cookieStore = cookies()
 
-        // Try all possible Supabase cookie names
-        const allCookies = cookieStore.getAll()
-        console.log('🍪 Available cookies:', allCookies.map(c => c.name))
-
-        // Find auth token cookie (Supabase uses different names)
-        const authCookie = allCookies.find(c =>
-            c.name.includes('auth-token') ||
-            c.name.includes('access-token') ||
-            c.name.includes('sb-')
-        )
-
-        if (!authCookie) {
-            console.log('❌ No Supabase auth cookie found, using fallback')
-            const { getDefaultTallerId } = await import('./taller-fallback')
-            return await getDefaultTallerId()
-        }
-
-        console.log('✅ Found auth cookie:', authCookie.name)
-
-        // Parse the cookie value - Supabase stores it as JSON with base64 encoding
-        let accessToken: string | null = null
-        try {
-            // First try to parse as JSON array (Supabase format)
-            const parsed = JSON.parse(authCookie.value)
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                // Supabase stores [base64SessionData, base64SessionData]
-                const sessionData = JSON.parse(atob(parsed[0]))
-                accessToken = sessionData.access_token
-            } else if (parsed.access_token) {
-                // Direct object format
-                accessToken = parsed.access_token
-            }
-        } catch (e) {
-            // If not JSON, try as direct token
-            accessToken = authCookie.value
-        }
-
-        if (!accessToken) {
-            console.log('❌ Could not extract access_token from cookie, using fallback')
-            const { getDefaultTallerId } = await import('./taller-fallback')
-            return await getDefaultTallerId()
-        }
-
-        console.log('✅ Access token extracted, length:', accessToken.length)
-
-        // Create Supabase admin client
-        const { createClient } = await import('@supabase/supabase-js')
-        const supabaseAdmin = createClient(
+        const { createServerClient } = await import('@supabase/ssr')
+        const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    get(name: string) {
+                        return cookieStore.get(name)?.value
+                    },
+                },
+            }
         )
 
-        // Get user from token
-        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(accessToken)
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
 
         if (userError || !user) {
             console.log('❌ No user from token:', userError?.message, '- using fallback')
@@ -78,6 +38,13 @@ export async function getCurrentUserTallerId(): Promise<string | null> {
         }
 
         console.log('✅ User found:', user.email)
+
+        // Create Supabase admin client for database query if needed
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
 
         // Get taller_id
         const { data, error } = await supabaseAdmin

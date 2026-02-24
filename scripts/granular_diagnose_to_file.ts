@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function runTest() {
     let output = "";
-    const log = (msg) => {
+    const log = (msg: any) => {
         console.log(msg);
         output += msg + "\n";
     };
@@ -41,7 +41,7 @@ async function runTest() {
 
     log("--- TESTS ---");
     for (const col of testCols) {
-        const updates = {};
+        const updates: Record<string, any> = {};
         updates[col] = data[0][col];
         if (col === "precio_total") updates[col] = 1;
         if (updates[col] === undefined) updates[col] = null;

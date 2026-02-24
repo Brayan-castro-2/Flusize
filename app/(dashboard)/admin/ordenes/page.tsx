@@ -192,12 +192,11 @@ export default function OrdenesPage() {
     // By invoking router.refresh() on mount, we force Next.js to re-evaluate the Server Component 
     // and deliver fresh RSC data without losing the current client state.
     useEffect(() => {
-        router.refresh();
         // Disparar refetch manual de react-query al montar para máxima consistencia
         queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
-    }, [router, queryClient]);
+    }, [queryClient]);
 
-    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    const isAdmin = user?.role === 'taller_admin' || user?.role === 'superadmin';
     const isMecanico = user?.role === 'mecanico';
     const canViewPrices = user?.name?.toLowerCase().includes('juan');
     const isLoading = isLoadingOrders || isLoadingPerfiles || isLoadingVehiculos;
@@ -699,7 +698,7 @@ export default function OrdenesPage() {
                                     </SelectTrigger>
                                     <SelectContent className="bg-white border-slate-200">
                                         <SelectItem value="all" className="text-slate-900">Todos</SelectItem>
-                                        {perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'admin').map(perfil => (
+                                        {perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'taller_admin').map(perfil => (
                                             <SelectItem key={perfil.id} value={perfil.id} className="text-slate-900">
                                                 {perfil.nombre_completo}
                                             </SelectItem>

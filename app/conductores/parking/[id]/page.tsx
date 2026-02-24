@@ -83,7 +83,7 @@ export default function WorkshopDetail() {
     const telefonoLimpio = workshop.telefono?.replace(/\D/g, '') || '';
     // Add country code if it doesn't have it (assuming Chile +56 by default for this MVP context)
     const phoneWithCode = telefonoLimpio.startsWith('56') ? telefonoLimpio : `56${telefonoLimpio}`;
-    const waMsg = encodeURIComponent(`Hola ${workshop.nombre}, vi su taller en Flusize y me gustaría cotizar un servicio para mi auto.`);
+    const waMsg = encodeURIComponent(`Hola, vengo de Flusize. Necesito cotizar un servicio....`);
     const waLink = telefonoLimpio ? `https://wa.me/${phoneWithCode}?text=${waMsg}` : '';
 
     return (
