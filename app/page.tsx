@@ -134,11 +134,16 @@ const HeroSection = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
-            <a href="#planes" className="w-full sm:w-auto">
-              <button className="w-full px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-2xl font-bold shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] hover:scale-105 transition-all flex items-center justify-center gap-2 text-lg border border-white/10">
-                <Wrench className="h-5 w-5" /> Ver Planes para Talleres
-              </button>
-            </a>
+            <Link
+              href="/login"
+              className="group relative w-full sm:w-auto overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+            >
+              <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#3E3B44_50%,#E2CBFF_100%)]" />
+              <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-blue-500 px-8 py-4 text-sm font-bold text-white shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all duration-300 group-hover:bg-blue-400">
+                <Wrench className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
+                Soy un Taller
+              </span>
+            </Link>
             <Link href="/conductores/mapa" className="w-full sm:w-auto">
               <button className="w-full px-8 py-4 bg-white/10 backdrop-blur-md text-white border-2 border-white/20 hover:border-white/50 hover:bg-white/20 rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2 text-lg group">
                 <Car className="h-5 w-5 text-slate-300 group-hover:text-white transition-colors" /> Soy Conductor
