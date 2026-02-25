@@ -76,6 +76,11 @@ export interface OrdenDB {
     notas_publicas?: string | null;
     fotos_urls?: string[] | null;
 
+    // Chameleon Quoter
+    cotizacion_items?: { descripcion: string; monto: number }[] | null;
+    subtotal?: number | null;
+    iva?: number | null;
+
     // Estructuras legacy para evitar romper UI (serán null en nuevos registros)
     detalle_trabajos?: string | null;
     detalles_vehiculo?: string | null;
