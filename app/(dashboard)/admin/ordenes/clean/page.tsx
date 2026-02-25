@@ -62,6 +62,13 @@ export default function OrdenesCleanPage() {
     const [clienteTelefono, setClienteTelefono] = useState<string>('');
     const [metodosPago, setMetodosPago] = useState<Array<{ metodo: string; monto: number }>>([]);
 
+    // Chameleon Quoter State
+    const [isAvanzado, setIsAvanzado] = useState(false);
+    const [calcularIva, setCalcularIva] = useState(false);
+    const [cotizacionItems, setCotizacionItems] = useState<Array<{ descripcion: string; monto: number }>>([{ descripcion: '', monto: 0 }]);
+    const [subtotalAvanzado, setSubtotalAvanzado] = useState(0);
+    const [ivaAvanzado, setIvaAvanzado] = useState(0);
+
     const canViewPrices = user?.name?.toLowerCase().includes('juan');
 
     const parsePrecio = (value: string) => {
@@ -144,6 +151,13 @@ export default function OrdenesCleanPage() {
 
                     setClienteNombre(ordenData.cliente?.nombre_completo || ordenData.cliente_nombre || veh?.clientes?.nombre_completo || '');
                     setClienteTelefono(ordenData.cliente?.telefono || ordenData.cliente_telefono || veh?.clientes?.telefono || '');
+
+                    // Restore Chameleon State if items exist
+                    if (ordenData.cotizacion_items && ordenData.cotizacion_items.length > 0) {
+                        setIsAvanzado(true);
+                        setCotizacionItems(ordenData.cotizacion_items);
+                        setCalcularIva((ordenData.iva || 0) > 0);
+                    }
                 }
             } catch (error) {
                 console.error("Error loading order:", error);
@@ -154,6 +168,16 @@ export default function OrdenesCleanPage() {
 
         loadData();
     }, [orderId]);
+
+    // Calcular Subtotal e IVA dinámicamente
+    useEffect(() => {
+        if (!isAvanzado) return;
+        const sub = cotizacionItems.reduce((acc, curr) => acc + (Number(curr.monto) || 0), 0);
+        const calcIva = calcularIva ? Math.round(sub * 0.19) : 0;
+        setSubtotalAvanzado(sub);
+        setIvaAvanzado(calcIva);
+        setPrecioFinal(formatPrecio(sub + calcIva));
+    }, [cotizacionItems, calcularIva, isAvanzado]);
 
     const handlePrint = () => {
         if (!orderId) return;
@@ -228,6 +252,9 @@ export default function OrdenesCleanPage() {
             asignado_a: asignadoA || null,
             detalle_trabajos: detalleTrabajos || null,
             notas_publicas: notasPublicas || null,
+            cotizacion_items: isAvanzado ? cotizacionItems.filter(item => item.descripcion.trim() !== '') : null,
+            subtotal: isAvanzado ? subtotalAvanzado : null,
+            iva: isAvanzado ? ivaAvanzado : null
         };
 
         // LÓGICA DE FECHAS
@@ -547,17 +574,124 @@ export default function OrdenesCleanPage() {
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-slate-600">Precio Total ($)</Label>
-                                <Input
-                                    value={precioFinal}
-                                    onChange={(e) => setPrecioFinal(e.target.value)}
-                                    onBlur={() => setPrecioFinal(formatPrecio(parsePrecio(precioFinal)))}
-                                    inputMode="numeric"
-                                    className="bg-white border-slate-300 text-slate-900 rounded-xl text-lg font-semibold"
-                                    placeholder="15000"
-                                />
-                                <p className="text-xs text-slate-500">Precio en pesos chilenos</p>
+                            {/* Cotizador Camaleón */}
+                            <div className="space-y-4 border-t border-slate-200 pt-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label className="text-slate-900 text-lg font-bold">Resumen de Cobro</Label>
+                                        <p className="text-xs text-slate-500">Define el monto a cobrar por el servicio</p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant={isAvanzado ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setIsAvanzado(!isAvanzado)}
+                                        className={isAvanzado ? "bg-slate-900 text-white rounded-xl" : "border-slate-300 text-slate-700 rounded-xl"}
+                                    >
+                                        {isAvanzado ? 'Modo Rápido' : '➕ Desglosar en Ítems (Avanzado)'}
+                                    </Button>
+                                </div>
+
+                                {!isAvanzado ? (
+                                    <div className="space-y-2 animate-in fade-in zoom-in duration-300">
+                                        <Label className="text-slate-600">Precio Total ($)</Label>
+                                        <Input
+                                            value={precioFinal}
+                                            onChange={(e) => setPrecioFinal(e.target.value)}
+                                            onBlur={() => setPrecioFinal(formatPrecio(parsePrecio(precioFinal)))}
+                                            inputMode="numeric"
+                                            className="bg-white border-slate-300 text-slate-900 rounded-xl text-lg font-semibold h-12"
+                                            placeholder="15000"
+                                        />
+                                        <p className="text-xs text-slate-500">Monto cerrado directo en pesos chilenos.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 duration-300">
+                                        <Label className="text-slate-800 font-semibold mb-2 block">Ítems Cotizados</Label>
+
+                                        {cotizacionItems.map((item, idx) => (
+                                            <div key={idx} className="flex gap-2 items-center">
+                                                <Input
+                                                    placeholder="Descripción del ítem (ej. Cambio de aceite)"
+                                                    value={item.descripcion}
+                                                    onChange={(e) => {
+                                                        const newItems = [...cotizacionItems];
+                                                        newItems[idx].descripcion = e.target.value;
+                                                        setCotizacionItems(newItems);
+                                                    }}
+                                                    className="flex-1 bg-white border-slate-300 text-slate-900 rounded-xl"
+                                                />
+                                                <Input
+                                                    type="text"
+                                                    placeholder="$ Monto"
+                                                    value={item.monto > 0 ? formatPrecio(item.monto) : ''}
+                                                    onChange={(e) => {
+                                                        const newItems = [...cotizacionItems];
+                                                        newItems[idx].monto = parsePrecio(e.target.value);
+                                                        setCotizacionItems(newItems);
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        const newItems = [...cotizacionItems];
+                                                        newItems[idx].monto = parsePrecio(e.target.value);
+                                                        setCotizacionItems(newItems);
+                                                        e.target.value = formatPrecio(newItems[idx].monto);
+                                                    }}
+                                                    className="w-[120px] bg-white border-slate-300 text-slate-900 rounded-xl font-medium"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        const newItems = cotizacionItems.filter((_, i) => i !== idx);
+                                                        setCotizacionItems(newItems.length ? newItems : [{ descripcion: '', monto: 0 }]);
+                                                    }}
+                                                    className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCotizacionItems([...cotizacionItems, { descripcion: '', monto: 0 }])}
+                                            className="text-blue-600 border-blue-200 hover:bg-blue-50 rounded-xl w-full mt-2 border-dashed"
+                                        >
+                                            <Plus className="w-4 h-4 mr-2" /> Agregar otro ítem
+                                        </Button>
+
+                                        <div className="flex items-center justify-between border-t border-slate-200 pt-4 mt-4">
+                                            <span className="text-slate-600 font-medium text-sm">¿Calcular 19% IVA sobre el Neto?</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setCalcularIva(!calcularIva)}
+                                                className={`w-11 h-6 rounded-full transition-colors ${calcularIva ? 'bg-blue-600' : 'bg-slate-300'} relative`}
+                                            >
+                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${calcularIva ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+
+                                        <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2 mt-4 shadow-sm">
+                                            <div className="flex justify-between text-sm text-slate-500">
+                                                <span>Subtotal Neto:</span>
+                                                <span>${formatPrecio(subtotalAvanzado)}</span>
+                                            </div>
+                                            {calcularIva && (
+                                                <div className="flex justify-between text-sm text-slate-500">
+                                                    <span>IVA (19%):</span>
+                                                    <span>+ ${formatPrecio(ivaAvanzado)}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between text-lg font-bold text-slate-900 pt-2 border-t border-slate-100 mt-2">
+                                                <span>Total a Pagar:</span>
+                                                <span>${precioFinal || 0}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Métodos de Pago */}

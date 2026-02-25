@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { obtenerPerfiles, actualizarPerfil, crearUsuario, type PerfilDB } from '@/lib/storage-adapter';
+import { actualizarPerfil, type PerfilDB } from '@/lib/storage-adapter';
 import { useAuth } from '@/contexts/auth-context';
+import { usePerfiles } from '@/hooks/use-perfiles';
+import { useQueryClient } from '@tanstack/react-query';
+import { crearUsuarioAdminAction } from './actions';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,10 +40,11 @@ import {
 import Link from 'next/link';
 
 export default function UsuariosPage() {
-    const [usuarios, setUsuarios] = useState<PerfilDB[]>([]);
+    const { data: usuarios = [], isLoading, refetch } = usePerfiles();
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
+
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [createError, setCreateError] = useState('');
 
@@ -51,19 +55,9 @@ export default function UsuariosPage() {
     const [newRole, setNewRole] = useState<'mecanico' | 'taller_admin' | 'superadmin'>('mecanico');
     const { user: currentUser } = useAuth();
 
-    useEffect(() => {
-        loadUsuarios();
-    }, []);
-
-    const loadUsuarios = async () => {
-        const perfiles = await obtenerPerfiles();
-        setUsuarios(perfiles);
-        setIsLoading(false);
-    };
-
     const handleToggleActive = async (usuario: PerfilDB) => {
         await actualizarPerfil(usuario.id, { activo: !usuario.activo });
-        await loadUsuarios();
+        await queryClient.invalidateQueries({ queryKey: ['perfiles'] });
     };
 
     const handleCreateUser = async () => {
@@ -80,7 +74,19 @@ export default function UsuariosPage() {
         setIsCreating(true);
         setCreateError('');
 
-        const result = await crearUsuario(newEmail, newPassword, newName, newRole);
+        if (!currentUser?.tallerId) {
+            setCreateError('No tienes un taller asignado para crear usuarios.');
+            setIsCreating(false);
+            return;
+        }
+
+        const result = await crearUsuarioAdminAction({
+            email: newEmail,
+            password: newPassword,
+            nombreCompleto: newName,
+            rol: newRole,
+            tallerId: currentUser.tallerId
+        });
 
         if (result.success) {
             setCreateDialogOpen(false);
@@ -88,7 +94,7 @@ export default function UsuariosPage() {
             setNewPassword('');
             setNewName('');
             setNewRole('mecanico');
-            await loadUsuarios();
+            await queryClient.invalidateQueries({ queryKey: ['perfiles'] });
         } else {
             setCreateError(result.error || 'Error al crear usuario');
         }
@@ -96,17 +102,9 @@ export default function UsuariosPage() {
         setIsCreating(false);
     };
 
-    const filteredUsuarios = usuarios.filter(u =>
+    const filteredUsuarios = usuarios.filter((u: PerfilDB) =>
         (u.nombre_completo || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-[#0066FF]" />
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-6">
@@ -216,69 +214,75 @@ export default function UsuariosPage() {
 
             {/* Users List */}
             <div className="space-y-3">
-                {filteredUsuarios.map((usuario) => (
-                    <Card key={usuario.id} className="bg-white border-gray-200">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-4">
-                                {/* Avatar */}
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${usuario.rol === 'taller_admin' ? 'bg-[#0066FF]/20' : 'bg-gray-700/50'
-                                    }`}>
-                                    {usuario.rol === 'taller_admin' ? (
-                                        <Shield className="w-6 h-6 text-[#0066FF]" />
-                                    ) : (
-                                        <Wrench className="w-6 h-6 text-gray-600" />
-                                    )}
-                                </div>
-
-                                {/* Info */}
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-gray-800 font-medium truncate">{usuario.nombre_completo}</p>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <Badge variant="outline" className={`text-xs ${usuario.rol === 'taller_admin'
-                                            ? 'border-[#0066FF]/30 text-[#0066FF]'
-                                            : 'border-gray-600 text-gray-600'
-                                            }`}>
-                                            {usuario.rol === 'taller_admin' ? 'Administrador' : 'Mecánico'}
-                                        </Badge>
-                                        {usuario.activo ? (
-                                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                                                <CheckCircle className="w-3 h-3 mr-1" />
-                                                Activo
-                                            </Badge>
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                        <Loader2 className="w-8 h-8 animate-spin text-[#0066FF]" />
+                    </div>
+                ) : (
+                    filteredUsuarios.map((usuario: PerfilDB) => (
+                        <Card key={usuario.id} className="bg-white border-gray-200">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-4">
+                                    {/* Avatar */}
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${usuario.rol === 'taller_admin' ? 'bg-[#0066FF]/20' : 'bg-gray-700/50'
+                                        }`}>
+                                        {usuario.rol === 'taller_admin' ? (
+                                            <Shield className="w-6 h-6 text-[#0066FF]" />
                                         ) : (
-                                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
-                                                <XCircle className="w-3 h-3 mr-1" />
-                                                Bloqueado
-                                            </Badge>
+                                            <Wrench className="w-6 h-6 text-gray-600" />
                                         )}
                                     </div>
-                                </div>
 
-                                {/* Actions */}
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleToggleActive(usuario)}
-                                        className={`text-xs ${usuario.activo
-                                            ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
-                                            : 'text-green-400 hover:text-green-300 hover:bg-green-500/10'
-                                            }`}
-                                    >
-                                        {usuario.activo ? 'Bloquear' : 'Activar'}
-                                    </Button>
-                                    <Link href={`/admin/usuarios/${usuario.id}`}>
-                                        <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-800">
-                                            <ChevronRight className="w-5 h-5" />
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-gray-800 font-medium truncate">{usuario.nombre_completo}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <Badge variant="outline" className={`text-xs ${usuario.rol === 'taller_admin'
+                                                ? 'border-[#0066FF]/30 text-[#0066FF]'
+                                                : 'border-gray-600 text-gray-600'
+                                                }`}>
+                                                {usuario.rol === 'taller_admin' ? 'Administrador' : 'Mecánico'}
+                                            </Badge>
+                                            {usuario.activo ? (
+                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                                    Activo
+                                                </Badge>
+                                            ) : (
+                                                <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
+                                                    <XCircle className="w-3 h-3 mr-1" />
+                                                    Bloqueado
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleToggleActive(usuario)}
+                                            className={`text-xs ${usuario.activo
+                                                ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                                                : 'text-green-400 hover:text-green-300 hover:bg-green-500/10'
+                                                }`}
+                                        >
+                                            {usuario.activo ? 'Bloquear' : 'Activar'}
                                         </Button>
-                                    </Link>
+                                        <Link href={`/admin/usuarios/${usuario.id}`}>
+                                            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-800">
+                                                <ChevronRight className="w-5 h-5" />
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
 
-                {filteredUsuarios.length === 0 && (
+                {(!isLoading && filteredUsuarios.length === 0) && (
                     <Card className="bg-white border-gray-200">
                         <CardContent className="py-12 text-center">
                             <Users className="w-12 h-12 mx-auto mb-3 text-gray-600" />

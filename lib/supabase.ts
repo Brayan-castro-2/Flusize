@@ -146,8 +146,11 @@ export interface OrdenDB {
     fecha_cierre?: string | null;
 
     precio_total: number;
+    subtotal?: number | null; // NEW: Chameleon Quoter
+    iva?: number | null;      // NEW: Chameleon Quoter
     metodo_pago?: string | null;
     metodos_pago?: { metodo: string; monto: number }[] | null;
+    cotizacion_items?: { descripcion: string; monto: number }[] | null; // NEW: Chameleon Items
 
     descripcion_problema?: string | null;
     diagnostico?: string | null;

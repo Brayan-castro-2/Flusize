@@ -18,8 +18,8 @@ export function useInfiniteOrders() {
         },
         initialPageParam: 0,
         getNextPageParam: (lastPage) => lastPage.nextCursor,
-        staleTime: 0,
-        gcTime: 2 * 60 * 1000,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 15 * 60 * 1000,
     });
 }
 
@@ -38,12 +38,12 @@ export function useOrders() {
     return useQuery({
         queryKey: ORDERS_QUERY_KEY,
         queryFn: () => obtenerOrdenes(), // Explicitly call with no args to get all (or default)
-        staleTime: 0,
-        gcTime: 2 * 60 * 1000,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 15 * 60 * 1000,
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
-        refetchOnMount: true,
-        refetchInterval: 15000,
+        refetchOnMount: false,
+        refetchInterval: 30000, // Reduced aggressive background fetching
         refetchIntervalInBackground: true,
     });
 }

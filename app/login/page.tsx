@@ -70,7 +70,7 @@ export default function LoginPage() {
 
             if (error) throw error;
 
-            router.push('/validando-sesion');
+            router.push('/admin/ordenes');
         } catch (error: any) {
             console.error('Password Login error:', error);
             setStatus('error');

@@ -40,7 +40,9 @@ export async function middleware(request: NextRequest) {
     const isGarageRoute = url.pathname.startsWith('/mi-garage')
     const isSuperAdminRoute = url.pathname.startsWith('/super-admin')
 
-    const FOUNDER_EMAILS = ['tu-email@ejemplo.com', 'matias-email@ejemplo.com', 'matias@flusize.com', 'admin@flusize.com'];
+    const FOUNDER_EMAILS = [
+        'flusize@gmail.com'
+    ];
     const isSuperAdmin = user && FOUNDER_EMAILS.includes(user.email || '');
 
     // 1. Visitante sin cuenta queriendo entrar a zonas protegidas

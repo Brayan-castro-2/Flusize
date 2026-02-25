@@ -395,12 +395,16 @@ export async function obtenerOrdenes(limit?: number, offset?: number): Promise<O
 
 // Obtener conteo total de órdenes
 export async function obtenerOrdenesCount(): Promise<number> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return 0;
+
     const { count, error } = await supabase
         .from('ordenes')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('taller_id', tallerId);
 
     if (error) {
-        console.error('❌ Error al obtener conteo de órdenes:', error);
+        console.error('❌ Error al obtener conteo:', error);
         return 0;
     }
 
@@ -750,6 +754,9 @@ export async function actualizarOrden(
         'detalle_trabajos',
         'fotos_urls',
         'precio_total',
+        'cotizacion_items',
+        'subtotal',
+        'iva',
         'metodo_pago',
         'metodos_pago',
         'asignado_a',
@@ -1013,33 +1020,37 @@ export async function crearUsuario(
 // ============ CITAS/AGENDAMIENTO ============
 
 export async function obtenerCitas(): Promise<CitaDB[]> {
-    // TEMPORAL: Bloquear carga de citas
-    console.log('🚧 Citas deshabilitadas temporalmente');
-    return [];
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return [];
 
-    /*
     const { data, error } = await supabase
         .from('citas')
-        // select con join a vehiculos usando la patente
-        .select(`
-            *
-        `)
-        .order('fecha_inicio', { ascending: true });
+        .select('*')
+        .eq('taller_id', tallerId)
+        .order('fecha_hora', { ascending: true });
 
     if (error) {
         console.error('Error al obtener citas:', error);
         return [];
     }
 
-    return data || [];
-    */
+    return (data || []).map(row => {
+        const partes = (row.motivo || '').split(' - ');
+        return {
+            ...row,
+            fecha_inicio: row.fecha_hora,
+            fecha: row.fecha_hora,
+            titulo: partes[0] || 'Cita',
+            servicio_solicitado: partes.slice(1).join(' - ') || '',
+        };
+    }) as any;
 }
 
 // Obtener citas de hoy (con datos de cliente)
 export async function obtenerCitasHoy(): Promise<CitaDB[]> {
-    // TEMPORAL: Bloquear carga de citas hoy
-    return [];
-    /*
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return [];
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -1047,25 +1058,27 @@ export async function obtenerCitasHoy(): Promise<CitaDB[]> {
 
     const { data, error } = await supabase
         .from('citas')
-        .select(`
-            *,
-            *,
-            clientes!citas_cliente_id_fkey (
-                nombre_completo,
-                telefono
-            )
-        `)
-        .gte('fecha_inicio', today.toISOString())
-        .lt('fecha_inicio', tomorrow.toISOString())
-        .order('fecha_inicio', { ascending: true });
+        .select('*')
+        .eq('taller_id', tallerId)
+        .gte('fecha_hora', today.toISOString())
+        .lt('fecha_hora', tomorrow.toISOString())
+        .order('fecha_hora', { ascending: true });
 
     if (error) {
         console.error('❌ Error al obtener citas de hoy:', error);
         return [];
     }
 
-    return data || [];
-    */
+    return (data || []).map(row => {
+        const partes = (row.motivo || '').split(' - ');
+        return {
+            ...row,
+            fecha_inicio: row.fecha_hora,
+            fecha: row.fecha_hora,
+            titulo: partes[0] || 'Cita',
+            servicio_solicitado: partes.slice(1).join(' - ') || '',
+        };
+    }) as any;
 }
 
 // Obtener servicios frecuentes (V3.1)
@@ -1085,30 +1098,32 @@ export async function obtenerServiciosFrecuentes(): Promise<ServicioDB[]> {
 }
 
 export async function obtenerCitasSemana(startDate: Date, endDate: Date): Promise<CitaDB[]> {
-    // TEMPORAL: Bloquear carga de citas semana
-    return [];
-    /*
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return [];
+
     const { data, error } = await supabase
         .from('citas')
-        .select(`
-            *,
-            *,
-            clientes!citas_cliente_id_fkey (
-                nombre_completo,
-                telefono
-            )
-        `)
-        .gte('fecha_inicio', startDate.toISOString())
-        .lte('fecha_inicio', endDate.toISOString())
-        .order('fecha_inicio', { ascending: true });
+        .select('*')
+        .eq('taller_id', tallerId)
+        .gte('fecha_hora', startDate.toISOString())
+        .lte('fecha_hora', endDate.toISOString())
+        .order('fecha_hora', { ascending: true });
 
     if (error) {
         console.error('Error al obtener citas de la semana:', error);
         return [];
     }
 
-    return data || [];
-    */
+    return (data || []).map(row => {
+        const partes = (row.motivo || '').split(' - ');
+        return {
+            ...row,
+            fecha_inicio: row.fecha_hora,
+            fecha: row.fecha_hora,
+            titulo: partes[0] || 'Cita',
+            servicio_solicitado: partes.slice(1).join(' - ') || '',
+        };
+    }) as any;
 }
 
 export async function crearCita(cita: any): Promise<CitaDB | null> {

@@ -9,29 +9,12 @@ import { ClientProviders } from '@/components/client-providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Taller Mecánico - Sistema de Gestión',
-  description: 'Sistema de gestión de órdenes de trabajo para taller mecánico',
-  applicationName: 'Taller App',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'Taller App',
+  title: {
+    template: '%s | Flusize',
+    default: 'Flusize - El Sistema Operativo del Taller del Futuro',
   },
-  formatDetection: {
-    telephone: false,
-  },
-  manifest: '/manifest.json',
-  icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
-  },
-}
+  description: 'Gestiona órdenes, fideliza clientes con el Link Mágico y toma el control total de tu taller automotriz con Flusize.',
+};
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -49,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href="/site.webmanifest" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

@@ -83,7 +83,8 @@ export default function AgendaPage() {
     const { data: citas = [] } = useQuery({
         queryKey: ['citas', weekBounds.start.toISOString(), weekBounds.end.toISOString()],
         queryFn: () => obtenerCitasSemana(weekBounds.start, weekBounds.end),
-        staleTime: 0,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 15 * 60 * 1000,
     });
 
     const goToPreviousWeek = () => {

@@ -1,0 +1,8 @@
+﻿1. Get Perfiles
+2. Get Auth Users
+------------------- USERS -------------------
+[]
+---------------------------------------------
+3. Execute Migration via RPC
+Migration result code: 404
+Migration response: {"code":"PGRST202","details":"Searched for the function public.exec_sql with parameter sql_string or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.","hint":null,"message":"Could not find the function public.exec_sql(sql_string) in the schema cache"}

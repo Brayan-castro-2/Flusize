@@ -55,7 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' && session?.user) {
                 await fetchAndSetUser(session.user);
-                router.push('/validando-sesion'); // Forzar lectura de cookie en middleware
+                if (window.location.pathname === '/login' || window.location.pathname === '/') {
+                    router.push('/admin/ordenes');
+                }
             } else if (event === 'SIGNED_OUT') {
                 setUser(null);
                 router.push('/login');
