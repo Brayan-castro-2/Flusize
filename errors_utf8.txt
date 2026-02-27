@@ -1,0 +1,7 @@
+﻿app/super-admin/TallerForm.tsx(18,40): error TS2554: Expected 1 arguments, but got 2.
+app/super-admin/TallerForm.tsx(23,44): error TS2554: Expected 1 arguments, but got 2.
+app/tracking/[orden_id]/page.tsx(766,41): error TS2339: Property 'user_metadata' does not exist on type 'AuthUser'.
+app/tracking/[orden_id]/page.tsx(766,72): error TS2339: Property 'user_metadata' does not exist on type 'AuthUser'.
+temp-get-users.ts(2,25): error TS2307: Cannot find module 'dotenv' or its corresponding type declarations.
+temp-get-users.ts(26,53): error TS18046: 'e' is of type 'unknown'.
+temp-migrate.ts(2,25): error TS2307: Cannot find module 'dotenv' or its corresponding type declarations.

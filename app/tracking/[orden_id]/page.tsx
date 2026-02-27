@@ -763,7 +763,7 @@ export default function TrackingPage() {
                     <UpsellCard
                         trackingId={data.id}
                         isLoggedIn={!!user}
-                        userName={user?.user_metadata?.nombre || user?.user_metadata?.name || null}
+                        userName={(user as any)?.user_metadata?.nombre || (user as any)?.user_metadata?.name || null}
                     />
                 </div>
 

@@ -36,7 +36,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Gestión Taller" />
+        <meta name="apple-mobile-web-app-title" content="Flusize" />
       </head>
       <body className={`${inter.className} overflow-x-hidden`}>
         <ClientProviders>

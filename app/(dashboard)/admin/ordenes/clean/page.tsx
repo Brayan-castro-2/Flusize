@@ -198,7 +198,7 @@ export default function DetalleOrdenPage() {
     const handleGuardarTodo = async () => {
         if (!order) return;
 
-        if (!['taller_admin', 'admin', 'superadmin'].includes(user?.role || '')) {
+        if (!['taller_admin', 'superadmin'].includes(user?.role || '')) {
             alert('No tienes permisos para editar esta orden de forma avanzada.');
             return;
         }
@@ -288,7 +288,7 @@ export default function DetalleOrdenPage() {
         );
     }
 
-    const isAdmin = ['taller_admin', 'admin', 'superadmin'].includes(user?.role || '');
+    const isAdmin = ['taller_admin', 'superadmin'].includes(user?.role || '');
 
     return (
         <div className="space-y-6 max-w-3xl mx-auto pb-12">
@@ -359,10 +359,10 @@ export default function DetalleOrdenPage() {
                                         <SelectTrigger className="bg-white border-slate-300 text-slate-900 rounded-xl">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-white border-slate-200">
-                                            <SelectItem value="pendiente" className="text-slate-700">Pendiente</SelectItem>
-                                            <SelectItem value="completada" className="text-slate-700">Completada</SelectItem>
-                                            <SelectItem value="debe" className="text-slate-700">Debe</SelectItem>
+                                        <SelectContent className="bg-white border-slate-200 shadow-xl">
+                                            <SelectItem value="pendiente" className="text-slate-900 cursor-pointer focus:bg-slate-100">Pendiente</SelectItem>
+                                            <SelectItem value="completada" className="text-slate-900 cursor-pointer focus:bg-slate-100">Completada</SelectItem>
+                                            <SelectItem value="debe" className="text-slate-900 cursor-pointer focus:bg-slate-100">Debe</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -372,10 +372,10 @@ export default function DetalleOrdenPage() {
                                         <SelectTrigger className="bg-white border-slate-300 text-slate-900 rounded-xl">
                                             <SelectValue placeholder="Sin asignar" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-white border-slate-200">
-                                            <SelectItem value="none" className="text-slate-500">Sin asignar</SelectItem>
+                                        <SelectContent className="bg-white border-slate-200 shadow-xl">
+                                            <SelectItem value="none" className="text-slate-500 cursor-pointer focus:bg-slate-100">Sin asignar</SelectItem>
                                             {perfiles.map((perfil) => (
-                                                <SelectItem key={perfil.id} value={perfil.id} className="text-slate-700">
+                                                <SelectItem key={perfil.id} value={perfil.id} className="text-slate-900 cursor-pointer focus:bg-slate-100">
                                                     {perfil.nombre_completo}
                                                 </SelectItem>
                                             ))}
@@ -561,12 +561,12 @@ export default function DetalleOrdenPage() {
                                                 <SelectTrigger className="w-[150px] bg-slate-50 border-slate-200 text-slate-800 rounded-lg">
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-white">
-                                                    <SelectItem value="efectivo">Efectivo</SelectItem>
-                                                    <SelectItem value="debito">Débito</SelectItem>
-                                                    <SelectItem value="credito">Crédito</SelectItem>
-                                                    <SelectItem value="transferencia">Transferencia</SelectItem>
-                                                    <SelectItem value="debe">Debe (Deuda)</SelectItem>
+                                                <SelectContent className="bg-white border-slate-200 shadow-xl">
+                                                    <SelectItem value="efectivo" className="text-slate-900 cursor-pointer focus:bg-slate-100">Efectivo</SelectItem>
+                                                    <SelectItem value="debito" className="text-slate-900 cursor-pointer focus:bg-slate-100">Débito</SelectItem>
+                                                    <SelectItem value="credito" className="text-slate-900 cursor-pointer focus:bg-slate-100">Crédito</SelectItem>
+                                                    <SelectItem value="transferencia" className="text-slate-900 cursor-pointer focus:bg-slate-100">Transferencia</SelectItem>
+                                                    <SelectItem value="debe" className="text-slate-900 cursor-pointer focus:bg-slate-100">Debe (Deuda)</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <Input

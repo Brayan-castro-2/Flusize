@@ -195,7 +195,18 @@
 input,
 textarea,
 select {
+  border-color: #e2e8f0 !important; /* Lighter border for light mode forms */
+  color: #0f172a !important; /* Force dark text for visibility on light backgrounds */
+  background-color: #ffffff;
+}
+
+/* Permitir override explicito en dark mode si existe la clase */
+.dark input, 
+.dark textarea, 
+.dark select {
   border-color: #333333 !important;
+  color: #f8fafc !important;
+  background-color: transparent;
 }
 
 input:focus,

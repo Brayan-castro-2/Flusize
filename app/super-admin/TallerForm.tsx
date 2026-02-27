@@ -15,15 +15,9 @@ export function TallerForm() {
         try {
             const res = await crearTallerAction(formData);
             if (res.error) {
-                sileo.error(res.error, {
-                    timeout: 5000,
-                    position: 'top-center'
-                });
+                (sileo as any).error(res.error, { timeout: 5000, position: 'top-center' });
             } else if (res.success) {
-                sileo.success(res.message, {
-                    timeout: 5000,
-                    position: 'top-center'
-                });
+                (sileo as any).success(res.message, { timeout: 5000, position: 'top-center' });
 
                 // Clear the form
                 const formElement = document.getElementById('taller-form') as HTMLFormElement;

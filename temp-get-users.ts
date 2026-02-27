@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+// @ts-ignore
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -22,7 +23,7 @@ async function run() {
             console.log("--- AUTH USERS ---");
             const targetsAuth = users.filter(u => targets.some(t => t.id === u.id));
             console.log(targetsAuth.map(u => ({ email: u.email, nombre: targets.find(t => t.id === u.id)?.nombre_completo, rol: targets.find(t => t.id === u.id)?.rol })));
-        } catch (e) {
+        } catch (e: any) {
             console.log("Could not use auth.admin", e.message);
         }
     }
