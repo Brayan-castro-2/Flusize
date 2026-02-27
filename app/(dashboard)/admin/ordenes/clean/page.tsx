@@ -15,6 +15,7 @@ import {
     type VehiculoDB,
     type PerfilDB
 } from '@/lib/storage-adapter';
+import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions';
 import { useUpdateOrder } from '@/hooks/use-orders';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,7 +54,7 @@ export default function DetalleOrdenPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [showChecklistModal, setShowChecklistModal] = useState(false);
-    const [checklistMode, setChecklistMode] = useState<'checklist' | 'salida'>('checklist');
+    const [checklistMode, setChecklistMode] = useState<'checklist' | 'salida' | 'readonly_ingreso'>('checklist');
     const [checklistData, setChecklistData] = useState<any>(null);
     const [isLoadingChecklist, setIsLoadingChecklist] = useState(false);
 
@@ -707,89 +708,25 @@ export default function DetalleOrdenPage() {
                 </Card>
             </div>
 
-            {/* ── BARRA DE ACCIONES FLOTANTE (Flujo de Trabajo Dinámico) ── */}
-            <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-8px_30px_rgb(0,0,0,0.12)]">
-                <div className="max-w-3xl mx-auto">
-                    <div className="flex items-center justify-center gap-1 mb-2">
-                        <div className="h-[2px] w-4 bg-blue-500 rounded-full"></div>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Flujo de Trabajo Quick-Action</p>
-                        <div className="h-[2px] w-4 bg-blue-500 rounded-full"></div>
+            {/* ── BARRA DE ACCIONES FLOTANTE (REUTILIZADA DE LISTA DE ÓRDENES) ── */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-8px_30px_rgb(0,0,0,0.12)]">
+                <div className="max-w-3xl mx-auto flex flex-col items-center">
+                    <div className="flex items-center justify-center gap-1 mb-3">
+                        <div className="h-[1px] w-8 bg-slate-300"></div>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] px-2">Workflow Original</p>
+                        <div className="h-[1px] w-8 bg-slate-300"></div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3">
-                        {/* Botón 1: Checklist Ingreso o Link Tracking */}
-                        {!checklistData ? (
-                            <button
-                                type="button"
-                                onClick={() => { setChecklistMode('checklist'); setShowChecklistModal(true); }}
-                                className="flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl bg-white hover:bg-slate-50 border-2 border-slate-200 transition-all shadow-sm active:scale-95 group"
-                            >
-                                <Plus className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                                <span className="text-[10px] font-bold text-slate-700">Checklist Ingreso</span>
-                            </button>
-                        ) : (
-                            <Link
-                                href={`/tracking/${order.id}`}
-                                target="_blank"
-                                className="flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 transition-all shadow-sm active:scale-95 group"
-                            >
-                                <ClipboardCheck className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                                <span className="text-[10px] font-bold text-blue-700">Ver Tracking</span>
-                            </Link>
-                        )}
-
-                        {/* Botón 2: Empezar Reparación (Solo si está Pendiente y hay checklist revisado o forzado) */}
-                        {order.estado === 'pendiente' ? (
-                            <button
-                                type="button"
-                                onClick={() => handleCambiarEstado('en_proceso')}
-                                disabled={isSaving}
-                                className={`flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl border-2 transition-all shadow-sm active:scale-95 animate-pulse-subtle bg-blue-600 hover:bg-blue-700 border-blue-700 text-white`}
-                            >
-                                <Play className="w-5 h-5" />
-                                <span className="text-[10px] font-bold">Empezar Reparación</span>
-                            </button>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl bg-slate-100 border-2 border-slate-200 opacity-60">
-                                <Play className="w-5 h-5 text-slate-400" />
-                                <span className="text-[10px] font-bold text-slate-500">
-                                    {order.estado === 'en_proceso' ? 'Ya en Proceso' : 'Iniciado'}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Botón 3: Terminar Trabajo (Solo si está en_proceso) */}
-                        <button
-                            type="button"
-                            onClick={() => handleCambiarEstado('completada')}
-                            disabled={isSaving || order.estado !== 'en_proceso'}
-                            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl border-2 transition-all shadow-sm active:scale-95 ${order.estado === 'en_proceso'
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-700 text-white shadow-emerald-200/50'
-                                    : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
-                                }`}
-                        >
-                            <CheckCircle className="w-5 h-5" />
-                            <span className="text-[10px] font-bold">
-                                {['completada', 'entregada', 'debe'].includes(order.estado) ? 'Trabajo Listo' : 'Terminar Trabajo'}
-                            </span>
-                        </button>
-
-                        {/* Botón 4: Entregar (Abre checklist salida) */}
-                        <button
-                            type="button"
-                            onClick={() => { setChecklistMode('salida'); setShowChecklistModal(true); }}
-                            disabled={isSaving || order.estado === 'entregada'}
-                            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl border-2 transition-all shadow-sm active:scale-95 ${order.estado === 'entregada'
-                                    ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
-                                    : 'bg-purple-600 hover:bg-purple-700 border-purple-700 text-white shadow-purple-200/50'
-                                }`}
-                        >
-                            <Package className="w-5 h-5" />
-                            <span className="text-[10px] font-bold">
-                                {order.estado === 'entregada' ? 'Entregado' : 'Checklist Salida'}
-                            </span>
-                        </button>
-                    </div>
+                    <OrderWorkflowActions
+                        order={order}
+                        checklist={checklistData}
+                        onOpenChecklist={(id, mode) => {
+                            setChecklistMode(mode as any);
+                            setShowChecklistModal(true);
+                        }}
+                        onUpdateStatus={handleCambiarEstado}
+                        isLoading={isSaving || isLoadingChecklist}
+                    />
                 </div>
             </div>
 

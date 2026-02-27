@@ -76,6 +76,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 
 import Link from 'next/link';
+import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions';
 
 
 export default function OrdenesPage() {
@@ -1158,99 +1159,12 @@ export default function OrdenesPage() {
                                                                         </div>
                                                                     ) : (
                                                                         <div className="flex flex-col items-center justify-center gap-3">
-                                                                            {(() => {
-                                                                                const checklist = checklists[order.id];
-                                                                                // Logic: If NO checklist exists yet, create one (standard mode)
-                                                                                // If checklist exists, check 'revisado_por_mecanico_at'
-
-                                                                                if (!checklist) {
-                                                                                    // Case: No checklist created yet (Receptionist didn't do it?)
-                                                                                    // Mechanic or Admin can create it.
-                                                                                    return (
-                                                                                        <Button
-                                                                                            onClick={() => handleOpenChecklist(order.id, 'checklist')}
-                                                                                            className="bg-slate-800 hover:bg-slate-700 text-slate-300"
-                                                                                        >
-                                                                                            <Plus className="w-4 h-4 mr-2" />
-                                                                                            Crear Checklist Ingreso
-                                                                                        </Button>
-                                                                                    );
-                                                                                }
-
-                                                                                const isReviewed = !!checklist.revisado_por_mecanico_at;
-
-                                                                                const isSalidaConfirmed = !!checklist.confirmado_salida_en;
-
-                                                                                if (isReviewed) {
-                                                                                    // State 2: Informed -> Exit Checklist
-                                                                                    // ADDED: Logic to show 'Finish Work' if status is 'en_proceso'
-                                                                                    const isEnProceso = order.estado === 'en_proceso';
-                                                                                    // ADDED: Logic to show 'Start Work' if status is 'pendiente' (Fix for stuck orders)
-                                                                                    const isPendiente = order.estado === 'pendiente';
-
-                                                                                    return (
-                                                                                        <div className="text-center space-y-2">
-                                                                                            <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-1">
-                                                                                                <CheckCircle className="w-4 h-4" />
-                                                                                                {isSalidaConfirmed ? 'Salida Revisada' : 'Ingreso Revisado'}
-                                                                                            </div>
-
-                                                                                            {isPendiente && (
-                                                                                                <Button
-                                                                                                    onClick={(e) => {
-                                                                                                        e.stopPropagation();
-                                                                                                        handleUpdateStatus(order.id, 'en_proceso');
-                                                                                                    }}
-                                                                                                    className="bg-indigo-600 hover:bg-indigo-500 text-white w-full sm:w-auto mb-2 animate-pulse"
-                                                                                                >
-                                                                                                    🛠️ Empezar Reparación
-                                                                                                </Button>
-                                                                                            )}
-
-                                                                                            {isEnProceso && (
-                                                                                                <Button
-                                                                                                    onClick={(e) => {
-                                                                                                        e.stopPropagation();
-                                                                                                        handleUpdateStatus(order.id, 'completada');
-                                                                                                    }}
-                                                                                                    className="bg-blue-600 hover:bg-blue-500 text-white w-full sm:w-auto mb-2"
-                                                                                                >
-                                                                                                    🏁 Terminar Trabajo
-                                                                                                </Button>
-                                                                                            )}
-
-                                                                                            {/* Show Checklist Salida only if NOT en_proceso (so it shows after completion or before if needed, but mainly after) 
-                                                                                                Actually, usually you do checklist BEFORE completion or AFTER? 
-                                                                                                User said "trabajaremos con el boton terminar trabajo". 
-                                                                                                So let's show it only if Completada OR if it's not en_proceso to clean up UI. 
-                                                                                            */}
-                                                                                            {!isEnProceso && !isPendiente && (
-                                                                                                <Button
-                                                                                                    onClick={() => handleOpenChecklist(order.id, 'salida')}
-                                                                                                    className="bg-emerald-600 hover:bg-emerald-500 text-white w-full sm:w-auto"
-                                                                                                >
-                                                                                                    ✅ Checklist Salida / Entrega
-                                                                                                </Button>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    );
-                                                                                } else {
-                                                                                    // State 1: Blind -> Readonly Review
-                                                                                    return (
-                                                                                        <div className="text-center space-y-2">
-                                                                                            <div className="text-xs text-orange-400 mb-1">
-                                                                                                ⚠️ Confirmación Pendiente
-                                                                                            </div>
-                                                                                            <Button
-                                                                                                onClick={() => handleOpenChecklist(order.id, 'readonly_ingreso')}
-                                                                                                className="bg-blue-600 hover:bg-blue-500 text-white w-full sm:w-auto animate-pulse"
-                                                                                            >
-                                                                                                👁️ Ver Ingreso para Confirmar
-                                                                                            </Button>
-                                                                                        </div>
-                                                                                    );
-                                                                                }
-                                                                            })()}
+                                                                            <OrderWorkflowActions
+                                                                                order={order}
+                                                                                checklist={checklists[order.id]}
+                                                                                onOpenChecklist={handleOpenChecklist}
+                                                                                onUpdateStatus={handleUpdateStatus}
+                                                                            />
                                                                         </div>
                                                                     )}
                                                                 </div>
