@@ -10,6 +10,7 @@ import {
     buscarVehiculoPorPatente,
     obtenerOrdenPorId,
     obtenerPerfiles,
+    obtenerChecklist,
     type OrdenDB,
     type VehiculoDB,
     type PerfilDB
@@ -53,6 +54,8 @@ export default function DetalleOrdenPage() {
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [showChecklistModal, setShowChecklistModal] = useState(false);
     const [checklistMode, setChecklistMode] = useState<'checklist' | 'salida'>('checklist');
+    const [checklistData, setChecklistData] = useState<any>(null);
+    const [isLoadingChecklist, setIsLoadingChecklist] = useState(false);
 
     // Campos del formulario
     const [descripcion, setDescripcion] = useState('');
@@ -151,6 +154,25 @@ export default function DetalleOrdenPage() {
         setIsLoading(true);
         loadData();
     }, [orderIdParam]);
+
+    // NUEVO: Cargar checklist dinámicamente
+    useEffect(() => {
+        if (!orderIdParam) return;
+
+        const loadChecklist = async () => {
+            setIsLoadingChecklist(true);
+            try {
+                const data = await obtenerChecklist(String(orderIdParam));
+                setChecklistData(data);
+            } catch (err) {
+                console.error("Error cargando checklist:", err);
+            } finally {
+                setIsLoadingChecklist(false);
+            }
+        };
+
+        loadChecklist();
+    }, [orderIdParam, showChecklistModal, estado]); // Recargar si se cierra el modal o cambia el estado
 
     // Calcular Subtotal e IVA dinámicamente
     useEffect(() => {
@@ -259,6 +281,11 @@ export default function DetalleOrdenPage() {
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 2500);
 
+            // Si es avanzado, nos aseguramos que precio_total sea subtotal + iva
+            if (isAvanzado) {
+                updateData.precio_total = subtotalAvanzado + ivaAvanzado;
+            }
+
             setOrder(prev => prev ? { ...prev, ...updateData } : null);
             if (updateData.precio_total !== undefined) {
                 setPrecioFinal(formatPrecio(updateData.precio_total));
@@ -298,9 +325,18 @@ export default function DetalleOrdenPage() {
         if (!order) return;
         setIsSaving(true);
         try {
+            // Actualizar en base de datos
             await actualizarOrden(String(orderIdParam), { estado: nuevoEstado as any });
+
+            // Actualizar estados locales para UI inmediata
             setOrder(prev => prev ? { ...prev, estado: nuevoEstado as any } : null);
             setEstado(nuevoEstado);
+
+            // Si el estado es completada, nos aseguramos de invalidar la query de órdenes para que se vea el cambio en la lista
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+        } catch (error) {
+            console.error("Error cambiando estado:", error);
+            alert("Error al actualizar el estado de la orden.");
         } finally {
             setIsSaving(false);
         }
@@ -671,57 +707,87 @@ export default function DetalleOrdenPage() {
                 </Card>
             </div>
 
-            {/* ── BARRA DE ACCIONES FLOTANTE (Flujo de Trabajo) ── */}
-            <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-2xl">
+            {/* ── BARRA DE ACCIONES FLOTANTE (Flujo de Trabajo Dinámico) ── */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-8px_30px_rgb(0,0,0,0.12)]">
                 <div className="max-w-3xl mx-auto">
-                    <p className="text-[10px] text-slate-400 text-center mb-2 font-semibold uppercase tracking-wider">Flujo de Trabajo Rápido</p>
-                    <div className="grid grid-cols-4 gap-2">
-                        <button
-                            type="button"
-                            onClick={() => { setChecklistMode('checklist'); setShowChecklistModal(true); }}
-                            className="flex flex-col items-center gap-1 py-2 px-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all"
-                        >
-                            <ClipboardCheck className="w-5 h-5 text-blue-600" />
-                            <span className="text-[10px] font-semibold text-slate-600">Checklist</span>
-                        </button>
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                        <div className="h-[2px] w-4 bg-blue-500 rounded-full"></div>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Flujo de Trabajo Quick-Action</p>
+                        <div className="h-[2px] w-4 bg-blue-500 rounded-full"></div>
+                    </div>
 
-                        <button
-                            type="button"
-                            onClick={() => handleCambiarEstado('en_proceso')}
-                            disabled={isSaving || order.estado === 'en_proceso'}
-                            className={`flex flex-col items-center gap-1 py-2 px-1 rounded-xl border transition-all ${order.estado === 'en_proceso'
-                                ? 'bg-blue-100 border-blue-300 opacity-70 cursor-default'
-                                : 'bg-slate-100 hover:bg-blue-100 border-slate-200'
-                                }`}
-                        >
-                            <Play className="w-5 h-5 text-blue-600" />
-                            <span className="text-[10px] font-semibold text-slate-600">
-                                {order.estado === 'en_proceso' ? '✓ En Proceso' : 'Empezar'}
-                            </span>
-                        </button>
+                    <div className="grid grid-cols-4 gap-3">
+                        {/* Botón 1: Checklist Ingreso o Link Tracking */}
+                        {!checklistData ? (
+                            <button
+                                type="button"
+                                onClick={() => { setChecklistMode('checklist'); setShowChecklistModal(true); }}
+                                className="flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl bg-white hover:bg-slate-50 border-2 border-slate-200 transition-all shadow-sm active:scale-95 group"
+                            >
+                                <Plus className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-bold text-slate-700">Checklist Ingreso</span>
+                            </button>
+                        ) : (
+                            <Link
+                                href={`/tracking/${order.id}`}
+                                target="_blank"
+                                className="flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 transition-all shadow-sm active:scale-95 group"
+                            >
+                                <ClipboardCheck className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-bold text-blue-700">Ver Tracking</span>
+                            </Link>
+                        )}
 
+                        {/* Botón 2: Empezar Reparación (Solo si está Pendiente y hay checklist revisado o forzado) */}
+                        {order.estado === 'pendiente' ? (
+                            <button
+                                type="button"
+                                onClick={() => handleCambiarEstado('en_proceso')}
+                                disabled={isSaving}
+                                className={`flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl border-2 transition-all shadow-sm active:scale-95 animate-pulse-subtle bg-blue-600 hover:bg-blue-700 border-blue-700 text-white`}
+                            >
+                                <Play className="w-5 h-5" />
+                                <span className="text-[10px] font-bold">Empezar Reparación</span>
+                            </button>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl bg-slate-100 border-2 border-slate-200 opacity-60">
+                                <Play className="w-5 h-5 text-slate-400" />
+                                <span className="text-[10px] font-bold text-slate-500">
+                                    {order.estado === 'en_proceso' ? 'Ya en Proceso' : 'Iniciado'}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Botón 3: Terminar Trabajo (Solo si está en_proceso) */}
                         <button
                             type="button"
                             onClick={() => handleCambiarEstado('completada')}
-                            disabled={isSaving || ['completada', 'entregada'].includes(order.estado)}
-                            className={`flex flex-col items-center gap-1 py-2 px-1 rounded-xl border transition-all ${['completada', 'entregada'].includes(order.estado)
-                                ? 'bg-emerald-100 border-emerald-300 opacity-70 cursor-default'
-                                : 'bg-slate-100 hover:bg-emerald-100 border-slate-200'
+                            disabled={isSaving || order.estado !== 'en_proceso'}
+                            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl border-2 transition-all shadow-sm active:scale-95 ${order.estado === 'en_proceso'
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-700 text-white shadow-emerald-200/50'
+                                    : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
                                 }`}
                         >
-                            <CheckCircle className="w-5 h-5 text-emerald-600" />
-                            <span className="text-[10px] font-semibold text-slate-600">
-                                {['completada', 'entregada'].includes(order.estado) ? '✓ Listo' : 'Terminado'}
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="text-[10px] font-bold">
+                                {['completada', 'entregada', 'debe'].includes(order.estado) ? 'Trabajo Listo' : 'Terminar Trabajo'}
                             </span>
                         </button>
 
+                        {/* Botón 4: Entregar (Abre checklist salida) */}
                         <button
                             type="button"
                             onClick={() => { setChecklistMode('salida'); setShowChecklistModal(true); }}
-                            className="flex flex-col items-center gap-1 py-2 px-1 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-all"
+                            disabled={isSaving || order.estado === 'entregada'}
+                            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-2xl border-2 transition-all shadow-sm active:scale-95 ${order.estado === 'entregada'
+                                    ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                                    : 'bg-purple-600 hover:bg-purple-700 border-purple-700 text-white shadow-purple-200/50'
+                                }`}
                         >
-                            <Package className="w-5 h-5 text-purple-600" />
-                            <span className="text-[10px] font-semibold text-slate-600">Entregar</span>
+                            <Package className="w-5 h-5" />
+                            <span className="text-[10px] font-bold">
+                                {order.estado === 'entregada' ? 'Entregado' : 'Checklist Salida'}
+                            </span>
                         </button>
                     </div>
                 </div>
