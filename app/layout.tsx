@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | Flusize',
-    default: 'Flusize - El Sistema Operativo del Taller del Futuro',
+    template: '%s | flusize',
+    default: 'flusize',
   },
   description: 'Gestiona órdenes, fideliza clientes con el Link Mágico y toma el control total de tu taller automotriz con Flusize.',
 };
