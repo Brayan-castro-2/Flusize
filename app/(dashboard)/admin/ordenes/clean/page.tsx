@@ -202,7 +202,7 @@ export default function DetalleOrdenPage() {
     const handleGuardarTodo = async () => {
         if (!order) return;
 
-        if (!['taller_admin', 'superadmin'].includes(user?.role || '')) {
+        if (!['taller_admin', 'superadmin', 'admin'].includes((user as any)?.role || (user as any)?.rol || '')) {
             alert('No tienes permisos para editar esta orden de forma avanzada.');
             return;
         }
