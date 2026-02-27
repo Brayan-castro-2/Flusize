@@ -1,6 +1,6 @@
 {
-  "name": "Flusize",
-  "short_name": "Flusize",
+  "name": "flusize",
+  "short_name": "flusize",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
