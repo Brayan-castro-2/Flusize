@@ -75,9 +75,13 @@ export async function middleware(request: NextRequest) {
             if (perfil.rol === 'taller_admin' || perfil.rol === 'admin' || perfil.rol === 'superadmin' || perfil.rol === 'mecanico') {
                 url.pathname = '/admin/ordenes'
                 return NextResponse.redirect(url)
+            } else {
+                // Es rol cliente u otro
+                url.pathname = '/mi-garage'
+                return NextResponse.redirect(url)
             }
         } else {
-            // No existe en perfiles (admin taller), deducimos que es Cliente
+            // No existe en perfiles, deducimos que es Cliente
             url.pathname = '/mi-garage'
             return NextResponse.redirect(url)
         }
@@ -86,8 +90,8 @@ export async function middleware(request: NextRequest) {
     // 3. Usuario ya validado y en su zona correcta (o yendo a otra API, etc). 
     // OJO: Podríamos validar que un cliente no entre a /admin aquí.
     if (user && isAdminRoute) {
-        const { data: perfil } = await supabase.from('perfiles').select('id').eq('id', user.id).single()
-        if (!perfil) {
+        const { data: perfil } = await supabase.from('perfiles').select('rol').eq('id', user.id).single()
+        if (!perfil || !['taller_admin', 'admin', 'superadmin', 'mecanico'].includes(perfil.rol)) {
             // Un cliente tratando de hackear /admin
             url.pathname = '/mi-garage'
             return NextResponse.redirect(url)
@@ -96,8 +100,8 @@ export async function middleware(request: NextRequest) {
 
     if (user && isGarageRoute) {
         // Admin queriendo ver mi-garage (puede permitirse o redirigirse, por ahora lo permito o restrinjo)
-        const { data: perfil } = await supabase.from('perfiles').select('id').eq('id', user.id).single()
-        if (perfil) {
+        const { data: perfil } = await supabase.from('perfiles').select('rol').eq('id', user.id).single()
+        if (perfil && ['taller_admin', 'admin', 'superadmin', 'mecanico'].includes(perfil.rol)) {
             // Es admin/taller. No debería estar en garage de clientes
             url.pathname = '/admin/ordenes'
             return NextResponse.redirect(url)
