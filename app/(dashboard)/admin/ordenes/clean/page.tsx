@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -16,7 +16,9 @@ import {
     type PerfilDB
 } from '@/lib/storage-adapter';
 import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions';
+import ChecklistForm from '@/components/ordenes/checklist-form';
 import { useUpdateOrder } from '@/hooks/use-orders';
+import Link from 'next/link';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,10 +33,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, CheckCircle, Download, Loader2, Printer, Save, X, Plus, Play, ClipboardCheck, Package, Wrench } from 'lucide-react';
-import ChecklistForm from '@/components/ordenes/checklist-form';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import Link from 'next/link';
+import { ArrowLeft, CheckCircle, Download, Loader2, Printer, Save, X, Plus, Play, ClipboardCheck, Package, Wrench, ChevronRight } from 'lucide-react';
 
 export default function DetalleOrdenPage() {
     const router = useRouter();
@@ -53,10 +52,12 @@ export default function DetalleOrdenPage() {
     const [precioFinal, setPrecioFinal] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
-    const [showChecklistModal, setShowChecklistModal] = useState(false);
+    const [showChecklistSection, setShowChecklistSection] = useState(false);
     const [checklistMode, setChecklistMode] = useState<'checklist' | 'salida' | 'readonly_ingreso'>('checklist');
     const [checklistData, setChecklistData] = useState<any>(null);
     const [isLoadingChecklist, setIsLoadingChecklist] = useState(false);
+
+    const checklistRef = useRef<HTMLDivElement>(null);
 
     // Campos del formulario
     const [descripcion, setDescripcion] = useState('');
@@ -173,7 +174,15 @@ export default function DetalleOrdenPage() {
         };
 
         loadChecklist();
-    }, [orderIdParam, showChecklistModal, estado]); // Recargar si se cierra el modal o cambia el estado
+    }, [orderIdParam, showChecklistSection, estado]); // Recargar si se cambia el estado o se actualiza la sección
+
+    // Función para manejar el scroll al checklist
+    const scrollToChecklist = () => {
+        setShowChecklistSection(true);
+        setTimeout(() => {
+            checklistRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    };
 
     // Calcular Subtotal e IVA dinámicamente
     useEffect(() => {
@@ -722,7 +731,7 @@ export default function DetalleOrdenPage() {
                         checklist={checklistData}
                         onOpenChecklist={(id, mode) => {
                             setChecklistMode(mode as any);
-                            setShowChecklistModal(true);
+                            scrollToChecklist();
                         }}
                         onUpdateStatus={handleCambiarEstado}
                         isLoading={isSaving || isLoadingChecklist}
@@ -730,27 +739,54 @@ export default function DetalleOrdenPage() {
                 </div>
             </div>
 
-            {/* ── MODAL CHECKLIST ── */}
-            <Dialog open={showChecklistModal} onOpenChange={setShowChecklistModal}>
-                <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle className="text-white flex items-center gap-2">
-                            <Wrench className="w-5 h-5 text-blue-400" />
-                            {checklistMode === 'salida' ? 'Checklist Salida / Entrega' : 'Checklist de Ingreso'}
-                        </DialogTitle>
-                    </DialogHeader>
-                    {orderIdParam && (
-                        <ChecklistForm
-                            orderId={orderIdParam}
-                            mode={checklistMode}
-                            onClose={() => {
-                                setShowChecklistModal(false);
-                                if (checklistMode === 'salida') handleCambiarEstado('entregada');
-                            }}
-                        />
-                    )}
-                </DialogContent>
-            </Dialog>
+            {/* ── SECCIÓN DE CHECKLIST EMBEBIDA (Control de Calidad) ── */}
+            <div ref={checklistRef} className={`max-w-4xl mx-auto px-4 pb-32 transition-all duration-500 ${showChecklistSection ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none h-0 overflow-hidden mt-0'}`}>
+                <Card className="border-2 border-slate-200 shadow-xl overflow-hidden rounded-3xl bg-slate-900 text-white">
+                    <CardHeader className="bg-slate-800/80 border-b border-slate-700 p-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-600 rounded-xl">
+                                    <ClipboardCheck className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl">Control de Calidad y Registro</CardTitle>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                        {checklistMode === 'checklist' ? 'Registro de ingreso del vehículo' :
+                                            checklistMode === 'salida' ? 'Verificación de entrega y salida' :
+                                                'Visualización de registro de ingreso'}
+                                    </p>
+                                </div>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowChecklistSection(false)}
+                                className="text-slate-400 hover:text-white"
+                            >
+                                <ChevronRight className="w-5 h-5 rotate-90" />
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-6 md:p-8">
+                        {order && (
+                            <ChecklistForm
+                                orderId={String(order.id)}
+                                mode={checklistMode}
+                                initialData={checklistData}
+                                onClose={() => {
+                                    setShowChecklistSection(false);
+                                    // Refrescar datos
+                                    const loadChecklist = async () => {
+                                        const data = await obtenerChecklist(String(order.id));
+                                        setChecklistData(data);
+                                    };
+                                    loadChecklist();
+                                }}
+                            />
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </>
     );
 }

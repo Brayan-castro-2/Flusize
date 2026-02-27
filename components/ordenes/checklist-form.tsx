@@ -803,13 +803,15 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                 )}
 
                 <div className="flex gap-4">
-                    <Button
-                        variant="outline"
-                        className="flex-1 h-12 text-slate-400 border-slate-700 hover:bg-slate-800"
-                        onClick={onClose}
-                    >
-                        Cancelar
-                    </Button>
+                    {onClose && (
+                        <Button
+                            variant="outline"
+                            className="flex-1 h-12 text-slate-400 border-slate-700 hover:bg-slate-800"
+                            onClick={onClose}
+                        >
+                            Cancelar
+                        </Button>
+                    )}
                     <Button
                         className={`flex-1 h-12 text-lg font-semibold shadow-xl shadow-blue-900/20 pointer-events-auto ${!isFormValid ? 'opacity-50 cursor-not-allowed bg-slate-700 text-slate-400' : 'bg-blue-600 hover:bg-blue-500 text-white'
                             }`}
