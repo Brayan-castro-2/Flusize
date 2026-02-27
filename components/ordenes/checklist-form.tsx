@@ -45,17 +45,17 @@ const CustomSwitch = ({ checked, onCheckedChange, label, icon: Icon }: any) => (
     <div
         onClick={() => onCheckedChange(!checked)}
         className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all active:scale-95 ${checked
-            ? 'bg-blue-600/10 border-blue-500/50'
-            : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+            ? 'bg-blue-50 border-blue-500/50'
+            : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
             }`}
     >
         <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${checked ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+            <div className={`p-2 rounded-lg ${checked ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                 {Icon && <Icon className="w-5 h-5" />}
             </div>
-            <span className={`font-medium ${checked ? 'text-blue-100' : 'text-slate-300'}`}>{label}</span>
+            <span className={`font-medium ${checked ? 'text-blue-700' : 'text-slate-600'}`}>{label}</span>
         </div>
-        <div className={`w-12 h-7 rounded-full p-1 transition-colors ${checked ? 'bg-blue-600' : 'bg-slate-700'}`}>
+        <div className={`w-12 h-7 rounded-full p-1 transition-colors ${checked ? 'bg-blue-600' : 'bg-slate-200'}`}>
             <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
         </div>
     </div>
@@ -66,14 +66,14 @@ const CheckboxCard = ({ checked, onChange, label, sublabel }: any) => (
     <div
         onClick={() => onChange(!checked)}
         className={`relative p-4 rounded-xl border cursor-pointer transition-all ${checked
-            ? 'bg-emerald-500/10 border-emerald-500/50'
-            : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+            ? 'bg-emerald-50 border-emerald-500/50'
+            : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
             }`}
     >
         <div className="flex items-start justify-between">
             <div>
-                <p className={`font-medium ${checked ? 'text-emerald-100' : 'text-slate-200'}`}>{label}</p>
-                {sublabel && <p className="text-xs text-slate-500 mt-1">{sublabel}</p>}
+                <p className={`font-medium ${checked ? 'text-emerald-700' : 'text-slate-700'}`}>{label}</p>
+                {sublabel && <p className="text-xs text-slate-400 mt-1">{sublabel}</p>}
             </div>
             {checked ? (
                 <CheckCircle2 className="w-6 h-6 text-emerald-500" />
@@ -570,12 +570,12 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                         isUploadingSalida,
                         'salida'
                     )}
-                    <section className="bg-slate-900/50 p-5 rounded-xl border border-slate-800 mt-6">
-                        <Label className="text-slate-400 mb-2 block">Comentarios de Entrega</Label>
+                    <section className="bg-slate-100/50 p-5 rounded-xl border border-slate-200 mt-6">
+                        <Label className="text-slate-600 mb-2 block font-semibold">Comentarios de Entrega</Label>
                         <textarea
                             value={comentariosSalida}
                             onChange={(e) => setComentariosSalida(e.target.value)}
-                            className="w-full min-h-[100px] p-4 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-200"
+                            className="w-full min-h-[100px] p-4 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
                             placeholder="Observaciones finales al entregar el vehículo..."
                         />
                     </section>
@@ -594,30 +594,25 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
 
             {/* -- COMENTARIOS Y FOTOS ADICIONALES (Shared UI logic, mostly for ingreso but ok to show in normal mode) -- */}
             {mode === 'checklist' && (
-                <section className="bg-slate-900/50 p-5 rounded-xl border border-slate-800">
+                <section className="bg-slate-100/50 p-5 rounded-xl border border-slate-200">
                     <div className="flex items-center gap-2 mb-4">
-                        <FileText className="w-5 h-5 text-blue-400" />
-                        <h3 className="font-semibold text-slate-200">Notas Adicionales</h3>
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        <h3 className="font-semibold text-slate-700">Notas Adicionales</h3>
                     </div>
-                    {/* ... (Existing extra photos logic preserved implicitly if I don't overwrite it, 
-                    but I am replacing the whole return block, so I need to include it or simplify it) ... */}
-                    {/* Simplified for brevity in this replace block, assuming user wants functionality working */}
-                    <div className="space-y-6">
-                        <div>
-                            <Label className="text-slate-400 mb-2 block">Comentarios Generales</Label>
-                            <textarea
-                                value={comentarios}
-                                onChange={(e) => setComentarios(e.target.value)}
-                                className="w-full min-h-[100px] p-4 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-200"
-                            />
-                        </div>
+                    <textarea
+                        value={comentarios}
+                        onChange={(e) => setComentarios(e.target.value)}
+                        className="w-full min-h-[120px] p-4 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+                        placeholder="Escribe notas sobre el estado general de ingreso..."
+                    />
+                    <div className="space-y-6 mt-6">
 
                         <div>
-                            <Label className="text-slate-400 mb-2 block">Imágenes Adicionales con Notas</Label>
+                            <Label className="text-slate-600 mb-2 block font-semibold">Imágenes Adicionales con Notas</Label>
 
                             <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                                <label className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-600 bg-slate-800/50 px-4 py-3 font-medium text-slate-300 hover:bg-slate-700 hover:text-white cursor-pointer transition-all">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                <label className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 font-medium text-slate-500 hover:bg-slate-100 hover:text-blue-600 cursor-pointer transition-all">
+                                    <Camera className="w-5 h-5" />
                                     <span>Seleccionar imagen</span>
                                     <input
                                         type="file"
@@ -709,9 +704,9 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
             <div className="pt-4 flex flex-col gap-4">
                 {/* Omitir Checklist Option */}
                 {(mode === 'checklist' || mode === 'salida') && (
-                    <div className="flex items-center justify-between bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                    <div className="flex items-center justify-between bg-slate-100/80 p-4 rounded-xl border border-slate-200 shadow-sm">
                         <div className="flex items-center gap-3">
-                            <Shield className={`w-5 h-5 ${bypassMode ? 'text-red-400' : 'text-slate-400'}`} />
+                            <Shield className={`w-5 h-5 ${bypassMode ? 'text-red-500' : 'text-slate-400'}`} />
                             <div>
                                 <p className="text-sm font-medium text-slate-200">
                                     {bypassMode ? 'Modo: Omitir Checklist' : 'Omitir Checklist'}

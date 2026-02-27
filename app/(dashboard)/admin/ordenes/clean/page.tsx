@@ -173,8 +173,17 @@ export default function DetalleOrdenPage() {
             }
         };
 
-        loadChecklist();
-    }, [orderIdParam, showChecklistSection, estado]); // Recargar si se cambia el estado o se actualiza la sección
+        if (orderIdParam) {
+            loadChecklist();
+        }
+    }, [orderIdParam, estado]); // Recargar si cambia el ID o el estado
+
+    // Mostrar sección automáticamente si ya hay datos de checklist
+    useEffect(() => {
+        if (checklistData) {
+            setShowChecklistSection(true);
+        }
+    }, [checklistData]);
 
     // Función para manejar el scroll al checklist
     const scrollToChecklist = () => {
@@ -741,16 +750,16 @@ export default function DetalleOrdenPage() {
 
             {/* ── SECCIÓN DE CHECKLIST EMBEBIDA (Control de Calidad) ── */}
             <div ref={checklistRef} className={`max-w-4xl mx-auto px-4 pb-32 transition-all duration-500 ${showChecklistSection ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none h-0 overflow-hidden mt-0'}`}>
-                <Card className="border-2 border-slate-200 shadow-xl overflow-hidden rounded-3xl bg-slate-900 text-white">
-                    <CardHeader className="bg-slate-800/80 border-b border-slate-700 p-6">
+                <Card className="border-2 border-slate-200 shadow-xl overflow-hidden rounded-3xl bg-white text-slate-900">
+                    <CardHeader className="bg-slate-50 border-b border-slate-100 p-6">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-blue-600 rounded-xl">
                                     <ClipboardCheck className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-xl">Control de Calidad y Registro</CardTitle>
-                                    <p className="text-xs text-slate-400 mt-1">
+                                    <CardTitle className="text-xl text-slate-900">Control de Calidad y Registro</CardTitle>
+                                    <p className="text-xs text-slate-500 mt-1">
                                         {checklistMode === 'checklist' ? 'Registro de ingreso del vehículo' :
                                             checklistMode === 'salida' ? 'Verificación de entrega y salida' :
                                                 'Visualización de registro de ingreso'}
