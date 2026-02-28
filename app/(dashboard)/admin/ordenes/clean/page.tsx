@@ -1,51 +1,72 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/auth-context';
-
-import {
-    actualizarOrden,
-    buscarVehiculoPorPatente,
-    obtenerOrdenPorId,
-    obtenerPerfiles,
-    obtenerChecklist,
-    type OrdenDB,
-    type VehiculoDB,
-    type PerfilDB
-} from '@/lib/storage-adapter';
-import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions';
-import ChecklistForm from '@/components/ordenes/checklist-form';
-import { useUpdateOrder } from '@/hooks/use-orders';
-import Link from 'next/link';
-
+import { useEffect, useState, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    ArrowLeft,
+    Save,
+    Loader2,
+    CheckCircle,
+    Printer,
+    Download,
+    Plus,
+    X,
+    ClipboardCheck,
+    ChevronRight
+} from 'lucide-react';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
+    SelectValue
 } from '@/components/ui/select';
-import { ArrowLeft, CheckCircle, Download, Loader2, Printer, Save, X, Plus, Play, ClipboardCheck, Package, Wrench, ChevronRight } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/auth-context';
+import type { OrderDB, VehiculoDB, PerfilDB } from '@/types/database';
+import Link from 'next/link';
+import ChecklistForm from '@/components/ordenes/checklist-form';
+import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions';
 
-export default function DetalleOrdenPage() {
-    const router = useRouter();
+const obtenerOrdenPorId = async (id: string) => {
+    const { data } = await supabase.from('ordenes').select('*').eq('id', id).single();
+    return data;
+};
+
+const actualizarOrden = async (id: string, payload: any) => {
+    const { data, error } = await supabase.from('ordenes').update(payload).eq('id', id);
+    if (error) throw error;
+    return data;
+};
+
+const buscarVehiculoPorPatente = async (patente: string) => {
+    const { data } = await supabase.from('vehiculos').select('*').eq('patente', patente).single();
+    return data;
+};
+
+const obtenerPerfiles = async () => {
+    const { data } = await supabase.from('perfiles').select('*');
+    return data || [];
+};
+
+const obtenerChecklist = async (id: string) => {
+    const { data } = await supabase.from('listas_chequeo').select('*').eq('orden_id', id).single();
+    return data;
+};
+
+function OrderEditContent() {
     const searchParams = useSearchParams();
-    const queryClient = useQueryClient();
-    const { user, isLoading: authLoading } = useAuth();
-    const updateOrder = useUpdateOrder();
+    const router = useRouter();
+    const { user, loading: authLoading } = useAuth();
+    const orderIdParam = searchParams?.get('id');
 
-    const orderIdParam = searchParams.get('id');
-    const orderId = Number(orderIdParam);
-
-    const [order, setOrder] = useState<OrdenDB | null>(null);
+    const [order, setOrder] = useState<OrderDB | null>(null);
     const [vehiculo, setVehiculo] = useState<VehiculoDB | null>(null);
     const [perfiles, setPerfiles] = useState<PerfilDB[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -157,7 +178,7 @@ export default function DetalleOrdenPage() {
         loadData();
     }, [orderIdParam]);
 
-    // NUEVO: Cargar checklist dinámicamente
+    // Cargar checklist dinámicamente
     useEffect(() => {
         if (!orderIdParam) return;
 
@@ -176,7 +197,7 @@ export default function DetalleOrdenPage() {
         if (orderIdParam) {
             loadChecklist();
         }
-    }, [orderIdParam, estado]); // Recargar si cambia el ID o el estado
+    }, [orderIdParam, estado]);
 
     // Mostrar sección automáticamente si ya hay datos de checklist
     useEffect(() => {
@@ -214,19 +235,16 @@ export default function DetalleOrdenPage() {
         window.open(`/print/ticket/${orderIdParam}`, '_blank');
     };
 
-    // Generación de PDF en el cliente (Placeholder original, referenciando a nueva lógica si es necesario, pero mantenemos el nativo pedido)
     const handleDownloadPDF = async () => {
         if (!order) return;
         try {
             const { generateOrderPDF } = await import('@/lib/pdf-generator');
-
-            // Adapt the local 'vehiculo' state perfectly to the 'vehicle' argument 
             const vehicleArg = vehiculo || undefined;
 
             await generateOrderPDF({
                 order,
                 vehicle: vehicleArg,
-                checklist: null, // Si no se carga el checklist en base, mandamos null
+                checklist: null,
                 companyInfo: {
                     name: "TALLER MECÁNICO",
                     address: "Av. Principal 123",
@@ -243,7 +261,7 @@ export default function DetalleOrdenPage() {
     const handleGuardarTodo = async () => {
         if (!order) return;
 
-        if (!['taller_admin', 'superadmin', 'admin'].includes((user as any)?.role || (user as any)?.rol || '')) {
+        if (!['taller_admin', 'superadmin', 'admin', 'admin_local', 'dueño', 'owner'].includes((user as any)?.role || (user as any)?.rol || '')) {
             alert('No tienes permisos para editar esta orden de forma avanzada.');
             return;
         }
@@ -278,8 +296,6 @@ export default function DetalleOrdenPage() {
             descripcion_ingreso: descripcionActualizada,
             estado,
             precio_total: precio,
-            cliente_nombre: clienteNombre || null,
-            cliente_telefono: clienteTelefono || null,
             metodo_pago: metodoPagoText || null,
             metodos_pago: metodosPago.length > 0 ? metodosPago : null,
             asignado_a: asignadoA || null,
@@ -297,10 +313,10 @@ export default function DetalleOrdenPage() {
         }
 
         try {
+            await actualizarOrden(String(order.id), updateData);
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 2500);
 
-            // Si es avanzado, nos aseguramos que precio_total sea subtotal + iva
             if (isAvanzado) {
                 updateData.precio_total = subtotalAvanzado + ivaAvanzado;
             }
@@ -309,8 +325,6 @@ export default function DetalleOrdenPage() {
             if (updateData.precio_total !== undefined) {
                 setPrecioFinal(formatPrecio(updateData.precio_total));
             }
-
-            updateOrder.mutate({ id: order.id, updates: updateData });
         } catch (error) {
             console.error("Error guardando orden:", error);
             alert("Error al guardar los cambios.");
@@ -338,24 +352,17 @@ export default function DetalleOrdenPage() {
         );
     }
 
-    const isAdmin = ['taller_admin', 'superadmin', 'admin'].includes((user as any)?.role || (user as any)?.rol || '');
+    const isAdmin = ['taller_admin', 'superadmin', 'admin', 'admin_local', 'dueño', 'owner'].includes((user as any)?.role || (user as any)?.rol || '');
 
     const handleCambiarEstado = async (nuevoEstado: string) => {
         if (!order) return;
         setIsSaving(true);
         try {
-            // Actualizar en base de datos
             await actualizarOrden(String(orderIdParam), { estado: nuevoEstado as any });
-
-            // Actualizar estados locales para UI inmediata
-            setOrder(prev => prev ? { ...prev, estado: nuevoEstado as any } : null);
+            setOrder({ ...order, estado: nuevoEstado as any });
             setEstado(nuevoEstado);
-
-            // Si el estado es completada, nos aseguramos de invalidar la query de órdenes para que se vea el cambio en la lista
-            queryClient.invalidateQueries({ queryKey: ['orders'] });
         } catch (error) {
             console.error("Error cambiando estado:", error);
-            alert("Error al actualizar el estado de la orden.");
         } finally {
             setIsSaving(false);
         }
@@ -429,23 +436,24 @@ export default function DetalleOrdenPage() {
                                         <Label className="text-slate-700">Estado</Label>
                                         <Select value={estado} onValueChange={setEstado}>
                                             <SelectTrigger className="bg-white border-slate-300 text-slate-900 rounded-xl">
-                                                <SelectValue />
+                                                <SelectValue placeholder="Estado de la orden" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-white border-slate-200 shadow-xl">
-                                                <SelectItem value="pendiente" className="text-slate-900 cursor-pointer focus:bg-slate-100">Pendiente</SelectItem>
-                                                <SelectItem value="completada" className="text-slate-900 cursor-pointer focus:bg-slate-100">Completada</SelectItem>
-                                                <SelectItem value="debe" className="text-slate-900 cursor-pointer focus:bg-slate-100">Debe</SelectItem>
+                                            <SelectContent className="bg-white border-slate-200">
+                                                <SelectItem value="pendiente" className="text-slate-900 cursor-pointer focus:bg-slate-100 text-amber-600 font-medium">Pendiente</SelectItem>
+                                                <SelectItem value="en_revision" className="text-slate-900 cursor-pointer focus:bg-slate-100 text-blue-600 font-medium">En Revisión</SelectItem>
+                                                <SelectItem value="reparacion" className="text-slate-900 cursor-pointer focus:bg-slate-100 text-indigo-600 font-medium">En Reparación</SelectItem>
+                                                <SelectItem value="completada" className="text-slate-900 cursor-pointer focus:bg-slate-100 text-emerald-600 font-medium">Completada</SelectItem>
+                                                <SelectItem value="entregada" className="text-slate-900 cursor-pointer focus:bg-slate-100 text-slate-600 font-medium">Entregada</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700">Asignado a (Mecánico)</Label>
-                                        <Select value={asignadoA || 'none'} onValueChange={(v) => setAsignadoA(v === 'none' ? '' : v)}>
+                                        <Label className="text-slate-700">Mecánico Asignado</Label>
+                                        <Select value={asignadoA} onValueChange={setAsignadoA}>
                                             <SelectTrigger className="bg-white border-slate-300 text-slate-900 rounded-xl">
-                                                <SelectValue placeholder="Sin asignar" />
+                                                <SelectValue placeholder="Seleccionar mecánico" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-white border-slate-200 shadow-xl">
-                                                <SelectItem value="none" className="text-slate-500 cursor-pointer focus:bg-slate-100">Sin asignar</SelectItem>
+                                            <SelectContent className="bg-white border-slate-200">
                                                 {perfiles.map((perfil) => (
                                                     <SelectItem key={perfil.id} value={perfil.id} className="text-slate-900 cursor-pointer focus:bg-slate-100">
                                                         {perfil.nombre_completo}
@@ -494,8 +502,7 @@ export default function DetalleOrdenPage() {
                                     <Textarea value={detalleTrabajos} onChange={(e) => setDetalleTrabajos(e.target.value)} className="min-h-[120px] bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="Paso a paso de las reparaciones ejecutadas..." />
                                 </div>
 
-                                {/* COTIZADOR CAMALEÓN */}
-                                <div className="pt-6 border-t border-slate-200 mt-6 mt-8">
+                                <div className="pt-6 border-t border-slate-200 mt-6 md:mt-8">
                                     <div className="flex items-center justify-between mb-4">
                                         <div>
                                             <Label className="text-slate-900 text-lg font-bold">Resumen de Cobro y Finanzas</Label>
@@ -531,7 +538,7 @@ export default function DetalleOrdenPage() {
                                                 {cotizacionItems.map((item, idx) => (
                                                     <div key={idx} className="flex gap-2 items-center">
                                                         <Input
-                                                            placeholder="Descripción del ítem (ej. Mano de Obra, Repuesto XXX)"
+                                                            placeholder="Descripción del ítem"
                                                             value={item.descripcion}
                                                             onChange={(e) => {
                                                                 const newItems = [...cotizacionItems];
@@ -613,7 +620,6 @@ export default function DetalleOrdenPage() {
                                     )}
                                 </div>
 
-                                {/* Métodos de Pago */}
                                 <div className="space-y-4 pt-6 mt-4">
                                     <div className="flex items-center justify-between">
                                         <Label className="text-slate-800 font-semibold">Distribución de Pagos</Label>
@@ -668,7 +674,20 @@ export default function DetalleOrdenPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200">
+                                <div className="mt-8 mb-4 flex justify-center w-full">
+                                    <OrderWorkflowActions
+                                        order={order}
+                                        checklist={checklistData}
+                                        onOpenChecklist={(id, mode) => {
+                                            setChecklistMode(mode as any);
+                                            scrollToChecklist();
+                                        }}
+                                        onUpdateStatus={handleCambiarEstado}
+                                        isLoading={isSaving || isLoadingChecklist}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200 mt-6">
                                     <Link href="/admin/ordenes" className="w-full sm:w-auto">
                                         <Button variant="outline" className="w-full sm:w-auto border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl h-14 font-medium px-8 shadow-sm">
                                             <ArrowLeft className="w-4 h-4 mr-2" /> Volver sin guardar
@@ -703,6 +722,19 @@ export default function DetalleOrdenPage() {
                                         <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">{order.detalle_trabajos}</p>
                                     </div>
                                 )}
+
+                                <div className="mt-8 pt-6 border-t border-slate-100 flex justify-center w-full">
+                                    <OrderWorkflowActions
+                                        order={order}
+                                        checklist={checklistData}
+                                        onOpenChecklist={(id, mode) => {
+                                            setChecklistMode(mode as any);
+                                            scrollToChecklist();
+                                        }}
+                                        onUpdateStatus={handleCambiarEstado}
+                                        isLoading={isSaving || isLoadingChecklist}
+                                    />
+                                </div>
                             </div>
                         )}
 
@@ -726,29 +758,6 @@ export default function DetalleOrdenPage() {
                 </Card>
             </div>
 
-            {/* ── BARRA DE ACCIONES FLOTANTE (REUTILIZADA DE LISTA DE ÓRDENES) ── */}
-            <div className="fixed bottom-0 left-0 right-0 z-50 p-6 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-8px_30px_rgb(0,0,0,0.12)]">
-                <div className="max-w-3xl mx-auto flex flex-col items-center">
-                    <div className="flex items-center justify-center gap-1 mb-3">
-                        <div className="h-[1px] w-8 bg-slate-300"></div>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] px-2">Workflow Original</p>
-                        <div className="h-[1px] w-8 bg-slate-300"></div>
-                    </div>
-
-                    <OrderWorkflowActions
-                        order={order}
-                        checklist={checklistData}
-                        onOpenChecklist={(id, mode) => {
-                            setChecklistMode(mode as any);
-                            scrollToChecklist();
-                        }}
-                        onUpdateStatus={handleCambiarEstado}
-                        isLoading={isSaving || isLoadingChecklist}
-                    />
-                </div>
-            </div>
-
-            {/* ── SECCIÓN DE CHECKLIST EMBEBIDA (Control de Calidad) ── */}
             <div ref={checklistRef} className={`max-w-4xl mx-auto px-4 pb-32 transition-all duration-500 ${showChecklistSection ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none h-0 overflow-hidden mt-0'}`}>
                 <Card className="border-2 border-slate-200 shadow-xl overflow-hidden rounded-3xl bg-white text-slate-900">
                     <CardHeader className="bg-slate-50 border-b border-slate-100 p-6">
@@ -784,7 +793,6 @@ export default function DetalleOrdenPage() {
                                 initialData={checklistData}
                                 onClose={() => {
                                     setShowChecklistSection(false);
-                                    // Refrescar datos
                                     const loadChecklist = async () => {
                                         const data = await obtenerChecklist(String(order.id));
                                         setChecklistData(data);
@@ -797,5 +805,13 @@ export default function DetalleOrdenPage() {
                 </Card>
             </div>
         </>
+    );
+}
+
+export default function CleanOrderEditPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>}>
+            <OrderEditContent />
+        </Suspense>
     );
 }
