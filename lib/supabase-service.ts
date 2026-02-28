@@ -1130,41 +1130,67 @@ export async function crearCita(cita: any): Promise<CitaDB | null> {
     const tallerId = await getCurrentUserTallerId();
     if (!tallerId) return null;
 
-    console.log('📅 Creando cita (Smart Logic V3)...', cita);
+    console.log('📅 Creando cita (V4 Full Mapping)...', cita);
 
     let clienteId = cita.cliente_id;
-    let patenteNormalizada = cita.patente_vehiculo?.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const patenteNormalizada = cita.patente_vehiculo
+        ? cita.patente_vehiculo.toUpperCase().replace(/[^A-Z0-9]/g, '')
+        : null;
 
-    // 1. Buscar Cliente si no viene ID
+    // 1. Buscar/Crear Cliente si no viene ID
     if (!clienteId && cita.cliente_telefono) {
         const telefonoLimpio = cita.cliente_telefono.replace(/\D/g, '');
-        const telefono = telefonoLimpio.length > 0 ? `+569${telefonoLimpio.slice(-8)}` : '';
+        const telefono = telefonoLimpio.length > 0
+            ? `+569${telefonoLimpio.slice(-8)}`
+            : '';
 
         if (telefono) {
-            const existe = await buscarClientePorTelefono(telefono);
-            if (existe) {
-                clienteId = existe.id;
-            } else if (cita.cliente_nombre) {
-                const nuevo = await crearCliente({
-                    nombre_completo: cita.cliente_nombre,
-                    telefono: telefono,
-                    tipo: 'persona',
-                    taller_id: tallerId
-                } as any);
-                if (nuevo) clienteId = nuevo.id;
+            try {
+                const existe = await buscarClientePorTelefono(telefono);
+                if (existe) {
+                    clienteId = existe.id;
+                } else if (cita.cliente_nombre) {
+                    const nuevo = await crearCliente({
+                        nombre_completo: cita.cliente_nombre,
+                        telefono: telefono,
+                        tipo: 'persona',
+                        taller_id: tallerId
+                    } as any);
+                    if (nuevo) clienteId = nuevo.id;
+                }
+            } catch (e) {
+                console.warn('⚠️ No se pudo crear/buscar cliente:', e);
             }
         }
     }
 
-    // 2. Sanitize Payload for V3 Schema (Strict)
-    const dbPayload = {
+    // 2. Construir Payload completo mapeando todos los campos del modal
+    const dbPayload: Record<string, any> = {
         taller_id: tallerId,
-        fecha_hora: cita.fecha_hora || cita.fecha_inicio,
-        motivo: cita.motivo || cita.titulo,
         estado: cita.estado || 'pendiente',
-        patente_vehiculo: patenteNormalizada || null,
-        notas: cita.notas || null
     };
+
+    // Campos de fecha (múltiples formatos soportados)
+    if (cita.fecha_inicio) dbPayload.fecha_inicio = cita.fecha_inicio;
+    if (cita.fecha_fin) dbPayload.fecha_fin = cita.fecha_fin;
+    if (cita.fecha) dbPayload.fecha = cita.fecha;
+    // fecha_hora = alias de fecha_inicio para compatibilidad
+    dbPayload.fecha_hora = cita.fecha_hora || cita.fecha_inicio || cita.fecha || null;
+
+    // Campos del cliente / vehículo
+    if (patenteNormalizada) dbPayload.patente_vehiculo = patenteNormalizada;
+    if (cita.cliente_nombre) dbPayload.cliente_nombre = cita.cliente_nombre;
+    if (cita.cliente_telefono) dbPayload.cliente_telefono = cita.cliente_telefono;
+    if (clienteId) dbPayload.cliente_id = clienteId;
+
+    // Campos descriptivos
+    if (cita.titulo) dbPayload.titulo = cita.titulo;
+    if (cita.motivo) dbPayload.motivo = cita.motivo || cita.titulo;
+    if (cita.servicio_solicitado) dbPayload.servicio_solicitado = cita.servicio_solicitado;
+    if (cita.notas) dbPayload.notas = cita.notas;
+    if (cita.creado_por) dbPayload.creado_por = cita.creado_por;
+
+    console.log('📤 Payload cita a insertar:', dbPayload);
 
     const { data, error } = await supabase
         .from('citas')
@@ -1173,13 +1199,14 @@ export async function crearCita(cita: any): Promise<CitaDB | null> {
         .single();
 
     if (error) {
-        console.error('Error al crear cita:', error);
+        console.error('❌ Error al crear cita:', error);
         return null;
     }
 
-    // UI Feedback: Return constructed object
+    console.log('✅ Cita creada correctamente:', data.id);
     return data;
 }
+
 
 export async function actualizarCita(id: string, updates: any): Promise<CitaDB | null> {
     const dbPayload: any = {};
