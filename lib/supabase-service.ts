@@ -1181,7 +1181,7 @@ export async function crearCita(cita: any): Promise<CitaDB | null> {
     if (patenteNormalizada) dbPayload.patente_vehiculo = patenteNormalizada;
     if (cita.cliente_nombre) dbPayload.cliente_nombre = cita.cliente_nombre;
     if (cita.cliente_telefono) dbPayload.cliente_telefono = cita.cliente_telefono;
-    if (clienteId) dbPayload.cliente_id = clienteId;
+    // NOTA: cliente_id NO existe en la tabla citas — se omite del payload
 
     // Campos descriptivos
     if (cita.titulo) dbPayload.titulo = cita.titulo;
