@@ -387,16 +387,16 @@ function OrderEditContent() {
                     </div>
                     <div className="flex flex-wrap gap-2 w-full md:w-auto">
                         {isAdmin && (
-                            <Button onClick={handleTicket} variant="outline" className="flex-1 md:flex-none border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl">
+                            <Button onClick={handleTicket} variant="outline" className="flex-1 md:flex-none border-white/30 text-white hover:bg-white/10 rounded-xl">
                                 <Printer className="w-4 h-4 mr-2" />
                                 <span className="hidden sm:inline">Ticket</span>
                             </Button>
                         )}
-                        <Button onClick={handleDownloadPDF} variant="outline" className="flex-1 md:flex-none border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl">
+                        <Button onClick={handleDownloadPDF} variant="outline" className="flex-1 md:flex-none border-white/30 text-white hover:bg-white/10 rounded-xl">
                             <Download className="w-4 h-4 mr-2" />
                             <span className="hidden sm:inline">PDF</span>
                         </Button>
-                        <Button onClick={handlePrint} variant="outline" className="flex-1 md:flex-none border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl">
+                        <Button onClick={handlePrint} variant="outline" className="flex-1 md:flex-none border-white/30 text-white hover:bg-white/10 rounded-xl">
                             <Printer className="w-4 h-4 mr-2" />
                             <span className="hidden sm:inline">Imprimir</span>
                         </Button>
@@ -693,7 +693,7 @@ function OrderEditContent() {
 
                                 <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200 mt-6">
                                     <Link href="/admin/ordenes" className="w-full sm:w-auto">
-                                        <Button variant="outline" className="w-full sm:w-auto border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl h-14 font-medium px-8 shadow-sm">
+                                        <Button variant="outline" className="w-full sm:w-auto border-slate-400 text-white hover:bg-slate-700 rounded-xl h-14 font-medium px-8 shadow-sm">
                                             <ArrowLeft className="w-4 h-4 mr-2" /> Volver sin guardar
                                         </Button>
                                     </Link>
