@@ -238,7 +238,7 @@ function MobileOrderCard({
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="w-full h-9 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700 text-xs"
+                                    className="w-full h-9 bg-white/10 border border-white/20 text-white hover:bg-white/20 text-xs rounded-lg"
                                 >
                                     <Eye className="w-3.5 h-3.5 mr-1.5" />
                                     Ver Tracking
@@ -247,7 +247,7 @@ function MobileOrderCard({
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="w-full h-9 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700 text-xs"
+                                className="w-full h-9 bg-white/10 border border-white/20 text-white hover:bg-white/20 text-xs rounded-lg"
                                 onClick={e => { e.stopPropagation(); onPrintOrder(order); }}
                             >
                                 <Printer className="w-3.5 h-3.5 mr-1.5" />

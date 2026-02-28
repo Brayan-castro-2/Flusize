@@ -10,7 +10,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, WifiOff } from 'lucide-react';
+import { LogOut, WifiOff, Menu } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export function Header() {
@@ -70,8 +70,17 @@ export function Header() {
     return (
         <header className="fixed top-0 left-0 z-[50] h-20 bg-gradient-to-r from-blue-500 to-cyan-400 shadow-xl w-full">
             <div className="h-full px-6 flex items-center justify-between max-w-7xl mx-auto">
-                {/* Logo FLUSIZE */}
-                <div className="flex items-center gap-4">
+                {/* Left: Hamburger (mobile) + Logo */}
+                <div className="flex items-center gap-3">
+                    {/* Hamburger button — mobile only */}
+                    <button
+                        className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all text-white"
+                        aria-label="Abrir menú"
+                        onClick={() => window.dispatchEvent(new CustomEvent('toggle-mobile-nav'))}
+                    >
+                        <Menu className="w-5 h-5" />
+                    </button>
+
                     {/* Indicador de modo offline */}
                     {isOffline && (
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg">
@@ -84,8 +93,8 @@ export function Header() {
                     <div className="flex items-center gap-2">
                         <img src="/logo_flusize.png" alt="Flusize" className="w-10 h-10 object-contain bg-white rounded-lg p-1 shadow-sm" />
                         <div className="flex flex-col leading-none">
-                            <span className="font-extrabold text-2xl tracking-wide text-white">FLUSIZE</span>
-                            <span className="text-[0.6rem] font-medium text-blue-100 tracking-wider uppercase">Orden y Control</span>
+                            <span className="font-extrabold text-2xl tracking-wide text-white hidden sm:block">FLUSIZE</span>
+                            <span className="text-[0.6rem] font-medium text-blue-100 tracking-wider uppercase hidden sm:block">Orden y Control</span>
                         </div>
                     </div>
                 </div>

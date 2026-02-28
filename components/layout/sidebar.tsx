@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useTransition, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
@@ -10,9 +10,8 @@ import {
     LayoutDashboard,
     Users,
     FileText,
-
     Calendar,
-    Database
+    X,
 } from 'lucide-react';
 import { NewBadge } from '@/components/ui/new-badge';
 import { FEATURE_FLAGS } from '@/config/modules';
@@ -69,8 +68,21 @@ const navItems: NavItem[] = [
 export function Sidebar() {
     const { user } = useAuth();
     const pathname = usePathname();
-    const router = useRouter(); // Import needed
-    const [isPending, startTransition] = useTransition(); // Import needed
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+    const [drawerOpen, setDrawerOpen] = useState(false);
+
+    // Listen for toggle events dispatched by the Header hamburger button
+    useEffect(() => {
+        const handler = () => setDrawerOpen(prev => !prev);
+        window.addEventListener('toggle-mobile-nav', handler);
+        return () => window.removeEventListener('toggle-mobile-nav', handler);
+    }, []);
+
+    // Close drawer on route change
+    useEffect(() => {
+        setDrawerOpen(false);
+    }, [pathname]);
 
     if (!user) return null;
 
@@ -78,6 +90,7 @@ export function Sidebar() {
 
     const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
         e.preventDefault();
+        setDrawerOpen(false);
         startTransition(() => {
             router.push(href);
         });
@@ -85,7 +98,7 @@ export function Sidebar() {
 
     return (
         <>
-            {/* Desktop Sidebar */}
+            {/* ── Desktop Sidebar ─────────────────────────────────── */}
             <aside className="hidden md:flex fixed left-0 top-20 bottom-0 w-64 bg-white border-r border-gray-200 flex-col shadow-lg z-40">
                 {isPending && (
                     <div className="absolute top-0 left-0 right-0 h-1 bg-blue-100 overflow-hidden">
@@ -126,45 +139,79 @@ export function Sidebar() {
                 </div>
             </aside>
 
-            {/* Mobile Bottom Navigation - Para admin y superadmin */}
-            {(user.role === 'taller_admin' || user.role === 'superadmin' || user.role === 'admin') && (
-                <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-lg border-t border-[#333333] safe-area-inset-bottom overflow-x-hidden">
-                    {isPending && (
-                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gray-800 overflow-hidden">
-                            <div className="h-full bg-blue-500 animate-[loading_1s_ease-in-out_infinite]"></div>
-                        </div>
-                    )}
-                    <div className="flex items-center justify-around py-2 px-1 w-full">
-                        {filteredItems.map((item) => {
-                            const isActive = pathname === item.href ||
-                                (item.href !== '/admin' && item.href !== '/recepcion' && pathname.startsWith(item.href));
+            {/* ── Mobile Drawer ────────────────────────────────────── */}
+            {/* Overlay backdrop */}
+            <div
+                className={cn(
+                    "md:hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm transition-opacity duration-300",
+                    drawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                )}
+                onClick={() => setDrawerOpen(false)}
+                aria-hidden="true"
+            />
 
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    onClick={(e) => handleNavigation(e, item.href)}
-                                    className={cn(
-                                        "flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-150 flex-1 max-w-[80px] touch-target",
-                                        isActive
-                                            ? "bg-[#0066FF] text-white shadow-lg shadow-[#0066FF]/30"
-                                            : "text-gray-500 hover:text-gray-300 active:scale-95",
-                                        isPending && "opacity-70 pointer-events-none"
-                                    )}
-                                >
-                                    {item.icon}
-                                    <span className={cn(
-                                        "text-[9px] font-medium mt-0.5 hidden sm:block truncate w-full text-center",
-                                        isActive ? "opacity-100" : "opacity-70"
-                                    )}>
-                                        {item.label}
-                                    </span>
-                                </Link>
-                            );
-                        })}
+            {/* Drawer panel */}
+            <div
+                className={cn(
+                    "md:hidden fixed top-0 left-0 bottom-0 z-[70] w-72 bg-[#0a0a0a] border-r border-[#222] shadow-2xl flex flex-col transition-transform duration-300 ease-in-out",
+                    drawerOpen ? "translate-x-0" : "-translate-x-full"
+                )}
+            >
+                {/* Drawer header */}
+                <div className="flex items-center justify-between px-5 py-5 border-b border-[#222]">
+                    <div className="flex items-center gap-2">
+                        <img src="/logo_flusize.png" alt="Flusize" className="w-8 h-8 object-contain bg-white rounded-lg p-1" />
+                        <span className="font-extrabold text-xl tracking-wide text-white">FLUSIZE</span>
                     </div>
+                    <button
+                        onClick={() => setDrawerOpen(false)}
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                        aria-label="Cerrar menú"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* User info */}
+                {user && (
+                    <div className="px-5 py-4 border-b border-[#222]">
+                        <p className="text-sm font-semibold text-white">{user.name}</p>
+                        <p className="text-xs text-gray-400 capitalize">{user.role}</p>
+                    </div>
+                )}
+
+                {/* Nav links */}
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                    {filteredItems.map((item) => {
+                        const isActive = pathname === item.href ||
+                            (item.href !== '/admin' && item.href !== '/recepcion' && pathname.startsWith(item.href));
+
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={(e) => handleNavigation(e, item.href)}
+                                className={cn(
+                                    "flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-150",
+                                    isActive
+                                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
+                                        : "text-gray-400 hover:bg-white/10 hover:text-white",
+                                    isPending && "opacity-70 pointer-events-none"
+                                )}
+                            >
+                                {item.icon}
+                                <span className="font-medium text-sm">{item.label}</span>
+                                {item.showBadge && <NewBadge />}
+                            </Link>
+                        );
+                    })}
                 </nav>
-            )}
+
+                {/* Drawer footer */}
+                <div className="p-4 border-t border-[#222]">
+                    <p className="text-xs text-gray-600 text-center">Flusize v2.0</p>
+                </div>
+            </div>
         </>
     );
 }
