@@ -650,7 +650,10 @@ export default function TrackingPage() {
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
     const load = async () => {
-        if (!id) return;
+        if (!id) {
+            setLoading(false);
+            return;
+        }
         try {
             const d = await fetchTracking(id);
             if (!d) throw new Error('Orden no encontrada');

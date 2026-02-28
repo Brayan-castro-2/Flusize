@@ -97,6 +97,7 @@ function MobileOrderCard({
     onOpenChecklist,
     onUpdateStatus,
     onExpand,
+    onPrintOrder,
 }: {
     order: any;
     vehiculo: any;
@@ -114,6 +115,7 @@ function MobileOrderCard({
     onOpenChecklist: (orderId: string, mode: 'checklist' | 'readonly_ingreso' | 'salida') => void;
     onUpdateStatus: (orderId: string, newStatus: string) => void;
     onExpand: (orderId: string) => void;
+    onPrintOrder: (order: any) => void;
 }) {
     const router = useRouter();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -188,7 +190,7 @@ function MobileOrderCard({
                 </div>
 
                 {/* ── Accordion Detail (visible when expanded) ── */}
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[600px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
                     <div className="pt-3 border-t border-slate-600/50 space-y-3 text-xs text-slate-300">
                         {order.descripcion_ingreso && (
                             <div>
@@ -224,6 +226,33 @@ function MobileOrderCard({
                                     />
                                 </div>
                             )}
+                        </div>
+
+                        {/* ── Quick Links (Tracking + Print) ── */}
+                        <div
+                            className="grid grid-cols-2 gap-2 mt-2"
+                            onClick={e => e.stopPropagation()}
+                            onTouchStart={e => e.stopPropagation()}
+                        >
+                            <Link href={`/tracking/${order.id}`} target="_blank" onClick={e => e.stopPropagation()}>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full h-9 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700 text-xs"
+                                >
+                                    <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                    Ver Tracking
+                                </Button>
+                            </Link>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full h-9 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700 text-xs"
+                                onClick={e => { e.stopPropagation(); onPrintOrder(order); }}
+                            >
+                                <Printer className="w-3.5 h-3.5 mr-1.5" />
+                                Imprimir
+                            </Button>
                         </div>
 
                         <p className="text-slate-600 italic text-center text-[10px] pt-1">
@@ -1406,6 +1435,7 @@ export default function OrdenesPage() {
                                     onOpenChecklist={handleOpenChecklist}
                                     onUpdateStatus={handleUpdateStatus}
                                     onExpand={fetchChecklist}
+                                    onPrintOrder={handlePrintOrder}
                                 />
                             );
                         })}
