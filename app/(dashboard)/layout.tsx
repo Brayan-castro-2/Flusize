@@ -13,14 +13,14 @@ export default function DashboardLayout({
 }) {
     return (
         <ProtectedRoute>
-            <div className="min-h-screen bg-gray-50 pt-20">
+            <div className="min-h-screen bg-gray-50 pt-20 overflow-x-hidden w-full">
                 <UpdateAnnouncement />
                 <NetworkStatus />
                 <Header />
-                <div className="flex overflow-x-hidden">
+                <div className="flex overflow-x-hidden w-full">
                     <Sidebar />
                     {/* Main content - adjusted for sidebar on desktop, bottom nav on mobile */}
-                    <main className="flex-1 md:ml-64 pb-24 md:pb-6">
+                    <main className="flex-1 min-w-0 md:ml-64 pb-24 md:pb-6 overflow-x-hidden">
                         <div className="p-4 md:p-6 max-w-5xl mx-auto w-full">
                             {children}
                         </div>

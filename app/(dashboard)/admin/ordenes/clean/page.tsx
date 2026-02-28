@@ -370,7 +370,7 @@ function OrderEditContent() {
 
     return (
         <>
-            <div className="space-y-6 max-w-3xl mx-auto pb-24">
+            <div className="space-y-4 md:space-y-6 max-w-3xl mx-auto pb-24 w-full">
                 {saveSuccess && (
                     <div className="fixed top-20 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-auto z-50">
                         <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-2">
@@ -403,11 +403,11 @@ function OrderEditContent() {
                     </div>
                 </div>
 
-                <Card className="bg-white border-slate-200 shadow-sm">
-                    <CardHeader className="bg-slate-50 border-b border-slate-200">
+                <Card className="bg-white border-slate-200 shadow-sm rounded-none sm:rounded-xl mx--4 sm:mx-0 border-x-0 sm:border-x">
+                    <CardHeader className="bg-slate-50 border-b border-slate-200 p-4 md:p-6">
                         <CardTitle className="text-slate-900">Detalles de la Orden</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
+                    <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-4 md:pt-6">
 
                         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                             <span className="text-slate-500">Patente</span>
@@ -503,7 +503,7 @@ function OrderEditContent() {
                                 </div>
 
                                 <div className="pt-6 border-t border-slate-200 mt-6 md:mt-8">
-                                    <div className="flex items-center justify-between mb-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                                         <div>
                                             <Label className="text-slate-900 text-lg font-bold">Resumen de Cobro y Finanzas</Label>
                                             <p className="text-xs text-slate-500">Monto cerrado directo o desglose Enterprise.</p>
@@ -513,7 +513,7 @@ function OrderEditContent() {
                                             variant={isAvanzado ? "default" : "outline"}
                                             size="sm"
                                             onClick={() => setIsAvanzado(!isAvanzado)}
-                                            className={isAvanzado ? "bg-blue-600 text-white rounded-xl shadow-sm" : "border-slate-300 text-slate-700 rounded-xl bg-white"}
+                                            className={`w-full sm:w-auto ${isAvanzado ? "bg-blue-600 text-white rounded-xl shadow-sm" : "border-slate-300 text-slate-700 rounded-xl bg-white"}`}
                                         >
                                             {isAvanzado ? 'Volver a Monto Simple' : '➕ Desglosar Cotización (Ítems e IVA)'}
                                         </Button>
@@ -534,50 +534,52 @@ function OrderEditContent() {
                                         <div className="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 duration-300 shadow-sm">
                                             <Label className="text-slate-800 font-semibold block border-b border-slate-200 pb-2">Ítems Cotizados</Label>
 
-                                            <div className="space-y-3 pt-2">
-                                                {cotizacionItems.map((item, idx) => (
-                                                    <div key={idx} className="flex gap-2 items-center">
-                                                        <Input
-                                                            placeholder="Descripción del ítem"
-                                                            value={item.descripcion}
-                                                            onChange={(e) => {
-                                                                const newItems = [...cotizacionItems];
-                                                                newItems[idx].descripcion = e.target.value;
-                                                                setCotizacionItems(newItems);
-                                                            }}
-                                                            className="flex-1 bg-white border-slate-300 text-slate-900 rounded-xl shadow-sm"
-                                                        />
-                                                        <Input
-                                                            type="text"
-                                                            placeholder="$ Monto"
-                                                            value={item.monto > 0 ? formatPrecio(item.monto) : ''}
-                                                            onChange={(e) => {
-                                                                const newItems = [...cotizacionItems];
-                                                                newItems[idx].monto = parsePrecio(e.target.value);
-                                                                setCotizacionItems(newItems);
-                                                            }}
-                                                            onBlur={(e) => {
-                                                                const newItems = [...cotizacionItems];
-                                                                newItems[idx].monto = parsePrecio(e.target.value);
-                                                                setCotizacionItems(newItems);
-                                                                e.target.value = formatPrecio(newItems[idx].monto);
-                                                            }}
-                                                            className="w-[140px] bg-white border-slate-300 text-slate-900 rounded-xl font-semibold text-right shadow-sm"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            onClick={() => {
-                                                                const newItems = cotizacionItems.filter((_, i) => i !== idx);
-                                                                setCotizacionItems(newItems.length ? newItems : [{ descripcion: '', monto: 0 }]);
-                                                            }}
-                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                        >
-                                                            <X className="w-5 h-5" />
-                                                        </Button>
-                                                    </div>
-                                                ))}
+                                            <div className="overflow-x-auto w-full pb-2">
+                                                <div className="space-y-3 pt-2 min-w-[600px] md:min-w-0">
+                                                    {cotizacionItems.map((item, idx) => (
+                                                        <div key={idx} className="flex gap-2 items-center">
+                                                            <Input
+                                                                placeholder="Descripción del ítem"
+                                                                value={item.descripcion}
+                                                                onChange={(e) => {
+                                                                    const newItems = [...cotizacionItems];
+                                                                    newItems[idx].descripcion = e.target.value;
+                                                                    setCotizacionItems(newItems);
+                                                                }}
+                                                                className="flex-1 bg-white border-slate-300 text-slate-900 rounded-xl shadow-sm min-w-[200px]"
+                                                            />
+                                                            <Input
+                                                                type="text"
+                                                                placeholder="$ Monto"
+                                                                value={item.monto > 0 ? formatPrecio(item.monto) : ''}
+                                                                onChange={(e) => {
+                                                                    const newItems = [...cotizacionItems];
+                                                                    newItems[idx].monto = parsePrecio(e.target.value);
+                                                                    setCotizacionItems(newItems);
+                                                                }}
+                                                                onBlur={(e) => {
+                                                                    const newItems = [...cotizacionItems];
+                                                                    newItems[idx].monto = parsePrecio(e.target.value);
+                                                                    setCotizacionItems(newItems);
+                                                                    e.target.value = formatPrecio(newItems[idx].monto);
+                                                                }}
+                                                                className="w-[140px] bg-white border-slate-300 text-slate-900 rounded-xl font-semibold text-right shadow-sm"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                onClick={() => {
+                                                                    const newItems = cotizacionItems.filter((_, i) => i !== idx);
+                                                                    setCotizacionItems(newItems.length ? newItems : [{ descripcion: '', monto: 0 }]);
+                                                                }}
+                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                            >
+                                                                <X className="w-5 h-5" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
 
                                             <Button
@@ -628,15 +630,15 @@ function OrderEditContent() {
                                         </Button>
                                     </div>
 
-                                    <div className="space-y-3 border-l-2 border-slate-200 pl-4 py-2">
+                                    <div className="space-y-3 border-l-2 border-slate-200 pl-3 py-2">
                                         {metodosPago.map((mp, idx) => (
-                                            <div key={idx} className="flex gap-2 items-center bg-white p-2 rounded-xl border border-slate-200 shadow-sm animate-in zoom-in duration-200">
+                                            <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm animate-in zoom-in duration-200">
                                                 <Select value={mp.metodo} onValueChange={(value) => {
                                                     const updated = [...metodosPago];
                                                     updated[idx].metodo = value;
                                                     setMetodosPago(updated);
                                                 }}>
-                                                    <SelectTrigger className="w-[150px] bg-slate-50 border-slate-200 text-slate-800 rounded-lg">
+                                                    <SelectTrigger className="w-full sm:w-[150px] bg-slate-50 border-slate-200 text-slate-800 rounded-lg">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent className="bg-white border-slate-200 shadow-xl">
@@ -647,25 +649,27 @@ function OrderEditContent() {
                                                         <SelectItem value="debe" className="text-slate-900 cursor-pointer focus:bg-slate-100">Debe (Deuda)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
-                                                <Input
-                                                    value={mp.monto > 0 ? formatPrecio(mp.monto) : ''}
-                                                    onChange={(e) => {
-                                                        const updated = [...metodosPago];
-                                                        updated[idx].monto = parsePrecio(e.target.value);
-                                                        setMetodosPago(updated);
-                                                    }}
-                                                    onBlur={(e) => {
-                                                        const updated = [...metodosPago];
-                                                        updated[idx].monto = parsePrecio(e.target.value);
-                                                        setMetodosPago(updated);
-                                                        e.target.value = formatPrecio(updated[idx].monto);
-                                                    }}
-                                                    placeholder="Monto $"
-                                                    className="flex-1 bg-slate-50 border-slate-200 text-slate-900 rounded-lg text-right font-medium"
-                                                />
-                                                <Button variant="ghost" size="icon" onClick={() => setMetodosPago(metodosPago.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                                                    <X className="w-5 h-5" />
-                                                </Button>
+                                                <div className="flex gap-2 items-center flex-1">
+                                                    <Input
+                                                        value={mp.monto > 0 ? formatPrecio(mp.monto) : ''}
+                                                        onChange={(e) => {
+                                                            const updated = [...metodosPago];
+                                                            updated[idx].monto = parsePrecio(e.target.value);
+                                                            setMetodosPago(updated);
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            const updated = [...metodosPago];
+                                                            updated[idx].monto = parsePrecio(e.target.value);
+                                                            setMetodosPago(updated);
+                                                            e.target.value = formatPrecio(updated[idx].monto);
+                                                        }}
+                                                        placeholder="Monto $"
+                                                        className="flex-1 bg-slate-50 border-slate-200 text-slate-900 rounded-lg text-right font-medium"
+                                                    />
+                                                    <Button variant="ghost" size="icon" onClick={() => setMetodosPago(metodosPago.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg shrink-0">
+                                                        <X className="w-5 h-5" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         ))}
                                         {metodosPago.length === 0 && (
@@ -758,7 +762,7 @@ function OrderEditContent() {
                 </Card>
             </div>
 
-            <div ref={checklistRef} className={`max-w-4xl mx-auto px-4 pb-32 transition-all duration-500 ${showChecklistSection ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none h-0 overflow-hidden mt-0'}`}>
+            <div ref={checklistRef} className={`max-w-4xl mx-auto px-3 pb-32 w-full overflow-x-hidden transition-all duration-500 ${showChecklistSection ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none h-0 overflow-hidden mt-0'}`}>
                 <Card className="border-2 border-slate-200 shadow-xl overflow-hidden rounded-3xl bg-white text-slate-900">
                     <CardHeader className="bg-slate-50 border-b border-slate-100 p-6">
                         <div className="flex items-center justify-between">

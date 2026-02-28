@@ -128,13 +128,13 @@ export function Sidebar() {
 
             {/* Mobile Bottom Navigation - Para admin y superadmin */}
             {(user.role === 'taller_admin' || user.role === 'superadmin' || user.role === 'admin') && (
-                <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-lg border-t border-[#333333] safe-area-inset-bottom">
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-lg border-t border-[#333333] safe-area-inset-bottom overflow-x-hidden">
                     {isPending && (
                         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gray-800 overflow-hidden">
                             <div className="h-full bg-blue-500 animate-[loading_1s_ease-in-out_infinite]"></div>
                         </div>
                     )}
-                    <div className="flex items-center justify-around py-2 px-2">
+                    <div className="flex items-center justify-around py-2 px-1 w-full">
                         {filteredItems.map((item) => {
                             const isActive = pathname === item.href ||
                                 (item.href !== '/admin' && item.href !== '/recepcion' && pathname.startsWith(item.href));
@@ -145,7 +145,7 @@ export function Sidebar() {
                                     href={item.href}
                                     onClick={(e) => handleNavigation(e, item.href)}
                                     className={cn(
-                                        "flex flex-col items-center justify-center py-2 px-4 rounded-2xl transition-all duration-150 min-w-[72px] touch-target",
+                                        "flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-150 flex-1 max-w-[80px] touch-target",
                                         isActive
                                             ? "bg-[#0066FF] text-white shadow-lg shadow-[#0066FF]/30"
                                             : "text-gray-500 hover:text-gray-300 active:scale-95",
@@ -154,7 +154,7 @@ export function Sidebar() {
                                 >
                                     {item.icon}
                                     <span className={cn(
-                                        "text-[10px] font-medium mt-1",
+                                        "text-[9px] font-medium mt-0.5 hidden sm:block truncate w-full text-center",
                                         isActive ? "opacity-100" : "opacity-70"
                                     )}>
                                         {item.label}

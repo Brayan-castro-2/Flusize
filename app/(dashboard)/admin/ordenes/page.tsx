@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, Fragment, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, Fragment, useRef, useEffect } from 'react';
 import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita, obtenerChecklist } from '@/lib/storage-adapter';
 import { generateOrderPDF } from '@/lib/pdf-generator';
 import { useInfiniteOrders, useOrdersCount, useDeleteOrder, useUpdateOrder } from '@/hooks/use-orders';
@@ -79,7 +79,210 @@ import Link from 'next/link';
 import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions';
 
 
+// ─── Mobile Order Card (Accordion + Long Press) ─────────────────────────────
+function MobileOrderCard({
+    order,
+    vehiculo,
+    hasDebt,
+    getStatusBadge,
+    getCleanMotivo,
+    isMecanico,
+    isAdmin,
+    deleteConfirm,
+    setDeleteConfirm,
+    handleDeleteOrder,
+    deleteOrderPending,
+    checklist,
+    isLoadingChecklist,
+    onOpenChecklist,
+    onUpdateStatus,
+    onExpand,
+}: {
+    order: any;
+    vehiculo: any;
+    hasDebt: (o: any) => boolean;
+    getStatusBadge: (status: string, id?: string, interactive?: boolean) => React.ReactNode;
+    getCleanMotivo: (desc: string) => string;
+    isMecanico: boolean;
+    isAdmin: boolean;
+    deleteConfirm: string | null;
+    setDeleteConfirm: (id: string | null) => void;
+    handleDeleteOrder: (order: any) => void;
+    deleteOrderPending: boolean;
+    checklist: any;
+    isLoadingChecklist: boolean;
+    onOpenChecklist: (orderId: string, mode: 'checklist' | 'readonly_ingreso' | 'salida') => void;
+    onUpdateStatus: (orderId: string, newStatus: string) => void;
+    onExpand: (orderId: string) => void;
+}) {
+    const router = useRouter();
+    const [isExpanded, setIsExpanded] = useState(false);
+    const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const didLongPress = useRef(false);
+
+    const startLongPress = useCallback(() => {
+        didLongPress.current = false;
+        pressTimer.current = setTimeout(() => {
+            didLongPress.current = true;
+            router.push(`/admin/ordenes/clean?id=${order.id}`);
+        }, 700);
+    }, [order.id, router]);
+
+    const cancelLongPress = useCallback(() => {
+        if (pressTimer.current) {
+            clearTimeout(pressTimer.current);
+            pressTimer.current = null;
+        }
+    }, []);
+
+    const handleTap = useCallback(() => {
+        if (!didLongPress.current) {
+            setIsExpanded(prev => {
+                if (!prev) onExpand(String(order.id)); // trigger checklist fetch on expand
+                return !prev;
+            });
+        }
+        didLongPress.current = false;
+    }, [order.id, onExpand]);
+
+    return (
+        <Card
+            className={`bg-slate-700/30 border-slate-600/50 cursor-pointer select-none transition-all duration-200 active:scale-[0.99] ${hasDebt(order) ? 'border-l-4 border-l-red-500 bg-red-900/10' : ''}`}
+            onMouseDown={startLongPress}
+            onMouseUp={cancelLongPress}
+            onMouseLeave={cancelLongPress}
+            onTouchStart={startLongPress}
+            onTouchEnd={cancelLongPress}
+            onTouchMove={cancelLongPress}
+            onClick={handleTap}
+        >
+            <CardContent className="p-4">
+                {/* ── Summary Row (always visible) ── */}
+                <div className="flex items-start gap-3">
+                    <div className="w-14 h-10 bg-slate-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-mono font-bold text-xs">
+                            {order.patente_vehiculo}
+                        </span>
+                    </div>
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-1">
+                            <p className="text-white font-medium truncate text-sm flex-1">
+                                {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : order.patente_vehiculo}
+                            </p>
+                            {hasDebt(order) && <span className="text-red-400 text-xs flex-shrink-0">💳</span>}
+                            {/* Expand indicator */}
+                            <ChevronDown className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                        </div>
+                        {order.cliente?.nombre_completo && (
+                            <p className="text-xs text-blue-400 truncate">{order.cliente.nombre_completo}</p>
+                        )}
+                        {order.cliente?.telefono && (
+                            <p className="text-xs text-slate-500 truncate">{order.cliente.telefono}</p>
+                        )}
+                        <p className="text-xs text-slate-500 truncate">
+                            {new Date(order.fecha_ingreso).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' })}{' '}
+                            {new Date(order.fecha_ingreso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        <p className="text-xs text-slate-400 truncate mt-1">{getCleanMotivo(order.descripcion_ingreso)}</p>
+                    </div>
+                </div>
+
+                {/* ── Accordion Detail (visible when expanded) ── */}
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[600px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                    <div className="pt-3 border-t border-slate-600/50 space-y-3 text-xs text-slate-300">
+                        {order.descripcion_ingreso && (
+                            <div>
+                                <p className="text-slate-500 font-medium uppercase tracking-wider mb-1">Motivo completo</p>
+                                <p className="text-slate-300 leading-relaxed">{order.descripcion_ingreso}</p>
+                            </div>
+                        )}
+                        {order.precio_total > 0 && (
+                            <div className="flex justify-between items-center bg-slate-800/60 rounded-lg px-3 py-2">
+                                <span className="text-slate-400">Total:</span>
+                                <span className="text-green-400 font-bold text-sm">${order.precio_total.toLocaleString('es-CL')}</span>
+                            </div>
+                        )}
+
+                        {/* ── Workflow Actions (same as desktop) ── */}
+                        <div
+                            className="mt-4 w-full"
+                            onClick={e => e.stopPropagation()}
+                            onTouchStart={e => e.stopPropagation()}
+                        >
+                            <p className="text-slate-500 font-medium uppercase tracking-wider mb-2 text-[10px]">Flujo de Trabajo</p>
+                            {isLoadingChecklist ? (
+                                <div className="flex justify-center py-3">
+                                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                </div>
+                            ) : (
+                                <div className="w-full">
+                                    <OrderWorkflowActions
+                                        order={order}
+                                        checklist={checklist}
+                                        onOpenChecklist={onOpenChecklist}
+                                        onUpdateStatus={onUpdateStatus}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <p className="text-slate-600 italic text-center text-[10px] pt-1">
+                            Mantén pulsado 0.7s para editar completo
+                        </p>
+                    </div>
+                </div>
+
+                {/* ── Footer Actions ── */}
+                <div className="mt-3 flex items-center justify-between gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
+                    <div className="flex-shrink-0">
+                        {getStatusBadge(order.estado, order.id, true)}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                        {!isMecanico && (
+                            <Link href={`/admin/ordenes/clean?id=${order.id}`} onClick={e => e.stopPropagation()}>
+                                <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 px-2">
+                                    <Edit className="w-3.5 h-3.5" />
+                                </Button>
+                            </Link>
+                        )}
+                        {isAdmin && (
+                            deleteConfirm === order.id ? (
+                                <div className="flex gap-1">
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
+                                        onClick={() => handleDeleteOrder(order)}
+                                        disabled={deleteOrderPending}
+                                    >✓</Button>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-slate-400 hover:text-slate-300 h-8 px-2"
+                                        onClick={() => setDeleteConfirm(null)}
+                                    >✕</Button>
+                                </div>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
+                                    onClick={() => setDeleteConfirm(order.id)}
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                            )
+                        )}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function OrdenesPage() {
+
     const { toast } = useToast();
     const { user } = useAuth();
     const router = useRouter();
@@ -814,7 +1017,7 @@ export default function OrdenesPage() {
                 </CardHeader>
                 <CardContent>
                     {/* Desktop Table */}
-                    <div className="hidden md:block">
+                    <div className="hidden md:block overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow className="border-slate-200 hover:bg-transparent">
@@ -1185,93 +1388,25 @@ export default function OrdenesPage() {
                         {filteredOrders.map((order) => {
                             const vehiculo = order.vehiculos;
                             return (
-                                <Card key={order.id} className={`bg-slate-700/30 border-slate-600/50 ${hasDebt(order) ? 'border-l-4 border-l-red-500 bg-red-900/10' : ''}`}>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-14 h-10 bg-slate-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <span className="text-white font-mono font-bold text-xs">
-                                                    {order.patente_vehiculo}
-                                                </span>
-                                            </div>
-                                            <div className="flex-1 min-w-0 overflow-hidden">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <p className="text-white font-medium truncate text-sm flex-1">
-                                                        {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : order.patente_vehiculo}
-                                                    </p>
-                                                    {hasDebt(order) && <span className="text-red-400 text-xs flex-shrink-0">💳</span>}
-                                                </div>
-                                                {order.cliente?.nombre_completo && (
-                                                    <p className="text-xs text-blue-400 truncate">
-                                                        {order.cliente.nombre_completo}
-                                                    </p>
-                                                )}
-                                                {order.cliente?.telefono && (
-                                                    <p className="text-xs text-slate-500 truncate">
-                                                        {order.cliente.telefono}
-                                                    </p>
-                                                )}
-                                                <p className="text-xs text-slate-500 truncate">
-                                                    {new Date(order.fecha_ingreso).toLocaleDateString('es-CL', {
-                                                        day: '2-digit',
-                                                        month: '2-digit'
-                                                    })} {new Date(order.fecha_ingreso).toLocaleTimeString('es-CL', {
-                                                        hour: '2-digit',
-                                                        minute: '2-digit'
-                                                    })}
-                                                </p>
-                                                <p className="text-xs text-slate-400 truncate mt-1">
-                                                    {getCleanMotivo(order.descripcion_ingreso)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
-                                            <div className="flex-shrink-0">
-                                                {getStatusBadge(order.estado, order.id, true)}
-                                            </div>
-                                            <div className="flex items-center gap-1 flex-shrink-0">
-                                                {!isMecanico && (
-                                                    <Link href={`/admin/ordenes/clean?id=${order.id}`}>
-                                                        <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 px-2">
-                                                            <Edit className="w-3.5 h-3.5" />
-                                                        </Button>
-                                                    </Link>
-                                                )}
-                                                {isAdmin && (
-                                                    deleteConfirm === order.id ? (
-                                                        <div className="flex gap-1">
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
-                                                                onClick={() => handleDeleteOrder(order as any)}
-                                                                disabled={deleteOrder.isPending}
-                                                            >
-                                                                ✓
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="text-slate-400 hover:text-slate-300 h-8 px-2"
-                                                                onClick={() => setDeleteConfirm(null)}
-                                                            >
-                                                                ✕
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
-                                                            onClick={() => setDeleteConfirm(order.id)}
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </Button>
-                                                    )
-                                                )}
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <MobileOrderCard
+                                    key={order.id}
+                                    order={order}
+                                    vehiculo={vehiculo}
+                                    hasDebt={hasDebt}
+                                    getStatusBadge={getStatusBadge}
+                                    getCleanMotivo={getCleanMotivo}
+                                    isMecanico={isMecanico}
+                                    isAdmin={isAdmin}
+                                    deleteConfirm={deleteConfirm}
+                                    setDeleteConfirm={setDeleteConfirm}
+                                    handleDeleteOrder={handleDeleteOrder}
+                                    deleteOrderPending={deleteOrder.isPending}
+                                    checklist={checklists[order.id]}
+                                    isLoadingChecklist={!!loadingChecklists[order.id]}
+                                    onOpenChecklist={handleOpenChecklist}
+                                    onUpdateStatus={handleUpdateStatus}
+                                    onExpand={fetchChecklist}
+                                />
                             );
                         })}
                     </div>

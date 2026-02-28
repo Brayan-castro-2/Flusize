@@ -54,6 +54,18 @@
     @apply border-border;
   }
 
+  /* ☠️ NUCLEAR OVERFLOW KILL: prevents any child from creating horizontal scroll */
+  html,
+  body {
+    overflow-x: hidden !important;
+    max-width: 100vw;
+    width: 100%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     -webkit-font-smoothing: antialiased;
@@ -69,17 +81,17 @@
   select {
     -webkit-tap-highlight-color: transparent;
   }
-
-  html {
-    scroll-behavior: smooth;
-  }
 }
 
-/* Fat-finger friendly touch targets */
 @layer utilities {
   .touch-target {
-    min-height: 48px;
-    min-width: 48px;
+    min-height: 44px;
+    /* Removed min-width so it doesn't push past screen on mobile */
+  }
+
+  .touch-target-sq {
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .focus-ring {
