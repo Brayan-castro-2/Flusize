@@ -94,12 +94,12 @@ async function comprimirImagen(file: File): Promise<File> {
 function RecepcionContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { user } = useAuth();
+    const { user, isLoading: isLoadingAuth } = useAuth();
     const queryClient = useQueryClient();
 
     const [fechaHora, setFechaHora] = useState(nowCL());
     const [mecanico, setMecanico] = useState('Técnico en Turno');
-    const [isLoadingCita, setIsLoadingCita] = useState(false);
+    const [loading, setLoading] = useState(false); // Por defecto false, se activa si hay citaId
 
     // Form states - Consolidated
     const [patente, setPatente] = useState('');
@@ -192,45 +192,80 @@ function RecepcionContent() {
         fetchServicios();
     }, []);
     useEffect(() => {
+        // Si aún está cargando la sesión, esperamos
+        if (isLoadingAuth) return;
+
         const citaId = searchParams.get('citaId');
-        if (citaId) {
-            const loadCita = async () => {
-                setIsLoadingCita(true);
-                try {
-                    const citas = await obtenerCitas();
-                    const cita = citas.find(c => String(c.id) === String(citaId));
 
-                    if (cita) {
-                        setPatente(cita.patente_vehiculo || '');
-                        setClienteNombre(cita.clientes?.nombre_completo || '');
-                        setClienteWhatsapp(cita.clientes?.telefono || '');
-
-                        // Parse services/notes
-                        const serviceDesc = cita.notas || cita.titulo || '';
-
-                        // Pre-fill services
-                        if (serviceDesc) {
-                            // Split by comma if multiple services
-                            const serviceParts = serviceDesc.split(',').map(s => s.trim());
-                            const mappedServices = serviceParts.map(desc => ({ descripcion: desc, precio: '' }));
-                            setServicios(mappedServices);
-                        }
-
-                        // Trigger vehicle lookup if we have a patente
-                        if (cita.patente_vehiculo) {
-                            // Use existing search logic (will be triggered manually or we can call search function here)
-                            // For now, let's just set the state and let the user verify/search
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error loading appointment:", error);
-                } finally {
-                    setIsLoadingCita(false);
-                }
-            };
-            loadCita();
+        // Si NO hay citaId, nos aseguramos de apagar cualquier loading residual
+        if (!citaId) {
+            setLoading(false);
+            return;
         }
-    }, [searchParams]);
+
+        // Si hay citaId pero no tallerId (y ya cargó auth), algo anda mal o no es admin
+        if (!user?.tallerId) {
+            console.warn("⚠️ Cita detectada pero usuario sin tallerId listo.");
+            setLoading(false);
+            return;
+        }
+
+        async function loadCita() {
+            try {
+                setLoading(true);
+                console.log("🔍 Iniciando carga de cita por ID:", citaId, "para taller:", user?.tallerId);
+
+                const citas = await obtenerCitas(user?.tallerId);
+                const cita = citas.find(c => String(c.id) === String(citaId));
+
+                if (cita) {
+                    const p = cita.patente_vehiculo || '';
+                    setPatente(p);
+                    setClienteNombre(cita.clientes?.nombre_completo || '');
+                    setClienteWhatsapp(cita.clientes?.telefono || '');
+                    setClienteRut(cita.clientes?.rut_dni || '');
+                    setEmail(cita.clientes?.email || '');
+
+                    if (cita.vehiculos) {
+                        setMarca(cita.vehiculos.marca || '');
+                        setModelo(cita.vehiculos.modelo || '');
+                        setAnio(cita.vehiculos.anio || '');
+                        setMotor(cita.vehiculos.motor || '');
+                    }
+
+                    const serviceDesc = cita.notas || cita.titulo || '';
+                    if (serviceDesc) {
+                        // Limpieza de metadatos (regex para "Servicios Solicitados:" y prefijos de vehículo)
+                        let cleanText = serviceDesc;
+
+                        // Si contiene el marcador específico "Servicios Solicitados:", extraemos lo que sigue
+                        if (cleanText.includes("Servicios Solicitados:")) {
+                            cleanText = cleanText.split("Servicios Solicitados:")[1].trim();
+                        }
+                        // Si no lo tiene pero tiene metadatos entre corchetes, los removemos
+                        else if (cleanText.includes("]")) {
+                            cleanText = cleanText.split("]").pop()?.trim() || cleanText;
+                        }
+
+                        const serviceParts = cleanText.split(',').map(s => s.trim());
+                        const mappedServices = serviceParts.map(desc => ({ descripcion: desc, precio: '' }));
+                        setServicios(mappedServices);
+                    }
+
+                    if (p) {
+                        setTimeout(() => buscarPatente(p), 300);
+                    }
+                } else {
+                    console.warn("⚠️ Cita no encontrada con ID:", citaId);
+                }
+            } catch (error) {
+                console.error("🔥 Error CRÍTICO cargando Recepción:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadCita();
+    }, [searchParams, user?.tallerId, isLoadingAuth]);
 
 
 
@@ -281,15 +316,15 @@ function RecepcionContent() {
     // Check for debts when phone number changes (after typing complete phone)
     useEffect(() => {
         const cleanPhone = clienteWhatsapp.replace(/\D/g, '');
-        // Solo verificar si tiene al menos 8 dígitos (número chileno mínimo)
-        if (cleanPhone.length >= 8) {
+        // Solo verificar si tiene al menos 8 dígitos
+        if (cleanPhone.length >= 8 && user?.tallerId) {
             const timer = setTimeout(() => {
                 checkForDebts(undefined, cleanPhone);
-            }, 300); // Debounce reducido a 300ms para respuesta más rápida
+            }, 300);
 
             return () => clearTimeout(timer);
         }
-    }, [clienteWhatsapp]);
+    }, [clienteWhatsapp, user?.tallerId]);
 
 
     const handleRutKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -453,9 +488,11 @@ function RecepcionContent() {
 
     // Check for debts after finding vehicle or entering phone
     const checkForDebts = async (patente?: string, phone?: string) => {
+        if (!user?.tallerId) return;
         try {
             console.log(`[Debt Check] Checking debts for patente: ${patente}, phone: ${phone}`);
-            const allOrders = await obtenerOrdenes();
+            // Pasamos user.tallerId aquí también
+            const allOrders = await obtenerOrdenes(undefined, undefined, user.tallerId);
 
             // Filter orders for this patente OR phone
             const vehicleOrders = allOrders.filter(order => {
@@ -805,6 +842,16 @@ function RecepcionContent() {
         setStep('form'); // Reset to form step
         setCreatedOrderId(null); // Clear created order ID
     };
+
+    // Paso 1: Destruye el bloqueo condicional (Render)
+    if (loading) {
+        return (
+            <div className="flex h-screen w-full flex-col items-center justify-center bg-[#0B1121]">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                <p className="mt-4 text-slate-300 font-medium">Cargando recepción...</p>
+            </div>
+        );
+    }
 
     // Renderizado del Checklist
     if (step === 'checklist' && createdOrderId) {

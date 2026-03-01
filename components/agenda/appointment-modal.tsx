@@ -362,8 +362,8 @@ export function AppointmentModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-            <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border-slate-800 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+            <Card className="w-[95vw] sm:w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-slate-950 border-slate-800 shadow-2xl mx-auto custom-scrollbar">
                 {/* Header */}
                 <div className="sticky top-0 z-10 bg-gradient-to-r from-slate-900 to-slate-900/95 backdrop-blur border-b border-slate-800 p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -393,7 +393,7 @@ export function AppointmentModal({
                             value={fecha}
                             onChange={(e) => setFecha(e.target.value)}
                             required
-                            className="w-full md:w-auto rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                            className="w-full md:w-auto rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 !text-white placeholder:!text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                         />
                     </div>
 
@@ -407,7 +407,7 @@ export function AppointmentModal({
                                     value={clienteNombre}
                                     onChange={(e) => setClienteNombre(e.target.value)}
                                     placeholder="Nombre del cliente"
-                                    className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white"
+                                    className="mt-2 w-full rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 !text-white placeholder:!text-slate-400"
                                 />
                             </div>
                             <div>
@@ -420,7 +420,7 @@ export function AppointmentModal({
                                         value={clienteTelefono}
                                         onChange={(e) => setClienteTelefono(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
                                         placeholder="12345678"
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-800/50 py-3 pl-16 pr-4 text-white"
+                                        className="w-full rounded-xl border border-slate-700 !bg-slate-800 py-3 pl-16 pr-4 !text-white placeholder:!text-slate-400"
                                     />
                                 </div>
                             </div>
@@ -440,7 +440,7 @@ export function AppointmentModal({
                                     onBlur={handleBuscarPatente}
                                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleBuscarPatente())}
                                     placeholder="AA-BB-11"
-                                    className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 md:py-4 text-center font-mono text-xl md:text-2xl font-bold uppercase tracking-widest text-white"
+                                    className="mt-2 w-full rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 md:py-4 text-center font-mono text-xl md:text-2xl font-bold uppercase tracking-widest !text-white placeholder:!text-slate-400"
                                 />
                             </div>
                             <button
@@ -457,19 +457,19 @@ export function AppointmentModal({
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
                                 <label className="text-sm font-semibold text-slate-200">Marca</label>
-                                <input value={marca} onChange={e => setMarca(e.target.value)} placeholder="Ej: Toyota" className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white" />
+                                <input value={marca} onChange={e => setMarca(e.target.value)} placeholder="Ej: Toyota" className="mt-2 w-full rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 !text-white placeholder:!text-slate-400" />
                             </div>
                             <div>
                                 <label className="text-sm font-semibold text-slate-200">Modelo</label>
-                                <input value={modelo} onChange={e => setModelo(e.target.value)} placeholder="Ej: Corolla" className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white" />
+                                <input value={modelo} onChange={e => setModelo(e.target.value)} placeholder="Ej: Corolla" className="mt-2 w-full rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 !text-white placeholder:!text-slate-400" />
                             </div>
                             <div>
                                 <label className="text-sm font-semibold text-slate-200">Año</label>
-                                <input value={anio} onChange={e => setAnio(e.target.value)} placeholder="Ej: 2020" className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white" />
+                                <input value={anio} onChange={e => setAnio(e.target.value)} placeholder="Ej: 2020" className="mt-2 w-full rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 !text-white placeholder:!text-slate-400" />
                             </div>
                             <div>
                                 <label className="text-sm font-semibold text-slate-200">Motor</label>
-                                <input value={motor} onChange={e => setMotor(e.target.value)} placeholder="Ej: 1.6" className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white" />
+                                <input value={motor} onChange={e => setMotor(e.target.value)} placeholder="Ej: 1.6" className="mt-2 w-full rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 !text-white placeholder:!text-slate-400" />
                             </div>
                         </div>
                     </div>
@@ -509,7 +509,7 @@ export function AppointmentModal({
                                         value={formatMilesConPunto(kmActual)}
                                         onChange={(e) => setKmActual(e.target.value)}
                                         placeholder="Ej: 200.000"
-                                        className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-2xl font-bold font-mono tracking-wide text-white"
+                                        className="mt-2 w-full rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 text-2xl font-bold font-mono tracking-wide !text-white placeholder:!text-slate-400"
                                     />
                                 </div>
                                 <div>
@@ -518,7 +518,7 @@ export function AppointmentModal({
                                         value={formatMilesConPunto(kmNuevo)}
                                         onChange={(e) => setKmNuevo(e.target.value)}
                                         placeholder="Ej: 120.000"
-                                        className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-2xl font-bold font-mono tracking-wide text-white"
+                                        className="mt-2 w-full rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 text-2xl font-bold font-mono tracking-wide !text-white placeholder:!text-slate-400"
                                     />
                                 </div>
                             </div>
@@ -541,7 +541,7 @@ export function AppointmentModal({
                                                     value={s.descripcion}
                                                     onChange={(e) => updateServicio(idx, 'descripcion', e.target.value)}
                                                     placeholder="Ej: Scanner"
-                                                    className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-3 text-white"
+                                                    className="w-full rounded-xl border border-slate-700 !bg-slate-800 px-3 py-3 !text-white placeholder:!text-slate-400"
                                                 />
                                             </td>
                                             <td className="px-3 py-3">
@@ -549,7 +549,7 @@ export function AppointmentModal({
                                                     value={s.precio}
                                                     onChange={(e) => updateServicio(idx, 'precio', e.target.value.replace(/\D/g, '').slice(0, 9))}
                                                     placeholder="0"
-                                                    className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-3 text-white"
+                                                    className="w-full rounded-xl border border-slate-700 !bg-slate-800 px-3 py-3 !text-white placeholder:!text-slate-400"
                                                 />
                                             </td>
                                             <td className="px-3 py-3 text-right">
@@ -590,7 +590,7 @@ export function AppointmentModal({
                             onChange={(e) => setNotas(e.target.value)}
                             placeholder="Notas internas..."
                             rows={3}
-                            className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-500 resize-none"
+                            className="w-full rounded-xl border border-slate-700 !bg-slate-800 px-4 py-3 !text-white placeholder:!text-slate-400 resize-none"
                         />
                     </div>
 

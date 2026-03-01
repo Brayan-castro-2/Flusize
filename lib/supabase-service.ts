@@ -162,8 +162,8 @@ export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_ru
 
 
 // Obtener todos los vehículos - MULTI-TENANT
-export async function obtenerVehiculos(): Promise<VehiculoDB[]> {
-    const tallerId = await getCurrentUserTallerId();
+export async function obtenerVehiculos(tallerIdOverride?: string): Promise<VehiculoDB[]> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) return [];
 
     const { data, error } = await supabase
@@ -212,9 +212,8 @@ export async function subirImagen(file: File, carpeta: string = 'ordenes'): Prom
 
 // Obtener todas las órdenes
 // ============ CLIENTES (CRM) ============ - MULTI-TENANT
-
-export async function obtenerClientes(busqueda?: string): Promise<ClienteWithStats[]> {
-    const tallerId = await getCurrentUserTallerId();
+export async function obtenerClientes(busqueda?: string, tallerIdOverride?: string): Promise<ClienteWithStats[]> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) return [];
 
     let query = supabase
@@ -343,9 +342,8 @@ export async function crearCliente(cliente: Omit<ClienteDB, 'id' | 'fecha_creaci
 
 // Obtener todas las órdenes
 // Obtener todas las órdenes (con paginación opcional) - MULTI-TENANT
-// Obtener todas las órdenes (con paginación opcional) - MULTI-TENANT
-export async function obtenerOrdenes(limit?: number, offset?: number): Promise<OrdenDB[]> {
-    const tallerId = await getCurrentUserTallerId();
+export async function obtenerOrdenes(limit?: number, offset?: number, tallerIdOverride?: string): Promise<OrdenDB[]> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) return [];
 
     let query = supabase
@@ -394,8 +392,8 @@ export async function obtenerOrdenes(limit?: number, offset?: number): Promise<O
 }
 
 // Obtener conteo total de órdenes
-export async function obtenerOrdenesCount(): Promise<number> {
-    const tallerId = await getCurrentUserTallerId();
+export async function obtenerOrdenesCount(tallerIdOverride?: string): Promise<number> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) return 0;
 
     const { count, error } = await supabase
@@ -1018,9 +1016,8 @@ export async function crearUsuario(
 
 
 // ============ CITAS/AGENDAMIENTO ============
-
-export async function obtenerCitas(): Promise<CitaDB[]> {
-    const tallerId = await getCurrentUserTallerId();
+export async function obtenerCitas(tallerIdOverride?: string): Promise<CitaDB[]> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) return [];
 
     const { data, error } = await supabase
@@ -1047,8 +1044,8 @@ export async function obtenerCitas(): Promise<CitaDB[]> {
 }
 
 // Obtener citas de hoy (con datos de cliente)
-export async function obtenerCitasHoy(): Promise<CitaDB[]> {
-    const tallerId = await getCurrentUserTallerId();
+export async function obtenerCitasHoy(tallerIdOverride?: string): Promise<CitaDB[]> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) return [];
 
     const today = new Date();
@@ -1097,8 +1094,8 @@ export async function obtenerServiciosFrecuentes(): Promise<ServicioDB[]> {
     return data || [];
 }
 
-export async function obtenerCitasSemana(startDate: Date, endDate: Date): Promise<CitaDB[]> {
-    const tallerId = await getCurrentUserTallerId();
+export async function obtenerCitasSemana(startDate: Date, endDate: Date, tallerIdOverride?: string): Promise<CitaDB[]> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) return [];
 
     const startISO = startDate.toISOString();

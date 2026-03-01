@@ -109,10 +109,12 @@ async function fetchGarageData(userId: string): Promise<GarageData | null> {
         orQuery += `,email.eq.${perfilSeguro.email}`;
     }
 
-    const { data: clientesVinculados } = await supabase
+    const { data: clientesVinculados, error: cliError } = await supabase
         .from('clientes')
         .select('id')
         .or(orQuery);
+
+    if (cliError) throw cliError;
 
     const clienteIds = clientesVinculados?.map(c => c.id) || [];
 
@@ -126,9 +128,10 @@ async function fetchGarageData(userId: string): Promise<GarageData | null> {
         };
     }
 
-    const { data: vehiculos } = await supabase.from('vehiculos').select('*').in('cliente_id', clienteIds);
+    const { data: vehiculos, error: vehError } = await supabase.from('vehiculos').select('*').in('cliente_id', clienteIds);
+    if (vehError) throw vehError;
 
-    const { data: ordenes } = await supabase
+    const { data: ordenes, error: ordError } = await supabase
         .from('ordenes')
         .select(`
             id, 
@@ -141,6 +144,8 @@ async function fetchGarageData(userId: string): Promise<GarageData | null> {
         `)
         .in('cliente_id', clienteIds)
         .order('fecha_ingreso', { ascending: false });
+
+    if (ordError) throw ordError;
 
     let total = 0;
     ordenes?.forEach(o => {
@@ -373,13 +378,13 @@ function BankActivityItem({ orden }: { orden: OrdenReciente }) {
 // PAGE
 // ──────────────────────────────────────────
 export default function MiGaragePage() {
-    const { user, logout } = useAuth();
+    const { user, logout, isLoading: isLoadingAuth } = useAuth();
     const [data, setData] = useState<GarageData | null>(null);
     const [loading, setLoading] = useState(true);
     const [notifEstado, setNotifEstado] = useState<string | null>(null);
     const router = useRouter();
 
-    // Dynamically fetch GetAPI technical specs for vehicles that don't have it
+    // Dynamically fetch GetAPI technical specs
     useEffect(() => {
         if (!data || data.vehiculos.length === 0) return;
 
@@ -390,7 +395,6 @@ export default function MiGaragePage() {
 
             for (let i = 0; i < updatedVehicles.length; i++) {
                 const v = updatedVehicles[i];
-                // Only fetch if we don't already have the engine data and we have a patente
                 if (!v.motor && v.patente) {
                     try {
                         const res = await fetch(`/api/vehiculo?patente=${v.patente}`);
@@ -429,22 +433,46 @@ export default function MiGaragePage() {
     }, [data?.vehiculos.length]);
 
     useEffect(() => {
-        if (!user) return;
+        // Si aún está cargando la sesión, no hacemos nada todavía
+        if (isLoadingAuth) return;
+
+        // Si terminó de cargar y NO hay usuario, apagamos el loader
+        if (!user) {
+            setLoading(false);
+            return;
+        }
 
         let isMounted = true;
 
-        const loadData = async () => {
-            const d = await fetchGarageData(user.id);
-            if (isMounted) {
-                setData(d);
-                setLoading(false);
+        async function loadData() {
+            try {
+                setLoading(true);
+                const d = await fetchGarageData(user.id);
+                if (isMounted) {
+                    setData(d);
+                }
+            } catch (error) {
+                console.error("🔥 Error CRÍTICO cargando Mi Garage:", error);
+                if (isMounted) {
+                    setData({
+                        perfil: { id: user.id, nombre_completo: user.name || 'Usuario', email: user.email || '' },
+                        cliente_id: user.id,
+                        vehiculos: [],
+                        ordenesRecientes: [],
+                        inversionAnual: { total: 0, mecanica: 0, repuestos: 0 }
+                    });
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
-        };
+        }
 
         loadData();
 
         return () => { isMounted = false; };
-    }, [user?.id]);
+    }, [user?.id, isLoadingAuth]);
 
     // ──────────────────────────────────────────
     // NOTIFICACIONES EN TIEMPO REAL
@@ -482,9 +510,23 @@ export default function MiGaragePage() {
         };
     }, [user?.id]);
 
-    if (loading || !data) return (
+    if (loading) return (
         <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
             <Spinner />
+        </div>
+    );
+
+    // Si terminó de cargar pero no hay data (raro con el catch, pero por seguridad)
+    if (!data || !data.vehiculos || data.vehiculos.length === 0) return (
+        <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
+                <Car className="w-8 h-8 text-slate-300" />
+            </div>
+            <h1 className="text-xl font-bold text-slate-800 mb-2">No tienes vehículos registrados</h1>
+            <p className="text-sm text-slate-500 max-w-xs mb-6">Aún no hay vehículos vinculados a tu cuenta de cliente.</p>
+            <Link href="/" className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors">
+                Volver al Inicio
+            </Link>
         </div>
     );
 

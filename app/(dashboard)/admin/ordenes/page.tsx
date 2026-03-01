@@ -322,8 +322,8 @@ export default function OrdenesPage() {
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage
-    } = useInfiniteOrders();
-    const { data: totalOrdersCount = 0 } = useOrdersCount();
+    } = useInfiniteOrders(user?.tallerId);
+    const { data: totalOrdersCount = 0 } = useOrdersCount(user?.tallerId);
 
     // Flatten orders from pages
     const orders = useMemo(() => infiniteData?.pages.flatMap(page => page.orders) || [], [infiniteData]);

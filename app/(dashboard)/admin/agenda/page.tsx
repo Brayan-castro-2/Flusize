@@ -126,7 +126,7 @@ export default function AgendaPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between w-full mb-4">
                 <div className="flex items-center gap-3">
                     <Calendar className="w-8 h-8 text-blue-500" />
                     <div>
@@ -140,34 +140,32 @@ export default function AgendaPage() {
                     </div>
                 </div>
 
-                {/* Navigation */}
-                <div className="flex items-center gap-2">
+                <div className="w-full flex justify-between md:justify-end md:w-auto gap-2">
                     <Button
                         onClick={goToPreviousWeek}
                         variant="outline"
                         size="sm"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                        className="border-gray-300 !text-white hover:bg-gray-100"
                     >
-                        <ChevronLeft className="w-4 h-4" />
+                        <ChevronLeft className="w-4 h-4 !text-white" />
                     </Button>
 
                     <div className="relative">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="border-gray-300 text-gray-700 hover:bg-gray-100 min-w-[120px] pointer-events-none" // Disable pointer events on button so input catches all
+                            className="border-gray-300 !text-white hover:bg-gray-100 min-w-[120px] pointer-events-none"
                         >
-                            <Calendar className="w-4 h-4 mr-2" />
+                            <Calendar className="w-4 h-4 mr-2 !text-white" />
                             {isToday(currentDate) ? 'Hoy' : formatDate(currentDate)}
                         </Button>
                         <input
                             type="date"
                             title="Seleccionar fecha"
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20" // Added z-20
-                            onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} // Try to force picker
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
+                            onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                             onChange={(e) => {
                                 if (e.target.value) {
-                                    // Ajustar fecha manteniendo la hora actual para evitar saltos de zona horaria extraños
                                     const [y, m, d] = e.target.value.split('-').map(Number);
                                     const newDate = new Date();
                                     newDate.setFullYear(y, m - 1, d);
@@ -181,17 +179,17 @@ export default function AgendaPage() {
                         onClick={goToNextWeek}
                         variant="outline"
                         size="sm"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                        className="border-gray-300 !text-white hover:bg-gray-100"
                     >
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="w-4 h-4 !text-white" />
                     </Button>
                 </div>
             </div>
 
             {/* Calendar Grid */}
-            <Card className="bg-white border-gray-200">
-                <div className="overflow-x-auto w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
-                    <div className="min-w-[900px]">
+            <div className="w-full overflow-x-auto scrollbar-hide">
+                <div className="min-w-[800px] lg:min-w-full">
+                    <Card className="bg-white border-gray-200">
                         {/* Week Header */}
                         <div className="grid grid-cols-8 border-b border-gray-200">
                             <div className="p-3 bg-gray-50 border-r border-gray-200">
@@ -225,7 +223,6 @@ export default function AgendaPage() {
 
                                 {/* Day Cells */}
                                 {weekDays.map((day, dayIndex) => {
-                                    // Filtrar citas del día usando fecha_inicio o fallback
                                     const dayCitas = citas.filter((cita) => {
                                         const dateStr = cita.fecha_inicio || cita.fecha;
                                         if (!dateStr) return false;
@@ -233,7 +230,6 @@ export default function AgendaPage() {
                                         return citaDate.toDateString() === day.toDateString();
                                     });
 
-                                    // Filtrar citas de la hora
                                     const hourCitas = dayCitas.filter((cita) => {
                                         const pos = getAppointmentPosition(cita);
                                         return pos && pos.hour === hour;
@@ -250,7 +246,6 @@ export default function AgendaPage() {
                                             className={`p-1 border-r border-gray-200 hover:bg-gray-100/30 cursor-pointer transition-colors relative ${isToday(day) ? 'bg-blue-500/5' : ''
                                                 }`}
                                         >
-                                            {/* Appointments */}
                                             {hourCitas.map((cita) => {
                                                 const pos = getAppointmentPosition(cita);
                                                 if (!pos) return null;
@@ -285,9 +280,9 @@ export default function AgendaPage() {
                                 })}
                             </div>
                         ))}
-                    </div>
+                    </Card>
                 </div>
-            </Card>
+            </div>
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

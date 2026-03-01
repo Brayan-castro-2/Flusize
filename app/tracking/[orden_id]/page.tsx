@@ -635,7 +635,7 @@ function DetailsModal({ data, onClose }: { data: TrackingData, onClose: () => vo
 export default function TrackingPage() {
     const params = useParams();
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, isLoading: isLoadingAuth } = useAuth();
     const id = params?.orden_id as string;
 
     const [data, setData] = useState<TrackingData | null>(null);
@@ -665,7 +665,10 @@ export default function TrackingPage() {
         }
     };
 
-    useEffect(() => { load(); }, [id]);
+    useEffect(() => {
+        if (isLoadingAuth) return;
+        load();
+    }, [id, isLoadingAuth]);
 
     // Dynamically fetch GetAPI technical specs for vehicle
     useEffect(() => {
@@ -717,22 +720,32 @@ export default function TrackingPage() {
         return () => { ch.unsubscribe(); };
     }, [id]);
 
-    if (loading) return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-blue-600 animate-spin" />
-        </div>
-    );
-
-    if (error || !data) return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
-                <AlertCircle className="w-8 h-8 text-red-500" />
+    // Si está cargando la sesión o los datos iniciales (y no hay error)
+    if (isLoadingAuth || (loading && !error)) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-blue-600 animate-spin" />
+                <p className="ml-3 text-slate-500 font-medium">Buscando orden...</p>
             </div>
-            <h1 className="text-xl font-bold text-slate-800 mb-2">Orden no encontrada</h1>
-            <p className="text-sm text-slate-500 max-w-xs mb-6">El enlace podría haber expirado o el vehículo ya fue retirado del taller.</p>
-        </div>
-    );
+        );
+    }
 
+    if (error || !data) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 max-w-md w-full text-center">
+                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertCircle className="w-8 h-8 text-red-500" />
+                    </div>
+                    <h1 className="text-xl font-bold text-slate-900 mb-2">Orden no encontrada</h1>
+                    <p className="text-slate-500 mb-6">{error || 'El enlace es inválido o la orden ya no está disponible.'}</p>
+                    <Button onClick={() => router.push('/')} variant="outline" className="w-full">
+                        Volver al Inicio
+                    </Button>
+                </div>
+            </div>
+        );
+    }
     return (
         <div className="min-h-screen bg-slate-50">
             <div className="max-w-md mx-auto relative pb-10">

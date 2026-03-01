@@ -5,17 +5,19 @@ import { OrdenDB } from '@/lib/supabase';
 export const ORDERS_QUERY_KEY = ['orders'];
 
 // Hook para scroll infinito
-export function useInfiniteOrders() {
+export function useInfiniteOrders(tallerId?: string) {
     return useInfiniteQuery({
-        queryKey: ['orders', 'infinite'],
+        queryKey: ['orders', 'infinite', tallerId],
         queryFn: async ({ pageParam = 0 }) => {
             const limit = 20;
-            const orders = await obtenerOrdenes(limit, pageParam);
+            const orders = await obtenerOrdenes(limit, pageParam, tallerId);
             return {
                 orders,
                 nextCursor: orders.length === limit ? pageParam + limit : undefined,
             };
         },
+        // IMPORTANTE: Si no hay tallerId, no ejecutamos la query para evitar el bucle de Server Actions
+        enabled: !!tallerId,
         initialPageParam: 0,
         getNextPageParam: (lastPage) => lastPage.nextCursor,
         staleTime: 5 * 60 * 1000,
@@ -24,11 +26,12 @@ export function useInfiniteOrders() {
 }
 
 // Hook para obtener el total de órdenes
-export function useOrdersCount() {
+export function useOrdersCount(tallerId?: string) {
     return useQuery({
-        queryKey: ['orders', 'count'],
-        queryFn: obtenerOrdenesCount,
-        staleTime: 30 * 1000, // Cache por 30 segundos
+        queryKey: ['orders', 'count', tallerId],
+        queryFn: () => obtenerOrdenesCount(tallerId),
+        enabled: !!tallerId,
+        staleTime: 30 * 1000,
     });
 }
 

@@ -33,27 +33,27 @@ export async function crearVehiculo(vehiculo: Omit<VehiculoDB, 'fecha_creacion'>
     return localService.crearVehiculo(vehiculo);
 }
 
-export async function obtenerVehiculos(): Promise<VehiculoDB[]> {
+export async function obtenerVehiculos(tallerIdOverride?: string): Promise<VehiculoDB[]> {
     if (isSupabase()) {
-        return supabaseService.obtenerVehiculos();
+        return supabaseService.obtenerVehiculos(tallerIdOverride);
     }
     return localService.obtenerVehiculos();
 }
 
 // ============ ÓRDENES ============
 
-export async function obtenerOrdenes(limit?: number, offset?: number): Promise<OrdenDB[]> {
+export async function obtenerOrdenes(limit?: number, offset?: number, tallerIdOverride?: string): Promise<OrdenDB[]> {
     if (isSupabase()) {
         console.log('🔵 Usando Supabase para obtener órdenes');
-        return supabaseService.obtenerOrdenes(limit, offset);
+        return supabaseService.obtenerOrdenes(limit, offset, tallerIdOverride);
     }
     console.log('🟡 Usando localStorage para obtener órdenes');
     return localService.obtenerOrdenes(limit, offset);
 }
 
-export async function obtenerOrdenesCount(): Promise<number> {
+export async function obtenerOrdenesCount(tallerIdOverride?: string): Promise<number> {
     if (isSupabase()) {
-        return supabaseService.obtenerOrdenesCount();
+        return supabaseService.obtenerOrdenesCount(tallerIdOverride);
     }
     return localService.obtenerOrdenesCount();
 }
@@ -189,23 +189,23 @@ export async function obtenerSesionActual(): Promise<{
 
 // ============ CITAS/AGENDAMIENTO ============
 
-export async function obtenerCitas(): Promise<CitaDB[]> {
+export async function obtenerCitas(tallerIdOverride?: string): Promise<CitaDB[]> {
     if (isSupabase()) {
-        return supabaseService.obtenerCitas() as unknown as CitaDB[];
+        return supabaseService.obtenerCitas(tallerIdOverride) as unknown as CitaDB[];
     }
     return localService.obtenerCitas();
 }
 
-export async function obtenerCitasHoy(): Promise<CitaDB[]> {
+export async function obtenerCitasHoy(tallerIdOverride?: string): Promise<CitaDB[]> {
     if (isSupabase()) {
-        return supabaseService.obtenerCitasHoy() as unknown as CitaDB[];
+        return supabaseService.obtenerCitasHoy(tallerIdOverride) as unknown as CitaDB[];
     }
     return localService.obtenerCitasHoy();
 }
 
-export async function obtenerCitasSemana(startDate: Date, endDate: Date): Promise<CitaDB[]> {
+export async function obtenerCitasSemana(startDate: Date, endDate: Date, tallerIdOverride?: string): Promise<CitaDB[]> {
     if (isSupabase()) {
-        return supabaseService.obtenerCitasSemana(startDate, endDate) as unknown as CitaDB[];
+        return supabaseService.obtenerCitasSemana(startDate, endDate, tallerIdOverride) as unknown as CitaDB[];
     }
     return localService.obtenerCitasSemana(startDate, endDate);
 }
@@ -250,9 +250,9 @@ export async function subirImagen(file: File, carpeta?: string): Promise<string 
 
 // ============ CLIENTES (CRM) ============
 
-export async function obtenerClientes(busqueda?: string): Promise<ClienteDB[]> {
+export async function obtenerClientes(busqueda?: string, tallerIdOverride?: string): Promise<ClienteDB[]> {
     if (isSupabase()) {
-        return supabaseService.obtenerClientes(busqueda);
+        return supabaseService.obtenerClientes(busqueda, tallerIdOverride);
     }
     return []; // No implementado en local
 }
