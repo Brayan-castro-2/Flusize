@@ -189,8 +189,8 @@ export default function AgendaPage() {
             </div>
 
             {/* Calendar Grid */}
-            <Card className="bg-white border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto w-full custom-scrollbar">
+            <Card className="bg-white border-gray-200">
+                <div className="overflow-x-auto w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <div className="min-w-[900px]">
                         {/* Week Header */}
                         <div className="grid grid-cols-8 border-b border-gray-200">
