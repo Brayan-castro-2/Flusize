@@ -1,55 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
-    const [isVerifying, setIsVerifying] = useState(true);
-    const [isAuthorized, setIsAuthorized] = useState(false);
-    const [founderEmail, setFounderEmail] = useState('');
+    const { user, isLoading } = useAuth();
 
     useEffect(() => {
-        const verify = async () => {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
+        // Esperar a que el auth termine de cargar
+        if (isLoading) return;
 
-                if (!session?.user) {
-                    router.replace('/login');
-                    return;
-                }
+        // Sin sesión → login
+        if (!user) {
+            router.replace('/login');
+            return;
+        }
 
-                // Verificar que sea EXCLUSIVAMENTE flusize_admin (fundador de Flusize)
-                // NO es lo mismo que superadmin (dueño de taller)
-                const { data: perfil } = await supabase
-                    .from('perfiles')
-                    .select('rol, nombre_completo')
-                    .eq('id', session.user.id)
-                    .maybeSingle();
+        // Solo flusize_admin puede entrar (NO superadmin de talleres)
+        if (user.role !== 'flusize_admin') {
+            router.replace(user.role === 'mecanico' ? '/recepcion' : '/admin/ordenes');
+        }
+    }, [user, isLoading, router]);
 
-                if (perfil?.rol !== 'flusize_admin') {
-                    // Dueño de taller, mecánico, o cualquier otro → BLOQUEADO
-                    router.replace(
-                        perfil?.rol === 'mecanico' ? '/recepcion' : '/admin/ordenes'
-                    );
-                    return;
-                }
-
-                setFounderEmail(session.user.email || '');
-                setIsAuthorized(true);
-            } catch (err) {
-                console.error('[GodMode] Error verificando acceso:', err);
-                router.replace('/login');
-            } finally {
-                setIsVerifying(false);
-            }
-        };
-
-        verify();
-    }, [router]);
-
-    if (isVerifying) {
+    // Cargando auth
+    if (isLoading) {
         return (
             <div className="min-h-screen bg-[#0B1121] flex items-center justify-center">
                 <div className="text-center space-y-4">
@@ -60,10 +36,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         );
     }
 
-    if (!isAuthorized) {
+    // Sin usuario o no autorizado → no renderizar nada (useEffect ya redirige)
+    if (!user || user.role !== 'flusize_admin') {
         return (
             <div className="min-h-screen bg-[#0B1121] flex items-center justify-center">
-                <div className="text-center p-8 bg-red-950/40 border border-red-500/30 rounded-2xl max-w-sm shadow-2xl shadow-red-900/20">
+                <div className="text-center p-8 bg-red-950/40 border border-red-500/30 rounded-2xl max-w-sm">
                     <div className="text-6xl mb-4">🚫</div>
                     <h1 className="text-xl font-bold text-red-400 mb-2">Acceso Denegado</h1>
                     <p className="text-slate-400 text-sm">Esta área es exclusiva para los fundadores de Flusize.</p>
@@ -81,7 +58,6 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             <header className="border-b border-slate-800/80 bg-[#080f1e]/80 backdrop-blur-xl sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        {/* Logo */}
                         <div className="relative">
                             <div className="w-9 h-9 bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/40">
                                 <span className="text-base">⚡</span>
@@ -95,20 +71,15 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                                     GOD MODE
                                 </span>
                             </h1>
-                            <p className="text-slate-600 text-xs leading-none mt-0.5">
-                                {founderEmail}
-                            </p>
+                            <p className="text-slate-600 text-xs leading-none mt-0.5">{user.email}</p>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                        <a
-                            href="/admin/ordenes"
-                            className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
-                        >
-                            ← Salir del God Mode
-                        </a>
-                    </div>
+                    <a
+                        href="/admin/ordenes"
+                        className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
+                    >
+                        ← Salir del God Mode
+                    </a>
                 </div>
             </header>
 

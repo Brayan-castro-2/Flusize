@@ -295,8 +295,8 @@ export default function GodModePage() {
                                                             onClick={() => handleToggleActivo(taller)}
                                                             disabled={actionLoading === taller.id + '_activo'}
                                                             className={`text-xs px-3 py-1.5 rounded-lg border transition-all disabled:opacity-50 ${taller.activo
-                                                                    ? 'bg-red-950/50 hover:bg-red-900/70 text-red-400 border-red-900'
-                                                                    : 'bg-emerald-950/50 hover:bg-emerald-900/70 text-emerald-400 border-emerald-900'
+                                                                ? 'bg-red-950/50 hover:bg-red-900/70 text-red-400 border-red-900'
+                                                                : 'bg-emerald-950/50 hover:bg-emerald-900/70 text-emerald-400 border-emerald-900'
                                                                 }`}
                                                         >
                                                             {actionLoading === taller.id + '_activo' ? '...' : taller.activo ? 'Suspender' : 'Activar'}
@@ -407,13 +407,3 @@ function NewTallerForm({ onSuccess, onError }: { onSuccess: (nombre: string) => 
     );
 }
 
-// Helper - re-export so page has access to token getter
-async function getAuthToken(): Promise<string> {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || '';
-}
