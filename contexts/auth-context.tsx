@@ -8,7 +8,7 @@ export interface AuthUser {
     id: string;
     email: string;
     name: string;
-    role: 'cliente' | 'taller_admin' | 'mecanico' | 'superadmin' | 'admin';
+    role: 'cliente' | 'taller_admin' | 'mecanico' | 'superadmin' | 'admin' | 'flusize_admin';
     isActive: boolean;
     tallerId?: string;
 }
@@ -73,22 +73,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const fetchAndSetUser = async (authUser: any) => {
         console.log('[AuthContext Debug] fetchAndSetUser started for id:', authUser.id);
         try {
-            // Consultar rol real
-            const { data: perfil, error } = await supabase
+            // Timeout de 5s para evitar spinner infinito si Supabase cuelga
+            const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) =>
+                setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 5000)
+            );
+            const queryPromise = supabase
                 .from('perfiles')
                 .select('*')
                 .eq('id', authUser.id)
                 .maybeSingle();
 
-            console.log('[AuthContext Debug] perfil fetched:', perfil?.rol, 'error:', error);
+            const { data: perfil, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
-            // Determinar Rol
-            const role = perfil ? (perfil.rol || 'taller_admin') : 'cliente';
+            if (error?.message === 'timeout') {
+                console.warn('[AuthContext Debug] perfil query timed out, proceeding with auth user data only');
+            } else {
+                console.log('[AuthContext Debug] perfil fetched:', perfil?.rol, 'error:', error);
+            }
+
+            // Determinar Rol (fallback a metadata del token si perfil es null)
+            const role = perfil?.rol ||
+                authUser.user_metadata?.rol ||
+                (error?.message === 'timeout' ? 'taller_admin' : 'cliente');
 
             const mappedUser: AuthUser = {
                 id: authUser.id,
                 email: authUser.email || '',
-                name: perfil ? (perfil.nombre_completo || 'Usuario de Taller') : 'Cliente',
+                name: perfil ? (perfil.nombre_completo || 'Usuario de Taller') : (authUser.user_metadata?.nombre_completo || 'Usuario'),
                 role: role as any,
                 isActive: perfil ? perfil.activo : true,
                 tallerId: perfil ? perfil.taller_id : undefined
