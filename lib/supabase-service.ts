@@ -1101,30 +1101,65 @@ export async function obtenerCitasSemana(startDate: Date, endDate: Date): Promis
     const tallerId = await getCurrentUserTallerId();
     if (!tallerId) return [];
 
-    const { data, error } = await supabase
+    const startISO = startDate.toISOString();
+    const endISO = endDate.toISOString();
+
+    // Buscar citas usando fecha_inicio (campo que guarda el modal)
+    const { data: dataFechaInicio, error: errorFI } = await supabase
         .from('citas')
         .select('*')
         .eq('taller_id', tallerId)
-        .gte('fecha_hora', startDate.toISOString())
-        .lte('fecha_hora', endDate.toISOString())
+        .gte('fecha_inicio', startISO)
+        .lte('fecha_inicio', endISO)
+        .order('fecha_inicio', { ascending: true });
+
+    // También buscar por fecha_hora (campo legacy) para no perder citas antiguas
+    const { data: dataFechaHora } = await supabase
+        .from('citas')
+        .select('*')
+        .eq('taller_id', tallerId)
+        .gte('fecha_hora', startISO)
+        .lte('fecha_hora', endISO)
         .order('fecha_hora', { ascending: true });
 
-    if (error) {
-        console.error('Error al obtener citas de la semana:', error);
-        return [];
+    if (errorFI) {
+        console.error('Error al obtener citas de la semana:', errorFI);
     }
 
-    return (data || []).map(row => {
-        const partes = (row.motivo || '').split(' - ');
+    // Unir y deduplicar por id
+    const allRows = [...(dataFechaInicio || []), ...(dataFechaHora || [])];
+    const uniqueRows = Array.from(new Map(allRows.map(r => [r.id, r])).values());
+
+    // Mapear al formato que usa el calendario
+    return uniqueRows.map(row => {
+        // Determinar la fecha efectiva de la cita
+        const fechaEfectiva = row.fecha_inicio || row.fecha_hora || row.fecha || null;
+
+        // Resolver título desde campo titulo → motivo → cliente_nombre → fallback
+        const tituloResuelto =
+            row.titulo ||
+            (row.motivo ? row.motivo.split(' - ')[0] : null) ||
+            row.cliente_nombre ||
+            'Cita';
+
+        // Resolver servicio desde servicio_solicitado → motivo (segunda parte) → fallback
+        const servicioResuelto =
+            row.servicio_solicitado ||
+            (row.motivo ? row.motivo.split(' - ').slice(1).join(' - ') : '') ||
+            '';
+
         return {
             ...row,
-            fecha_inicio: row.fecha_hora,
-            fecha: row.fecha_hora,
-            titulo: partes[0] || 'Cita',
-            servicio_solicitado: partes.slice(1).join(' - ') || '',
+            // Garantizar que fecha_inicio siempre tenga valor para el calendario
+            fecha_inicio: fechaEfectiva,
+            fecha: fechaEfectiva,
+            titulo: tituloResuelto,
+            cliente_nombre: row.cliente_nombre || tituloResuelto,
+            servicio_solicitado: servicioResuelto,
         };
     }) as any;
 }
+
 
 export async function crearCita(cita: any): Promise<CitaDB | null> {
     const tallerId = await getCurrentUserTallerId();
