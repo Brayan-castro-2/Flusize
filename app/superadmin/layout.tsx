@@ -4,21 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-// ── EMAILS DE FUNDADORES (barrera de seguridad adicional) ─────────────────────
-const FOUNDER_EMAILS = [
-    'brayan.castro@flusize.com',
-    'admin@flusize.com',
-];
-
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [isVerifying, setIsVerifying] = useState(true);
     const [isAuthorized, setIsAuthorized] = useState(false);
+    const [founderEmail, setFounderEmail] = useState('');
 
     useEffect(() => {
         const verify = async () => {
             try {
-                // Obtener sesión actual
                 const { data: { session } } = await supabase.auth.getSession();
 
                 if (!session?.user) {
@@ -26,25 +20,26 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                     return;
                 }
 
-                // Verificar rol en tabla perfiles (validación principal)
+                // Verificar que sea EXCLUSIVAMENTE flusize_admin (fundador de Flusize)
+                // NO es lo mismo que superadmin (dueño de taller)
                 const { data: perfil } = await supabase
                     .from('perfiles')
-                    .select('rol, email')
+                    .select('rol, nombre_completo')
                     .eq('id', session.user.id)
                     .maybeSingle();
 
-                const isFounderEmail = FOUNDER_EMAILS.includes(session.user.email || '');
-                const isSuperAdminRole = perfil?.rol === 'superadmin';
-
-                if (!isSuperAdminRole && !isFounderEmail) {
-                    // No es fundador ni superadmin → acceso denegado
-                    router.replace('/admin/ordenes');
+                if (perfil?.rol !== 'flusize_admin') {
+                    // Dueño de taller, mecánico, o cualquier otro → BLOQUEADO
+                    router.replace(
+                        perfil?.rol === 'mecanico' ? '/recepcion' : '/admin/ordenes'
+                    );
                     return;
                 }
 
+                setFounderEmail(session.user.email || '');
                 setIsAuthorized(true);
             } catch (err) {
-                console.error('[SuperAdmin] Error verificando acceso:', err);
+                console.error('[GodMode] Error verificando acceso:', err);
                 router.replace('/login');
             } finally {
                 setIsVerifying(false);
@@ -57,9 +52,9 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     if (isVerifying) {
         return (
             <div className="min-h-screen bg-[#0B1121] flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-10 h-10 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-slate-400 text-sm">Verificando acceso...</p>
+                <div className="text-center space-y-4">
+                    <div className="w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-slate-400 text-sm">Verificando acceso al God Mode...</p>
                 </div>
             </div>
         );
@@ -68,10 +63,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     if (!isAuthorized) {
         return (
             <div className="min-h-screen bg-[#0B1121] flex items-center justify-center">
-                <div className="text-center p-8 bg-red-950/50 border border-red-500/30 rounded-2xl max-w-sm">
+                <div className="text-center p-8 bg-red-950/40 border border-red-500/30 rounded-2xl max-w-sm shadow-2xl shadow-red-900/20">
                     <div className="text-6xl mb-4">🚫</div>
                     <h1 className="text-xl font-bold text-red-400 mb-2">Acceso Denegado</h1>
-                    <p className="text-slate-400 text-sm">No tienes permisos para acceder al panel de administración global.</p>
+                    <p className="text-slate-400 text-sm">Esta área es exclusiva para los fundadores de Flusize.</p>
+                    <a href="/" className="mt-4 inline-block text-xs text-slate-600 hover:text-slate-400 transition-colors">
+                        ← Volver al inicio
+                    </a>
                 </div>
             </div>
         );
@@ -79,26 +77,38 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
     return (
         <div className="min-h-screen bg-[#0B1121] text-white">
-            {/* Header del God Mode */}
-            <header className="border-b border-slate-800 bg-[#0D1528]/80 backdrop-blur-sm sticky top-0 z-50">
+            {/* Header God Mode */}
+            <header className="border-b border-slate-800/80 bg-[#080f1e]/80 backdrop-blur-xl sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-700 rounded-lg flex items-center justify-center text-sm font-bold shadow-lg shadow-violet-500/30">
-                            ⚡
+                        {/* Logo */}
+                        <div className="relative">
+                            <div className="w-9 h-9 bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/40">
+                                <span className="text-base">⚡</span>
+                            </div>
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#080f1e] animate-pulse" />
                         </div>
                         <div>
-                            <span className="font-bold text-white tracking-tight">FLUSIZE</span>
-                            <span className="ml-2 text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full border border-violet-500/30 font-semibold">
-                                GOD MODE
-                            </span>
+                            <h1 className="font-black text-white tracking-tight leading-none text-lg">
+                                FLUSIZE
+                                <span className="ml-2 text-xs bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full border border-violet-500/30 font-semibold align-middle">
+                                    GOD MODE
+                                </span>
+                            </h1>
+                            <p className="text-slate-600 text-xs leading-none mt-0.5">
+                                {founderEmail}
+                            </p>
                         </div>
                     </div>
-                    <a
-                        href="/admin/ordenes"
-                        className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-                    >
-                        ← Volver al Taller
-                    </a>
+
+                    <div className="flex items-center gap-4">
+                        <a
+                            href="/admin/ordenes"
+                            className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
+                        >
+                            ← Salir del God Mode
+                        </a>
+                    </div>
                 </div>
             </header>
 
