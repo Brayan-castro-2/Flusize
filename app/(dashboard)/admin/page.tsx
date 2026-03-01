@@ -69,10 +69,11 @@ export default function AdminPage() {
     const [isLoadingOther, setIsLoadingOther] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Redirigir mecánicos a /recepcion — el dashboard es solo para admin y superadmin
+    // FASE 27: Solo el superadmin (Dueño del Taller) puede ver las métricas financieras del Dashboard.
+    // Los demás roles (taller_admin, admin, mecanico) son redirigidos a Órdenes.
     useEffect(() => {
-        if (user && user.role === 'mecanico') {
-            router.replace('/recepcion');
+        if (user && user.role !== 'superadmin') {
+            router.replace('/admin/ordenes');
         }
     }, [user, router]);
 

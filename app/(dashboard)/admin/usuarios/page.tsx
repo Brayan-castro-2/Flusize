@@ -55,6 +55,17 @@ export default function UsuariosPage() {
     const [newRole, setNewRole] = useState<'mecanico' | 'taller_admin' | 'superadmin'>('mecanico');
     const { user: currentUser } = useAuth();
 
+    // Roles disponibles según el nivel del admin que crea
+    const isSuperAdmin = currentUser?.role === 'superadmin';
+    const rolesDisponibles = isSuperAdmin
+        ? [
+            { value: 'mecanico', label: 'Mecánico' },
+            { value: 'taller_admin', label: 'Admin (Jefe de Taller)' },
+        ]
+        : [
+            { value: 'mecanico', label: 'Mecánico' },
+        ];
+
     const handleToggleActive = async (usuario: PerfilDB) => {
         await actualizarPerfil(usuario.id, { activo: !usuario.activo });
         await queryClient.invalidateQueries({ queryKey: ['perfiles'] });
@@ -172,14 +183,9 @@ export default function UsuariosPage() {
                                             <SelectValue placeholder="Seleccionar Rol" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="mecanico">Mecánico</SelectItem>
-                                            {/* Solo superadmin puede crear otros admins */}
-                                            {currentUser?.role === 'superadmin' && (
-                                                <SelectItem value="taller_admin">Administrador (Coordinador)</SelectItem>
-                                            )}
-                                            {currentUser?.role === 'superadmin' && (
-                                                <SelectItem value="superadmin">Dueño (Super Admin)</SelectItem>
-                                            )}
+                                            {rolesDisponibles.map(r => (
+                                                <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>

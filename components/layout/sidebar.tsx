@@ -35,7 +35,8 @@ const navItems: NavItem[] = [
         href: '/admin',
         label: 'Dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
-        roles: ['taller_admin', 'superadmin', 'admin'],
+        // FASE 27: Solo el superadmin (Dueño del taller) puede ver las métricas financieras
+        roles: ['superadmin'],
     },
     {
         href: '/admin/ordenes',

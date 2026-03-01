@@ -3,15 +3,23 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Instanciamos el cliente admin SOLO con la service role key
-// Este cliente tiene permisos de admin y NO afecta la sesión del usuario que hace la petición
+// Cliente admin con FULL privileges (no afecta sesión del usuario)
 const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
     auth: {
         autoRefreshToken: false,
         persistSession: false,
     },
 });
+
+// Jerarquía de roles: qué roles puede crear cada nivel
+const ROLES_QUE_PUEDE_CREAR: Record<string, string[]> = {
+    superadmin: ['taller_admin', 'mecanico', 'admin'],
+    taller_admin: ['mecanico'],
+    admin: ['mecanico'],
+    // mecanico no puede crear nada
+};
 
 export async function POST(req: NextRequest) {
     try {
@@ -40,13 +48,42 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const rolesValidos = ['mecanico', 'taller_admin', 'superadmin'];
-        if (!rolesValidos.includes(rol)) {
-            return NextResponse.json(
-                { error: `Rol inválido: ${rol}` },
-                { status: 400 }
-            );
+        // ── VALIDACIÓN DE JERARQUÍA DE ROLES (Blindaje de Seguridad) ──────────
+        // Obtenemos la sesión del admin que hace la petición para verificar su rol
+        const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+        const token = authHeader?.replace('Bearer ', '').trim();
+
+        if (token) {
+            // Usamos el cliente de anon para verificar la sesión del creador
+            const supabaseRequestClient = createClient(supabaseUrl, anonKey, {
+                auth: { autoRefreshToken: false, persistSession: false },
+                global: { headers: { Authorization: `Bearer ${token}` } },
+            });
+
+            const { data: { user: creadorAuthUser } } = await supabaseRequestClient.auth.getUser();
+
+            if (creadorAuthUser) {
+                // Obtenemos el perfil real del creador para saber su rol
+                const { data: creadorPerfil } = await supabaseAdmin
+                    .from('perfiles')
+                    .select('rol')
+                    .eq('id', creadorAuthUser.id)
+                    .maybeSingle();
+
+                const rolDelCreador = creadorPerfil?.rol || '';
+                const rolesPermitidos = ROLES_QUE_PUEDE_CREAR[rolDelCreador] || [];
+
+                if (!rolesPermitidos.includes(rol)) {
+                    return NextResponse.json(
+                        {
+                            error: `No tienes permisos para crear un usuario con el rol "${rol}". Tu nivel de acceso (${rolDelCreador}) solo puede crear: ${rolesPermitidos.join(', ') || 'ningún rol'}.`
+                        },
+                        { status: 403 }
+                    );
+                }
+            }
         }
+        // ─────────────────────────────────────────────────────────────────────
 
         // PASO A: Crear el usuario en el sistema de Auth de Supabase
         // Usamos admin.createUser para que NO se interrumpa la sesión del Admin actual
