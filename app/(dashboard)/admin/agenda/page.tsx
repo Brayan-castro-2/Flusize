@@ -13,7 +13,7 @@ import { AppointmentModal } from '@/components/agenda/appointment-modal';
 import { useAuth } from '@/contexts/auth-context';
 
 const DAYS_OF_WEEK = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8 AM to 7 PM
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8 AM to 8 PM
 
 function getWeekBounds(date: Date): { start: Date; end: Date } {
     const start = new Date(date);
@@ -57,7 +57,7 @@ function getAppointmentPosition(cita: CitaDB): { hour: number; minute: number } 
     const hour = date.getHours();
     const minute = date.getMinutes();
 
-    if (hour < 8 || hour >= 20) return null; // Out of bounds
+    if (hour < 8 || hour >= 21) return null; // Out of bounds (8:00 - 20:59)
 
     return { hour, minute };
 }
@@ -83,8 +83,9 @@ export default function AgendaPage() {
     const { data: citas = [] } = useQuery({
         queryKey: ['citas', weekBounds.start.toISOString(), weekBounds.end.toISOString()],
         queryFn: () => obtenerCitasSemana(weekBounds.start, weekBounds.end),
-        staleTime: 5 * 60 * 1000,
-        gcTime: 15 * 60 * 1000,
+        staleTime: 30 * 1000,       // 30 segundos — datos frescos
+        gcTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: true,
     });
 
     const goToPreviousWeek = () => {
@@ -189,8 +190,8 @@ export default function AgendaPage() {
 
             {/* Calendar Grid */}
             <Card className="bg-white border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <div className="min-w-[800px]">
+                <div className="overflow-x-auto w-full custom-scrollbar">
+                    <div className="min-w-[900px]">
                         {/* Week Header */}
                         <div className="grid grid-cols-8 border-b border-gray-200">
                             <div className="p-3 bg-gray-50 border-r border-gray-200">
