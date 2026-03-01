@@ -14,8 +14,9 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 // Jerarquía de roles: qué roles puede crear cada nivel
+// FASE 28: superadmin puede crear su propio nivel (co-dueños/socios)
 const ROLES_QUE_PUEDE_CREAR: Record<string, string[]> = {
-    superadmin: ['taller_admin', 'mecanico', 'admin'],
+    superadmin: ['superadmin', 'taller_admin', 'mecanico', 'admin'],
     taller_admin: ['mecanico'],
     admin: ['mecanico'],
     // mecanico no puede crear nada

@@ -56,14 +56,16 @@ export default function UsuariosPage() {
     const { user: currentUser } = useAuth();
 
     // Roles disponibles según el nivel del admin que crea
+    // FASE 28: superadmin puede crear su mismo nivel (socios/dueños)
     const isSuperAdmin = currentUser?.role === 'superadmin';
     const rolesDisponibles = isSuperAdmin
         ? [
-            { value: 'mecanico', label: 'Mecánico' },
-            { value: 'taller_admin', label: 'Admin (Jefe de Taller)' },
+            { value: 'mecanico', label: '🔧 Mecánico' },
+            { value: 'taller_admin', label: '📋 Admin (Jefe de Taller)' },
+            { value: 'superadmin', label: '👑 Dueño (Superadmin)' },
         ]
         : [
-            { value: 'mecanico', label: 'Mecánico' },
+            { value: 'mecanico', label: '🔧 Mecánico' },
         ];
 
     const handleToggleActive = async (usuario: PerfilDB) => {
