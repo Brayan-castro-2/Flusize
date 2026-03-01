@@ -35,6 +35,7 @@ export default function GodModePage() {
     const [editPlanTaller, setEditPlanTaller] = useState<Taller | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
+    const [successData, setSuccessData] = useState<{ nombre: string; slug: string; serviciosInsertados: number } | null>(null);
 
     const showToast = (msg: string, type: 'ok' | 'err' = 'ok') => {
         setToast({ msg, type });
@@ -320,23 +321,64 @@ export default function GodModePage() {
                 </div>
             </div>
 
-            {/* Modal Nuevo Taller */}
+            {/* Asistente Registro Pro */}
             {modalOpen && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     onClick={e => { if (e.target === e.currentTarget) setModalOpen(false); }}
                 >
-                    <div className="bg-[#0D1528] border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl shadow-violet-900/20">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-800">
-                            <div>
-                                <h2 className="text-white font-bold text-lg">Registrar Nuevo Taller</h2>
-                                <p className="text-slate-500 text-xs mt-0.5">Crea un nuevo tenant en la plataforma Flusize</p>
-                            </div>
-                            <button onClick={() => setModalOpen(false)} className="text-slate-500 hover:text-slate-300 text-2xl leading-none transition-colors">×</button>
-                        </div>
-                        <NewTallerForm
-                            onSuccess={(nombre) => { setModalOpen(false); fetchTalleres(); showToast(`Taller "${nombre}" creado correctamente.`); }}
+                    <div className="bg-[#0D1528] border border-slate-700 rounded-2xl w-full max-w-xl shadow-2xl shadow-violet-900/20 overflow-hidden">
+                        <AsistenteRegistroTaller
+                            onClose={() => setModalOpen(false)}
                             onError={(msg) => showToast(msg, 'err')}
+                            onSuccess={(data) => {
+                                setModalOpen(false);
+                                setSuccessData(data);
+                                fetchTalleres();
+                            }}
                         />
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Éxito */}
+            {successData && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#0D1528] border border-emerald-700/50 rounded-2xl w-full max-w-sm shadow-2xl shadow-emerald-900/30 p-8 text-center">
+                        <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-3xl">✓</span>
+                        </div>
+                        <h2 className="text-white font-black text-xl mb-1">¡Taller Registrado!</h2>
+                        <p className="text-emerald-400 font-semibold">{successData.nombre}</p>
+                        <p className="text-slate-500 text-sm mt-2">
+                            {successData.serviciosInsertados > 0
+                                ? `${successData.serviciosInsertados} servicios base configurados automáticamente.`
+                                : 'Taller listo para operar.'}
+                        </p>
+
+                        <div className="mt-6 space-y-3">
+                            <button
+                                onClick={() => {
+                                    const url = `${window.location.origin}/admin/ordenes`;
+                                    navigator.clipboard.writeText(url);
+                                    showToast('Enlace copiado al portapapeles ✓');
+                                }}
+                                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-all text-sm flex items-center justify-center gap-2"
+                            >
+                                <span>🔗</span> Copiar Enlace de Acceso
+                            </button>
+                            <a
+                                href="/admin/ordenes"
+                                className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-500 hover:to-purple-600 text-white font-bold rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-500/30"
+                            >
+                                <span>⚡</span> Ir al Panel del Taller
+                            </a>
+                            <button
+                                onClick={() => setSuccessData(null)}
+                                className="text-slate-600 hover:text-slate-400 text-xs transition-colors"
+                            >
+                                Volver al God Mode →
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -344,66 +386,259 @@ export default function GodModePage() {
     );
 }
 
-function NewTallerForm({ onSuccess, onError }: { onSuccess: (nombre: string) => void; onError: (msg: string) => void }) {
-    const [nombre, setNombre] = useState('');
-    const [email, setEmail] = useState('');
-    const [telefono, setTelefono] = useState('');
-    const [plan, setPlan] = useState('GRATIS');
-    const [isSaving, setIsSaving] = useState(false);
+// ── Tipo de datos del formulario completo ─────────────────────────────────────
+type FormData = {
+    nombre: string; rut: string; dueno_nombre: string;
+    direccion: string; ciudad: string; latitud: string; longitud: string;
+    telefono: string; email: string; whatsapp: string;
+    instagram: string; facebook: string;
+    aplica_iva: boolean; porcentaje_iva: string;
+    plan_suscripcion: string;
+    servicios_base: string;
+};
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!nombre.trim()) { onError('El nombre es obligatorio.'); return; }
+// ── Asistente de Registro Pro (4 pasos) ───────────────────────────────────────
+function AsistenteRegistroTaller({
+    onSuccess, onError, onClose
+}: {
+    onSuccess: (data: { nombre: string; slug: string; serviciosInsertados: number }) => void;
+    onError: (msg: string) => void;
+    onClose: () => void;
+}) {
+    const [step, setStep] = useState(1);
+    const TOTAL_STEPS = 4;
+    const [isSaving, setIsSaving] = useState(false);
+    const [form, setForm] = useState<FormData>({
+        nombre: '', rut: '', dueno_nombre: '',
+        direccion: '', ciudad: '', latitud: '', longitud: '',
+        telefono: '', email: '', whatsapp: '',
+        instagram: '', facebook: '',
+        aplica_iva: true, porcentaje_iva: '19',
+        plan_suscripcion: 'GRATIS',
+        servicios_base: '',
+    });
+
+    const set = (field: keyof FormData) =>
+        (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+            const value = e.target.type === 'checkbox'
+                ? (e.target as HTMLInputElement).checked
+                : e.target.value;
+            setForm(prev => ({ ...prev, [field]: value }));
+        };
+
+    const handleSubmit = async () => {
+        if (!form.nombre.trim()) { onError('El nombre es obligatorio.'); return; }
         setIsSaving(true);
         try {
             const token = await getAuthToken();
             const res = await fetch('/api/godmode/talleres', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ nombre, email, telefono, plan_suscripcion: plan }),
+                body: JSON.stringify(form),
             });
             if (!res.ok) throw new Error((await res.json()).error);
-            onSuccess(nombre);
+            const data = await res.json();
+            onSuccess({ nombre: data.taller.nombre, slug: data.taller.slug, serviciosInsertados: data.serviciosInsertados });
         } catch (err: any) {
-            onError(err.message || 'Error al crear el taller.');
+            onError(err.message || 'Error al registrar el taller.');
         } finally {
             setIsSaving(false);
         }
     };
 
+    const STEPS = [
+        { n: 1, label: 'Empresa', icon: '🏢' },
+        { n: 2, label: 'Ubicación', icon: '📍' },
+        { n: 3, label: 'Contacto', icon: '📞' },
+        { n: 4, label: 'Config.', icon: '⚙️' },
+    ];
+
     return (
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {[
-                { label: 'Nombre del Taller *', value: nombre, set: setNombre, type: 'text', placeholder: 'Ej: Taller González', required: true },
-                { label: 'Email de Contacto', value: email, set: setEmail, type: 'email', placeholder: 'contacto@taller.cl' },
-                { label: 'Teléfono', value: telefono, set: setTelefono, type: 'tel', placeholder: '+56 9 1234 5678' },
-            ].map(f => (
-                <div key={f.label}>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{f.label}</label>
-                    <input type={f.type} required={f.required} value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-colors" />
+        <div className="flex flex-col" style={{ maxHeight: '90vh' }}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-800 flex-shrink-0">
+                <div>
+                    <h2 className="text-white font-black text-xl">Asistente de Registro</h2>
+                    <p className="text-slate-500 text-xs mt-0.5">Configura el taller completo desde el primer día</p>
                 </div>
-            ))}
-            <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Plan de Suscripción</label>
-                <select value={plan} onChange={e => setPlan(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-colors">
-                    <option value="GRATIS">🆓 Gratis</option>
-                    <option value="PRO">⚡ Pro</option>
-                    <option value="PREMIUM">👑 Premium</option>
-                </select>
+                <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-2xl leading-none transition-colors">×</button>
             </div>
-            <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={isSaving}
-                    className="flex-1 py-2.5 bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-500 hover:to-purple-600 text-white font-bold rounded-xl transition-all disabled:opacity-60 text-sm">
-                    {isSaving ? 'Creando...' : 'Crear Taller'}
-                </button>
-                <button type="button" onClick={() => { }}
-                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors text-sm">
-                    Cancelar
-                </button>
+
+            {/* Steps */}
+            <div className="px-6 py-3 border-b border-slate-800/60 flex items-center gap-2 flex-shrink-0">
+                {STEPS.map((s, i) => (
+                    <div key={s.n} className="flex items-center gap-2 flex-1">
+                        <button onClick={() => setStep(s.n)}
+                            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-1 justify-center ${step === s.n ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/30'
+                                : step > s.n ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800'
+                                    : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
+                            <span>{step > s.n ? '✓' : s.icon}</span>
+                            <span className="hidden sm:inline">{s.label}</span>
+                        </button>
+                        {i < STEPS.length - 1 && (
+                            <div className={`h-px flex-shrink-0 w-4 ${step > s.n ? 'bg-emerald-700' : 'bg-slate-800'}`} />
+                        )}
+                    </div>
+                ))}
             </div>
-        </form>
+
+            {/* Form body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {/* PASO 1: Empresa */}
+                {step === 1 && (
+                    <div className="space-y-4">
+                        <p className="text-violet-400 text-xs font-bold uppercase tracking-widest">🏢 Datos de la Empresa</p>
+                        <FField label="Nombre del Taller *" value={form.nombre} onChange={set('nombre')} placeholder="Ej: Taller Mecánico González" required />
+                        <div className="grid grid-cols-2 gap-4">
+                            <FField label="RUT / NIT" value={form.rut} onChange={set('rut')} placeholder="76.123.456-7" />
+                            <FField label="Nombre del Dueño" value={form.dueno_nombre} onChange={set('dueno_nombre')} placeholder="Ej: Carlos González" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Plan</label>
+                            <select value={form.plan_suscripcion} onChange={set('plan_suscripcion')}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500">
+                                <option value="GRATIS">🆓 Gratis</option>
+                                <option value="PRO">⚡ Pro</option>
+                                <option value="PREMIUM">👑 Premium</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
+
+                {/* PASO 2: Ubicación */}
+                {step === 2 && (
+                    <div className="space-y-4">
+                        <p className="text-violet-400 text-xs font-bold uppercase tracking-widest">📍 Ubicación</p>
+                        <FField label="Dirección Completa" value={form.direccion} onChange={set('direccion')} placeholder="Av. Libertador 1234, Local 2" />
+                        <FField label="Ciudad" value={form.ciudad} onChange={set('ciudad')} placeholder="Santiago, Concepción, Temuco..." />
+                        <div className="grid grid-cols-2 gap-4">
+                            <FField label="Latitud" value={form.latitud} onChange={set('latitud')} placeholder="-33.4569" type="text" />
+                            <FField label="Longitud" value={form.longitud} onChange={set('longitud')} placeholder="-70.6483" type="text" />
+                        </div>
+                        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-xs text-slate-500">
+                            💡 Abre{' '}
+                            <a href="https://maps.google.com" target="_blank" rel="noopener" className="text-violet-400 hover:underline">Google Maps</a>,
+                            haz clic derecho en la dirección y copia las coordenadas.
+                        </div>
+                    </div>
+                )}
+
+                {/* PASO 3: Contacto + Redes */}
+                {step === 3 && (
+                    <div className="space-y-4">
+                        <p className="text-violet-400 text-xs font-bold uppercase tracking-widest">📞 Contacto y Redes</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <FField label="Teléfono Citas" value={form.telefono} onChange={set('telefono')} placeholder="+56 9 1234 5678" type="tel" />
+                            <FField label="WhatsApp (Intl)" value={form.whatsapp} onChange={set('whatsapp')} placeholder="+56912345678" type="tel" />
+                        </div>
+                        <FField label="Email Comercial" value={form.email} onChange={set('email')} placeholder="contacto@taller.cl" type="email" />
+                        <div className="grid grid-cols-2 gap-4">
+                            <FField label="Instagram (@user)" value={form.instagram} onChange={set('instagram')} placeholder="tallergonzalez" prefix="@" />
+                            <FField label="Facebook URL" value={form.facebook} onChange={set('facebook')} placeholder="facebook.com/taller" />
+                        </div>
+                    </div>
+                )}
+
+                {/* PASO 4: Config fiscal + Servicios */}
+                {step === 4 && (
+                    <div className="space-y-5">
+                        <p className="text-violet-400 text-xs font-bold uppercase tracking-widest">⚙️ Fiscal y Servicios</p>
+
+                        {/* Toggle IVA */}
+                        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <button type="button"
+                                    onClick={() => setForm(p => ({ ...p, aplica_iva: !p.aplica_iva }))}
+                                    className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${form.aplica_iva ? 'bg-violet-600' : 'bg-slate-700'}`}>
+                                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${form.aplica_iva ? 'translate-x-5' : ''}`} />
+                                </button>
+                                <div>
+                                    <p className="text-white text-sm font-medium">¿Aplica IVA?</p>
+                                    <p className="text-slate-500 text-xs">Activa si emite boletas/facturas con IVA</p>
+                                </div>
+                            </label>
+                            {form.aplica_iva && (
+                                <div className="flex items-center gap-3 ml-14">
+                                    <span className="text-slate-400 text-sm">Porcentaje:</span>
+                                    <input type="number" min="1" max="30" value={form.porcentaje_iva} onChange={set('porcentaje_iva')}
+                                        className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white text-center focus:outline-none focus:border-violet-500" />
+                                    <span className="text-slate-400 text-sm">%</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Servicios */}
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Servicios Base</label>
+                            <textarea value={form.servicios_base} onChange={set('servicios_base')}
+                                placeholder="Cambio de aceite, Mecánica general, Scanner diagnóstico, Frenos, Suspensión"
+                                rows={4}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-colors resize-none" />
+                            <p className="text-slate-600 text-xs mt-1">Separados por coma. Se crean automáticamente en el menú del taller.</p>
+                        </div>
+
+                        {/* Resumen */}
+                        <div className="bg-violet-950/30 border border-violet-800/30 rounded-xl p-4">
+                            <p className="text-violet-400 text-xs font-bold uppercase tracking-wider mb-2">Resumen</p>
+                            <div className="grid grid-cols-2 gap-y-1 text-xs">
+                                {[
+                                    ['Taller', form.nombre || '—'],
+                                    ['Ciudad', form.ciudad || '—'],
+                                    ['Dueño', form.dueno_nombre || '—'],
+                                    ['Plan', form.plan_suscripcion],
+                                    ['IVA', form.aplica_iva ? `${form.porcentaje_iva}%` : 'No aplica'],
+                                    ['Servicios', form.servicios_base ? `${form.servicios_base.split(',').filter(Boolean).length} items` : 'Ninguno'],
+                                ].map(([k, v]) => (
+                                    <><span key={k + 'k'} className="text-slate-500">{k}:</span><span key={k + 'v'} className="text-white font-medium">{v}</span></>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Footer navegación */}
+            <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between gap-3 flex-shrink-0">
+                <button onClick={() => step > 1 ? setStep(s => s - 1) : onClose()}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 text-sm transition-colors">
+                    {step > 1 ? '← Anterior' : 'Cancelar'}
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                    {STEPS.map(s => (
+                        <div key={s.n} className={`w-2 h-2 rounded-full transition-colors ${step >= s.n ? 'bg-violet-500' : 'bg-slate-700'}`} />
+                    ))}
+                </div>
+
+                {step < TOTAL_STEPS ? (
+                    <button onClick={() => setStep(s => s + 1)} disabled={step === 1 && !form.nombre.trim()}
+                        className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-500 hover:to-purple-600 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-50">
+                        Siguiente →
+                    </button>
+                ) : (
+                    <button onClick={handleSubmit} disabled={isSaving || !form.nombre.trim()}
+                        className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/30 transition-all disabled:opacity-60">
+                        {isSaving ? '⟳ Registrando...' : '✓ Registrar Taller'}
+                    </button>
+                )}
+            </div>
+        </div>
     );
 }
 
+// ── Campo de formulario reutilizable ──────────────────────────────────────────
+function FField({ label, value, onChange, placeholder, type = 'text', required, prefix }: {
+    label: string; value: string; onChange: any; placeholder?: string;
+    type?: string; required?: boolean; prefix?: string;
+}) {
+    return (
+        <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{label}</label>
+            <div className="relative">
+                {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">{prefix}</span>}
+                <input type={type} required={required} value={value} onChange={onChange} placeholder={placeholder}
+                    className={`w-full bg-slate-900 border border-slate-700 rounded-lg py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-colors ${prefix ? 'pl-7 pr-4' : 'px-4'}`} />
+            </div>
+        </div>
+    );
+}
