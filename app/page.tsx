@@ -101,7 +101,6 @@ const HeroSection = () => {
         loop
         muted
         playsInline
-        poster="/hero-bg-poster.jpg"
         preload="metadata"
         className="absolute inset-0 w-full h-full object-cover z-0"
       >
@@ -561,7 +560,7 @@ const SectionB2CGarage = () => {
             </p>
 
             <p className="text-lg md:text-xl text-slate-300 mb-10 leading-relaxed font-bold italic opacity-80 border-l-4 border-cyan-500 pl-6">
-              "Toma el mando de la información. Con Flusize, cada servicio queda registrado con evidencia inmutable. Tu historial es la garantía de valor de tu vehículo."
+              &quot;Toma el mando de la información. Con Flusize, cada servicio queda registrado con evidencia inmutable. Tu historial es la garantía de valor de tu vehículo.&quot;
             </p>
 
             <Link href="/mi-garage">

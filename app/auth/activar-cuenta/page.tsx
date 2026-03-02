@@ -47,19 +47,28 @@ function ActivationForm() {
         setError(null);
         setIsLoading(true);
 
-        // Simulación de proceso de activación premium
+        // Proceso de activación real
         try {
-            // Aquí iría la llamada a Supabase/API para usar el token y setear pass
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const response = await fetch('/api/auth/activar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, password })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al activar la cuenta');
+            }
 
             setIsActivating(true);
 
             // Animación de "Cargando Ecosistema..."
             await new Promise(resolve => setTimeout(resolve, 2500));
 
-            router.push('/admin/dashboard');
-        } catch (err) {
-            setError('Error al activar la cuenta. Por favor contacta a soporte.');
+            router.push('/login?activated=true');
+        } catch (err: any) {
+            setError(err.message || 'Error al activar la cuenta. Por favor contacta a soporte.');
             setIsLoading(false);
         }
     }

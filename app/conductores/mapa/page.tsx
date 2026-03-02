@@ -370,8 +370,8 @@ function MapViewContent() {
                                         if (mapRef.current) {
                                             mapRef.current.flyToLocation(shop.coordinates.lat, shop.coordinates.lng, 16);
                                         }
-                                        // Navegación automática al perfil al hacer clic en la tarjeta (Root Clean URL)
-                                        router.push(`/${shop.slug || shop.id}`);
+                                        const profileSlug = shop.slug?.startsWith('steelmonkey') ? 'steelmonkey' : (shop.slug || shop.id);
+                                        router.push(`/${profileSlug}`);
                                     }}
                                     className={`
                                         group relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300
@@ -425,10 +425,14 @@ function MapViewContent() {
                                         `}
                                     >
                                         <div className="flex items-center gap-1.5">
-                                            <div className={`w-2 h-2 rounded-full ${shop.availableSlots > 0 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${shop.availableSlots > 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                                {shop.availableSlots > 0 ? `${shop.availableSlots} Cupos` : 'Sin Cupo'}
-                                            </span>
+                                            {!shop.slug?.startsWith('steelmonkey') && (
+                                                <>
+                                                    <div className={`w-2 h-2 rounded-full ${shop.availableSlots > 0 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${shop.availableSlots > 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                                        {shop.availableSlots > 0 ? `${shop.availableSlots} Cupos` : 'Sin Cupo'}
+                                                    </span>
+                                                </>
+                                            )}
                                         </div>
                                         <div className="text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                                             Ver Perfil →
