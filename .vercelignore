@@ -1,0 +1,52 @@
+# Vercel Ignore - Optimización de Despliegue
+
+# Logs
+*.log
+*.txt
+errors.txt
+ts_errors.log
+build.log
+tsc_output.log
+next-build-errors.txt
+next_error.log
+dev_output.log
+
+# Capturas de pantalla y medios de debug
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4
+!public/hero-bg.mp4
+!public/*.png
+!public/*.jpg
+!public/*.svg
+
+# Carpetas temporales y de entorno
+.next/
+node_modules/
+.env*
+!.env.example
+
+# Carpetas de IA y otros
+.agent/
+.agents/
+.openclaw/
+para usar/
+docs/
+AGENTS.md
+DESIGN_SYSTEM_RULES.md
+FIX_LOGIN.md
+GUIA_*.md
+PLAN_*.md
+SOUL.md
+IDENTITY.md
+USER.md
+TOOLS.md
+HEARTBEAT.md
+INSTRUCCIONES_*.md
+*.sql
+*.js
+!next.config.js
+!tailwind.config.ts
+!postcss.config.mjs
