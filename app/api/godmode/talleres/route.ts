@@ -95,6 +95,10 @@ export async function POST(req: NextRequest) {
         aplica_iva, porcentaje_iva,
         // Plan y servicios
         plan_suscripcion, servicios_base,
+        // Micro-Fase 45: Dinámicos
+        tipo, servicios_flex,
+        // Micro-Fase 47: Módulos
+        modulos_activos,
     } = body;
 
     if (!nombre?.trim()) {
@@ -126,6 +130,14 @@ export async function POST(req: NextRequest) {
             aplica_iva: aplica_iva !== false,
             porcentaje_iva: porcentaje_iva ? parseInt(porcentaje_iva) : 19,
             plan_suscripcion: plan_suscripcion || 'GRATIS',
+            tipo: tipo || null,
+            servicios: servicios_flex
+                ? servicios_flex.split(',').map((s: string) => s.trim()).filter(Boolean)
+                : [],
+            // Micro-Fase 47: Lógica de Monetización (Feature Gating)
+            modulos_activos: plan_suscripcion === 'GRATIS'
+                ? { agenda: false, tracking: false, inventario: false, fiscal: false, checklist: false }
+                : (modulos_activos || { agenda: true, tracking: true, inventario: false, fiscal: false, checklist: false }),
             activo: true,
             slug,
         })
@@ -138,27 +150,55 @@ export async function POST(req: NextRequest) {
 
     // Paso B: Insertar servicios base si fueron provistos
     let serviciosInsertados = 0;
-    if (servicios_base && typeof servicios_base === 'string' && servicios_base.trim()) {
-        const serviciosList = servicios_base
-            .split(',')
-            .map((s: string) => s.trim())
-            .filter((s: string) => s.length > 0);
-
-        if (serviciosList.length > 0) {
-            const serviciosRows = serviciosList.map((descripcion: string) => ({
-                descripcion,
+    if (servicios_base && Array.isArray(servicios_base) && servicios_base.length > 0) {
+        const serviciosRows = servicios_base
+            .filter((s: any) => s.descripcion && s.descripcion.trim())
+            .map((s: any) => ({
+                descripcion: s.descripcion.trim(),
                 taller_id: nuevoTaller.id,
-                precio_base: 0,
+                precio_base: parseFloat(s.precio) || 0,
                 activo: true,
             }));
 
+        if (serviciosRows.length > 0) {
             const { error: serviciosError } = await supabaseAdmin
                 .from('servicios_frecuentes')
                 .insert(serviciosRows);
 
             if (!serviciosError) {
-                serviciosInsertados = serviciosList.length;
+                serviciosInsertados = serviciosRows.length;
             }
+        }
+    }
+
+    // Paso C: Crear Usuario Auth para el Dueño
+    let userCreated = false;
+    if (email?.trim() && body.password_dueno) {
+        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email: email.trim(),
+            password: body.password_dueno,
+            email_confirm: true,
+            user_metadata: {
+                nombre_completo: dueno_nombre || `Admin ${nombre}`
+            }
+        });
+
+        if (!authError && authUser.user) {
+            // Paso D: Crear Perfil vinculado
+            const { error: perfilError } = await supabaseAdmin
+                .from('perfiles')
+                .insert({
+                    id: authUser.user.id,
+                    email: email.trim(),
+                    nombre_completo: dueno_nombre || `Admin ${nombre}`,
+                    rol: 'taller_admin',
+                    taller_id: nuevoTaller.id,
+                    activo: true
+                });
+
+            if (!perfilError) userCreated = true;
+        } else {
+            console.error("Error creando auth user:", authError);
         }
     }
 
@@ -166,6 +206,8 @@ export async function POST(req: NextRequest) {
         success: true,
         taller: nuevoTaller,
         serviciosInsertados,
+        userCreated,
+        passwordUsed: body.password_dueno,
         accesUrl: `/admin/ordenes`,
         slug: nuevoTaller.slug,
     }, { status: 201 });

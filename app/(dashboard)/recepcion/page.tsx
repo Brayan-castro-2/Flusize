@@ -846,9 +846,8 @@ function RecepcionContent() {
     // Paso 1: Destruye el bloqueo condicional (Render)
     if (loading) {
         return (
-            <div className="flex h-screen w-full flex-col items-center justify-center bg-[#0B1121]">
-                <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-                <p className="mt-4 text-slate-300 font-medium">Cargando recepción...</p>
+            <div className="min-h-screen bg-[#0B1121]">
+                <SkeletonRecepcion />
             </div>
         );
     }
@@ -1349,14 +1348,28 @@ function RecepcionContent() {
     );
 }
 
+const SkeletonRecepcion = () => (
+    <div className="max-w-4xl mx-auto p-6 space-y-6 animate-pulse">
+        <div className="flex justify-between items-center mb-8">
+            <div className="h-8 w-48 bg-slate-700/50 rounded-lg" />
+            <div className="h-8 w-32 bg-slate-700/50 rounded-lg" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+                <div className="h-20 bg-slate-800/50 rounded-2xl" />
+                <div className="h-20 bg-slate-800/50 rounded-2xl" />
+                <div className="h-20 bg-slate-800/50 rounded-2xl" />
+            </div>
+            <div className="space-y-4">
+                <div className="h-64 bg-slate-800/50 rounded-2xl" />
+            </div>
+        </div>
+    </div>
+);
+
 export default function RecepcionPage() {
     return (
-        <Suspense fallback={
-            <div className="flex h-[50vh] w-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                <span className="ml-2 text-slate-400">Cargando recepción...</span>
-            </div>
-        }>
+        <Suspense fallback={<SkeletonRecepcion />}>
             <RecepcionContent />
         </Suspense>
     );

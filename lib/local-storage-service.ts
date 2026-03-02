@@ -61,6 +61,7 @@ export interface OrdenDB {
     // Modificado para compatibilidad V3 (Optional)
     fecha_entrega?: string | null;
     fecha_salida?: string | null;
+    fecha_termino?: string | null;
     fecha_cierre?: string | null;
     fecha_lista?: string | null;
     fecha_completada?: string | null;

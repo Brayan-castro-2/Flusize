@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
+import { MODULOS_INFO, DEFAULT_MODULOS, TallerModulos } from '@/config/modules';
+import { REGIONES_CHILE } from '@/config/chile-data';
 
 type Taller = {
     id: string;
@@ -22,6 +25,12 @@ const PLANES: Record<string, { label: string; color: string; emoji: string }> = 
     PREMIUM: { label: 'Premium', emoji: '👑', color: 'bg-violet-950 text-violet-300 border-violet-800' },
 };
 
+// Importar Mapa dinámicamente (SSR OFF)
+const MapPicker = dynamic(() => import('@/components/ui/MapPicker'), {
+    ssr: false,
+    loading: () => <div className="h-[300px] w-full bg-slate-900 animate-pulse rounded-xl border border-slate-800 flex items-center justify-center text-slate-500 text-[10px] uppercase tracking-widest font-bold">Cargando mapa interactivo...</div>
+});
+
 async function getAuthToken(): Promise<string> {
     const { data } = await supabase.auth.getSession();
     return data.session?.access_token || '';
@@ -35,7 +44,7 @@ export default function GodModePage() {
     const [editPlanTaller, setEditPlanTaller] = useState<Taller | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
-    const [successData, setSuccessData] = useState<{ nombre: string; slug: string; serviciosInsertados: number } | null>(null);
+    const [successData, setSuccessData] = useState<{ nombre: string; slug: string; userCreated: boolean; email?: string; password?: string } | null>(null);
 
     const showToast = (msg: string, type: 'ok' | 'err' = 'ok') => {
         setToast({ msg, type });
@@ -350,10 +359,30 @@ export default function GodModePage() {
                         <h2 className="text-white font-black text-xl mb-1">¡Taller Registrado!</h2>
                         <p className="text-emerald-400 font-semibold">{successData.nombre}</p>
                         <p className="text-slate-500 text-sm mt-2">
-                            {successData.serviciosInsertados > 0
-                                ? `${successData.serviciosInsertados} servicios base configurados automáticamente.`
+                            {successData.userCreated
+                                ? 'Taller y cuenta de acceso creados con éxito.'
                                 : 'Taller listo para operar.'}
                         </p>
+
+                        {successData.userCreated && (
+                            <div className="mt-4 p-3 bg-slate-900/50 border border-slate-800 rounded-xl text-left space-y-2">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Credenciales de Acceso</p>
+                                <div className="space-y-1">
+                                    <p className="text-xs text-slate-400">Email: <span className="text-white font-mono">{successData.email}</span></p>
+                                    <p className="text-xs text-slate-400">Password: <span className="text-white font-mono">{successData.password}</span></p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const text = `Acceso a Flusize:\nEmail: ${successData.email}\nPassword: ${successData.password}\nLink: ${window.location.origin}/admin/ordenes`;
+                                        navigator.clipboard.writeText(text);
+                                        showToast('Copiado detallado al portapapeles ✓');
+                                    }}
+                                    className="w-full mt-2 py-1.5 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 text-[10px] font-bold rounded-lg border border-violet-500/30 transition-all uppercase"
+                                >
+                                    Copiar todo para enviar
+                                </button>
+                            </div>
+                        )}
 
                         <div className="mt-6 space-y-3">
                             <button
@@ -389,33 +418,43 @@ export default function GodModePage() {
 // ── Tipo de datos del formulario completo ─────────────────────────────────────
 type FormData = {
     nombre: string; rut: string; dueno_nombre: string;
-    direccion: string; ciudad: string; latitud: string; longitud: string;
+    direccion: string; ciudad: string; region: string; latitud: string; longitud: string;
     telefono: string; email: string; whatsapp: string;
     instagram: string; facebook: string;
-    aplica_iva: boolean; porcentaje_iva: string;
+    aplica_iva: boolean;
+    porcentaje_iva: string;
     plan_suscripcion: string;
-    servicios_base: string;
+    tipo: string;
+    servicios_flex: string;
+    servicios_base: { descripcion: string; precio: string }[];
+    modulos_activos: TallerModulos;
+    // Acceso
+    password_dueno: string;
 };
 
 // ── Asistente de Registro Pro (4 pasos) ───────────────────────────────────────
 function AsistenteRegistroTaller({
     onSuccess, onError, onClose
 }: {
-    onSuccess: (data: { nombre: string; slug: string; serviciosInsertados: number }) => void;
+    onSuccess: (data: { nombre: string; slug: string; userCreated: boolean; email?: string; password?: string }) => void;
     onError: (msg: string) => void;
     onClose: () => void;
 }) {
     const [step, setStep] = useState(1);
-    const TOTAL_STEPS = 4;
     const [isSaving, setIsSaving] = useState(false);
     const [form, setForm] = useState<FormData>({
         nombre: '', rut: '', dueno_nombre: '',
-        direccion: '', ciudad: '', latitud: '', longitud: '',
+        direccion: '', ciudad: '', region: '', latitud: '', longitud: '',
         telefono: '', email: '', whatsapp: '',
         instagram: '', facebook: '',
-        aplica_iva: true, porcentaje_iva: '19',
+        aplica_iva: true,
+        porcentaje_iva: '19',
         plan_suscripcion: 'GRATIS',
-        servicios_base: '',
+        tipo: '',
+        servicios_flex: '',
+        servicios_base: [{ descripcion: 'Scanner Diagnóstico', precio: '15000' }],
+        modulos_activos: { ...DEFAULT_MODULOS },
+        password_dueno: Math.random().toString(36).slice(-8) // Contraseña aleatoria inicial
     });
 
     const set = (field: keyof FormData) =>
@@ -431,14 +470,29 @@ function AsistenteRegistroTaller({
         setIsSaving(true);
         try {
             const token = await getAuthToken();
+
+            // Forzar módulos desactivados si es Plan Gratis (Micro-Fase 47)
+            const finalForm = {
+                ...form,
+                modulos_activos: form.plan_suscripcion === 'GRATIS'
+                    ? Object.keys(form.modulos_activos).reduce((acc, key) => ({ ...acc, [key]: false }), {})
+                    : form.modulos_activos
+            };
+
             const res = await fetch('/api/godmode/talleres', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(form),
+                body: JSON.stringify(finalForm),
             });
             if (!res.ok) throw new Error((await res.json()).error);
             const data = await res.json();
-            onSuccess({ nombre: data.taller.nombre, slug: data.taller.slug, serviciosInsertados: data.serviciosInsertados });
+            onSuccess({
+                nombre: data.taller.nombre,
+                slug: data.taller.slug,
+                userCreated: data.userCreated,
+                email: form.email,
+                password: form.password_dueno
+            });
         } catch (err: any) {
             onError(err.message || 'Error al registrar el taller.');
         } finally {
@@ -446,15 +500,24 @@ function AsistenteRegistroTaller({
         }
     };
 
-    const STEPS = [
+    const BASE_STEPS = [
         { n: 1, label: 'Empresa', icon: '🏢' },
         { n: 2, label: 'Ubicación', icon: '📍' },
         { n: 3, label: 'Contacto', icon: '📞' },
         { n: 4, label: 'Config.', icon: '⚙️' },
+        { n: 5, label: 'Módulos', icon: '🧩' },
     ];
 
+    // Micro-Fase 47: Ocultar Módulos si es Plan Gratis
+    const STEPS = form.plan_suscripcion === 'GRATIS'
+        ? BASE_STEPS.filter(s => s.n !== 5)
+        : BASE_STEPS;
+
+    const TOTAL_STEPS = STEPS.length;
+    const isLastStep = step === TOTAL_STEPS;
+
     return (
-        <div className="flex flex-col" style={{ maxHeight: '90vh' }}>
+        <div className="flex flex-col dark" style={{ maxHeight: '90vh' }}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-800 flex-shrink-0">
                 <div>
@@ -493,14 +556,37 @@ function AsistenteRegistroTaller({
                             <FField label="RUT / NIT" value={form.rut} onChange={set('rut')} placeholder="76.123.456-7" />
                             <FField label="Nombre del Dueño" value={form.dueno_nombre} onChange={set('dueno_nombre')} placeholder="Ej: Carlos González" />
                         </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Plan</label>
-                            <select value={form.plan_suscripcion} onChange={set('plan_suscripcion')}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500">
-                                <option value="GRATIS">🆓 Gratis</option>
-                                <option value="PRO">⚡ Pro</option>
-                                <option value="PREMIUM">👑 Premium</option>
-                            </select>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">Plan</label>
+                                <select value={form.plan_suscripcion} onChange={set('plan_suscripcion')}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 font-bold appearance-none"
+                                    style={{ color: '#ffffff', backgroundColor: '#0f172a' }}>
+                                    <option value="GRATIS" className="bg-slate-900 text-white">🆓 Gratis</option>
+                                    <option value="PRO" className="bg-slate-900 text-white">⚡ Pro</option>
+                                    <option value="PREMIUM" className="bg-slate-900 text-white">👑 Premium</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">Tipo de Negocio</label>
+                                <input
+                                    type="text"
+                                    value={form.tipo}
+                                    onChange={set('tipo')}
+                                    list="tipos-negocio-wizard"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 font-bold"
+                                    placeholder="Ej: Taller Mecánico"
+                                    required
+                                />
+                                <datalist id="tipos-negocio-wizard">
+                                    <option value="Taller Mecánico" />
+                                    <option value="Vulcanización" />
+                                    <option value="Venta de Repuestos" />
+                                    <option value="Car Wash" />
+                                    <option value="Taller de Performance" />
+                                    <option value="Detailing Studio" />
+                                </datalist>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -508,17 +594,53 @@ function AsistenteRegistroTaller({
                 {/* PASO 2: Ubicación */}
                 {step === 2 && (
                     <div className="space-y-4">
-                        <p className="text-violet-400 text-xs font-bold uppercase tracking-widest">📍 Ubicación</p>
                         <FField label="Dirección Completa" value={form.direccion} onChange={set('direccion')} placeholder="Av. Libertador 1234, Local 2" />
-                        <FField label="Ciudad" value={form.ciudad} onChange={set('ciudad')} placeholder="Santiago, Concepción, Temuco..." />
+
                         <div className="grid grid-cols-2 gap-4">
-                            <FField label="Latitud" value={form.latitud} onChange={set('latitud')} placeholder="-33.4569" type="text" />
-                            <FField label="Longitud" value={form.longitud} onChange={set('longitud')} placeholder="-70.6483" type="text" />
+                            <div>
+                                <label className="block text-xs font-bold text-white uppercase tracking-wider mb-1.5">Región</label>
+                                <select value={form.region} onChange={e => {
+                                    setForm(prev => ({ ...prev, region: e.target.value, ciudad: '' }));
+                                }}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 font-bold appearance-none"
+                                    style={{ color: '#ffffff', backgroundColor: '#0f172a' }}>
+                                    <option value="" className="bg-slate-900 text-white">Selecciona Región...</option>
+                                    {REGIONES_CHILE.map(r => (
+                                        <option key={r.region} value={r.region} className="bg-slate-900 text-white">{r.region}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-white uppercase tracking-wider mb-1.5">Ciudad / Comuna</label>
+                                <select value={form.ciudad} onChange={set('ciudad')} disabled={!form.region}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 font-bold disabled:opacity-50 appearance-none"
+                                    style={{ color: '#ffffff', backgroundColor: '#0f172a' }}>
+                                    <option value="" className="bg-slate-900 text-white">Selecciona Comuna...</option>
+                                    {form.region && REGIONES_CHILE.find(r => r.region === form.region)?.comunas.map(c => (
+                                        <option key={c} value={c} className="bg-slate-900 text-white">{c}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
-                        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-xs text-slate-500">
-                            💡 Abre{' '}
-                            <a href="https://maps.google.com" target="_blank" rel="noopener" className="text-violet-400 hover:underline">Google Maps</a>,
-                            haz clic derecho en la dirección y copia las coordenadas.
+                        <div className="grid grid-cols-2 gap-4">
+                            <FField label="Latitud" value={form.latitud} onChange={set('latitud')} placeholder="-33.4569" type="text" readOnly className="bg-slate-900 cursor-not-allowed opacity-70" />
+                            <FField label="Longitud" value={form.longitud} onChange={set('longitud')} placeholder="-70.6483" type="text" readOnly className="bg-slate-900 cursor-not-allowed opacity-70" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Selecciona ubicación precisa</label>
+                            <MapPicker
+                                onChange={(lat, lng) => {
+                                    setForm(prev => ({ ...prev, latitud: lat, longitud: lng }));
+                                }}
+                                initialLat={form.latitud}
+                                initialLng={form.longitud}
+                            />
+                        </div>
+
+                        <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-3 text-[10px] text-blue-300 flex items-start gap-2">
+                            <span className="text-sm">📍</span>
+                            <span>Haz clic en el mapa para posicionar el taller. Esto permitirá a tus clientes encontrarte fácilmente en el Tracking y Mapa de Flusize.</span>
                         </div>
                     </div>
                 )}
@@ -535,6 +657,11 @@ function AsistenteRegistroTaller({
                         <div className="grid grid-cols-2 gap-4">
                             <FField label="Instagram (@user)" value={form.instagram} onChange={set('instagram')} placeholder="tallergonzalez" prefix="@" />
                             <FField label="Facebook URL" value={form.facebook} onChange={set('facebook')} placeholder="facebook.com/taller" />
+                        </div>
+                        <div className="bg-violet-950/20 border border-violet-800/40 rounded-xl p-4 mt-2">
+                            <p className="text-violet-400 text-[10px] font-bold uppercase mb-2 tracking-widest">🔐 Acceso del Dueño</p>
+                            <FField label="Contraseña Inicial *" value={form.password_dueno} onChange={set('password_dueno')} placeholder="Min. 6 caracteres" type="text" />
+                            <p className="text-slate-500 text-[9px] mt-2">Esta será la clave que usará el dueño para su primer ingreso. Podrá cambiarla después.</p>
                         </div>
                     </div>
                 )}
@@ -553,44 +680,153 @@ function AsistenteRegistroTaller({
                                     <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${form.aplica_iva ? 'translate-x-5' : ''}`} />
                                 </button>
                                 <div>
-                                    <p className="text-white text-sm font-medium">¿Aplica IVA?</p>
-                                    <p className="text-slate-500 text-xs">Activa si emite boletas/facturas con IVA</p>
+                                    <p className="text-white text-sm font-semibold">¿Aplica IVA?</p>
+                                    <p className="text-slate-400 text-xs">Activa si emite boletas/facturas con IVA</p>
                                 </div>
                             </label>
                             {form.aplica_iva && (
                                 <div className="flex items-center gap-3 ml-14">
-                                    <span className="text-slate-400 text-sm">Porcentaje:</span>
+                                    <span className="text-slate-200 text-sm font-medium">Porcentaje:</span>
                                     <input type="number" min="1" max="30" value={form.porcentaje_iva} onChange={set('porcentaje_iva')}
-                                        className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white text-center focus:outline-none focus:border-violet-500" />
-                                    <span className="text-slate-400 text-sm">%</span>
+                                        className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white text-center focus:outline-none focus:border-violet-500 font-bold" />
+                                    <span className="text-slate-200 text-sm">%</span>
                                 </div>
                             )}
                         </div>
 
-                        {/* Servicios */}
-                        <div>
-                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Servicios Base</label>
-                            <textarea value={form.servicios_base} onChange={set('servicios_base')}
-                                placeholder="Cambio de aceite, Mecánica general, Scanner diagnóstico, Frenos, Suspensión"
-                                rows={4}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-colors resize-none" />
-                            <p className="text-slate-600 text-xs mt-1">Separados por coma. Se crean automáticamente en el menú del taller.</p>
+                        {/* Servicios Flexibles (Micro-Fase 45) */}
+                        <div className="space-y-2">
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                Servicios Flexibles (Separados por comas)
+                            </label>
+                            <textarea
+                                value={form.servicios_flex}
+                                onChange={set('servicios_flex')}
+                                rows={2}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500 resize-none"
+                                placeholder="Frenos, Suspensión, Afinamiento, Scanner..."
+                            />
+                            <p className="text-[10px] text-slate-600 italic">Entrada libre para reportes y perfiles públicos.</p>
                         </div>
 
-                        {/* Resumen */}
-                        <div className="bg-violet-950/30 border border-violet-800/30 rounded-xl p-4">
-                            <p className="text-violet-400 text-xs font-bold uppercase tracking-wider mb-2">Resumen</p>
-                            <div className="grid grid-cols-2 gap-y-1 text-xs">
-                                {[
-                                    ['Taller', form.nombre || '—'],
-                                    ['Ciudad', form.ciudad || '—'],
-                                    ['Dueño', form.dueno_nombre || '—'],
-                                    ['Plan', form.plan_suscripcion],
-                                    ['IVA', form.aplica_iva ? `${form.porcentaje_iva}%` : 'No aplica'],
-                                    ['Servicios', form.servicios_base ? `${form.servicios_base.split(',').filter(Boolean).length} items` : 'Ninguno'],
-                                ].map(([k, v]) => (
-                                    <><span key={k + 'k'} className="text-slate-500">{k}:</span><span key={k + 'v'} className="text-white font-medium">{v}</span></>
+                        {/* Servicios Table-like UI */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    Servicios Base del Taller
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => setForm(p => ({
+                                        ...p,
+                                        servicios_base: [...p.servicios_base, { descripcion: '', precio: '' }]
+                                    }))}
+                                    className="text-violet-400 hover:text-violet-300 text-xs font-bold flex items-center gap-1 transition-colors"
+                                >
+                                    <span>+</span> Agregar Otro
+                                </button>
+                            </div>
+
+                            <div className="space-y-2 border border-slate-800 rounded-xl overflow-hidden bg-slate-950/30 p-2">
+                                {/* Header */}
+                                <div className="grid grid-cols-[1fr_80px_40px] gap-2 px-2 pb-1 border-b border-slate-800 mb-2">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Descripción</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Precio</span>
+                                    <div />
+                                </div>
+
+                                {form.servicios_base.map((serv, idx) => (
+                                    <div key={idx} className="grid grid-cols-[1fr_80px_40px] gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            value={serv.descripcion}
+                                            onChange={e => {
+                                                const newS = [...form.servicios_base];
+                                                newS[idx].descripcion = e.target.value;
+                                                setForm(p => ({ ...p, servicios_base: newS }));
+                                            }}
+                                            placeholder="Ej: Scanner Diagnóstico"
+                                            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-violet-500"
+                                        />
+                                        <input
+                                            type="number"
+                                            value={serv.precio}
+                                            onChange={e => {
+                                                const newS = [...form.servicios_base];
+                                                newS[idx].precio = e.target.value;
+                                                setForm(p => ({ ...p, servicios_base: newS }));
+                                            }}
+                                            placeholder="0"
+                                            className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-right focus:outline-none focus:border-violet-500"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newS = form.servicios_base.filter((_, i) => i !== idx);
+                                                setForm(p => ({ ...p, servicios_base: newS }));
+                                            }}
+                                            disabled={form.servicios_base.length === 1}
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors disabled:opacity-0"
+                                        >
+                                            <span className="text-xl leading-none">×</span>
+                                        </button>
+                                    </div>
                                 ))}
+                            </div>
+                            <p className="text-slate-600 text-[10px] italic">
+                                * Estos servicios aparecerán automáticamente en el menú del taller al crearse.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* PASO 5: Módulos Contratados */}
+                {step === 5 && (
+                    <div className="space-y-5">
+                        <div>
+                            <p className="text-violet-400 text-xs font-bold uppercase tracking-widest">🧩 Módulos Contratados</p>
+                            <p className="text-slate-500 text-xs mt-1">Activa las funcionalidades que tendrá este taller</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            {MODULOS_INFO.map(mod => (
+                                <div key={mod.key}
+                                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${form.modulos_activos[mod.key]
+                                        ? 'bg-violet-950/40 border-violet-700/50'
+                                        : 'bg-slate-900/40 border-slate-800'
+                                        }`}>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xl">{mod.emoji}</span>
+                                        <div>
+                                            <p className="text-white text-sm font-semibold">{mod.label}</p>
+                                            <p className="text-slate-500 text-xs">{mod.descripcion}</p>
+                                        </div>
+                                    </div>
+                                    <button type="button"
+                                        onClick={() => setForm(p => ({
+                                            ...p,
+                                            modulos_activos: { ...p.modulos_activos, [mod.key]: !p.modulos_activos[mod.key] }
+                                        }))}
+                                        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${form.modulos_activos[mod.key] ? 'bg-violet-600' : 'bg-slate-700'
+                                            }`}>
+                                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${form.modulos_activos[mod.key] ? 'translate-x-5' : ''
+                                            }`} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Resumen Final */}
+                        <div className="bg-violet-950/30 border border-violet-800/30 rounded-xl p-4">
+                            <p className="text-violet-400 text-xs font-bold uppercase tracking-wider mb-2">Resumen Final</p>
+                            <div className="grid grid-cols-2 gap-y-1 text-xs">
+                                <span className="text-slate-500">Taller:</span><span className="text-white font-medium">{form.nombre || '—'}</span>
+                                <span className="text-slate-500">Región:</span><span className="text-white">{form.region || '—'}</span>
+                                <span className="text-slate-500">Ciudad:</span><span className="text-white">{form.ciudad || '—'}</span>
+                                <span className="text-slate-500">Plan:</span><span className="text-white">{form.plan_suscripcion}</span>
+                                <span className="text-slate-500">IVA:</span><span className="text-white">{form.aplica_iva ? `${form.porcentaje_iva}%` : 'No'}</span>
+                                <span className="text-slate-500">Servicios:</span><span className="text-white">{form.servicios_base.filter(s => s.descripcion.trim()).length}</span>
+                                <span className="text-slate-500">Módulos:</span><span className="text-white">{Object.values(form.modulos_activos).filter(Boolean).length} de {MODULOS_INFO.length}</span>
                             </div>
                         </div>
                     </div>
@@ -610,7 +846,7 @@ function AsistenteRegistroTaller({
                     ))}
                 </div>
 
-                {step < TOTAL_STEPS ? (
+                {!isLastStep ? (
                     <button onClick={() => setStep(s => s + 1)} disabled={step === 1 && !form.nombre.trim()}
                         className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-500 hover:to-purple-600 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-50">
                         Siguiente →
@@ -627,17 +863,25 @@ function AsistenteRegistroTaller({
 }
 
 // ── Campo de formulario reutilizable ──────────────────────────────────────────
-function FField({ label, value, onChange, placeholder, type = 'text', required, prefix }: {
+function FField({ label, value, onChange, placeholder, type = 'text', required, prefix, readOnly, className }: {
     label: string; value: string; onChange: any; placeholder?: string;
-    type?: string; required?: boolean; prefix?: string;
+    type?: string; required?: boolean; prefix?: string; readOnly?: boolean; className?: string;
 }) {
     return (
         <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{label}</label>
+            <label className="block text-xs font-bold text-white uppercase tracking-wider mb-1.5">{label}</label>
             <div className="relative">
-                {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">{prefix}</span>}
-                <input type={type} required={required} value={value} onChange={onChange} placeholder={placeholder}
-                    className={`w-full bg-slate-900 border border-slate-700 rounded-lg py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-colors ${prefix ? 'pl-7 pr-4' : 'px-4'}`} />
+                {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm font-bold z-10">{prefix}</span>}
+                <input
+                    type={type}
+                    required={required}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    readOnly={readOnly}
+                    className={`w-full bg-slate-900 border border-slate-700 rounded-lg py-2.5 text-sm font-bold placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-colors ${prefix ? 'pl-8 pr-4' : 'px-4'} ${className || ''}`}
+                    style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
+                />
             </div>
         </div>
     );

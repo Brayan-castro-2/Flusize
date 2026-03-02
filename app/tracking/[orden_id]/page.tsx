@@ -618,16 +618,53 @@ function DetailsModal({ data, onClose }: { data: TrackingData, onClose: () => vo
                         </div>
                     )}
                 </div>
-
-                <div className="p-4 border-t border-slate-100 bg-slate-50">
-                    <Button onClick={onClose} className="w-full h-11 bg-slate-200 text-slate-800 hover:bg-slate-300 font-bold rounded-xl">
-                        Cerrar
-                    </Button>
-                </div>
             </div>
         </div>
-    )
+    );
 }
+
+const SkeletonItem = ({ className }: { className?: string }) => (
+    <div className={`animate-pulse bg-slate-200 rounded-xl ${className}`} />
+);
+
+const SkeletonTracking = () => (
+    <div className="max-w-md mx-auto relative pb-10 space-y-6">
+        <header className="px-4 pt-6 space-y-4">
+            <div className="flex justify-between items-center">
+                <SkeletonItem className="h-9 w-9 rounded-full" />
+                <SkeletonItem className="h-6 w-24" />
+                <SkeletonItem className="h-9 w-9 rounded-full" />
+            </div>
+            <div className="flex gap-4">
+                <SkeletonItem className="h-14 w-14 rounded-2xl" />
+                <div className="flex-1 space-y-2">
+                    <SkeletonItem className="h-6 w-3/4" />
+                    <div className="flex gap-2">
+                        <SkeletonItem className="h-4 w-16" />
+                        <SkeletonItem className="h-4 w-24" />
+                    </div>
+                </div>
+            </div>
+        </header>
+        <div className="px-5 space-y-6">
+            <SkeletonItem className="h-4 w-32" />
+            <div className="space-y-8">
+                {[1, 2, 3, 4].map(idx => (
+                    <div key={idx} className="flex gap-4">
+                        <SkeletonItem className="h-9 w-9 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                            <SkeletonItem className="h-5 w-32" />
+                            <SkeletonItem className="h-4 w-full" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+        <div className="px-4">
+            <SkeletonItem className="h-32 w-full rounded-2xl" />
+        </div>
+    </div>
+);
 
 // ─────────────────────────────────────────
 // PAGE
@@ -720,12 +757,10 @@ export default function TrackingPage() {
         return () => { ch.unsubscribe(); };
     }, [id]);
 
-    // Si está cargando la sesión o los datos iniciales (y no hay error)
     if (isLoadingAuth || (loading && !error)) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-blue-600 animate-spin" />
-                <p className="ml-3 text-slate-500 font-medium">Buscando orden...</p>
+            <div className="min-h-screen bg-slate-50 text-slate-900">
+                <SkeletonTracking />
             </div>
         );
     }

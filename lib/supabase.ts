@@ -143,6 +143,7 @@ export interface OrdenDB {
     fecha_estimada_salida?: string | null;
     fecha_entrega?: string | null; // Alias/Legacy? SQL has fecha_salida
     fecha_salida?: string | null;
+    fecha_termino?: string | null;
     fecha_cierre?: string | null;
 
     precio_total: number;

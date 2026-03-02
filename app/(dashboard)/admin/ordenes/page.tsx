@@ -663,13 +663,15 @@ export default function OrdenesPage() {
 
         const updateData: any = { estado: newStatus };
 
-        // Si se marca como completada, establecer fecha de salida
+        // Si se marca como completada, establecer fecha de salida y término
         if (newStatus === 'completada') {
             updateData.fecha_salida = new Date().toISOString();
+            updateData.fecha_termino = new Date().toISOString();
         }
-        // Si se revierte a pendiente, limpiar fecha de salida
+        // Si se revierte a pendiente, limpiar fechas
         else if (newStatus === 'pendiente') {
             updateData.fecha_salida = null;
+            updateData.fecha_termino = null;
         }
 
         // Mutación optimista
@@ -727,8 +729,21 @@ export default function OrdenesPage() {
     const handleUpdateStatus = (orderId: string, newStatus: string) => {
         try {
             console.log(`Manually updating order ${orderId} to ${newStatus}`);
+
+            const updates: any = { estado: newStatus };
+
+            // Inyectar fecha_termino segun el estado (Micro-Fase 32)
+            // "Terminado", "Finalizado" (completada) o "Listo para entrega" (lista)
+            if (newStatus === 'completada' || newStatus === 'lista') {
+                updates.fecha_termino = new Date().toISOString();
+            }
+            // Regresar a "En Proceso" o "Pendiente" limpia el timestamp
+            else if (newStatus === 'en_progreso' || newStatus === 'pendiente') {
+                updates.fecha_termino = null;
+            }
+
             // Use optimistic update mutation
-            updateOrder.mutate({ id: orderId, updates: { estado: newStatus } as any }, {
+            updateOrder.mutate({ id: orderId, updates }, {
                 onSuccess: () => {
                     toast({
                         title: "Estado actualizado",

@@ -8,6 +8,7 @@ import { crearTallerAction } from './actions';
 
 export function TallerForm() {
     const [loading, setLoading] = useState(false);
+    const [successData, setSuccessData] = useState<{ email: string; password: string } | null>(null);
     const router = useRouter();
 
     async function actionSubmit(formData: FormData) {
@@ -17,7 +18,8 @@ export function TallerForm() {
             if (res.error) {
                 (sileo as any).error(res.error, { timeout: 5000, position: 'top-center' });
             } else if (res.success) {
-                (sileo as any).success(res.message, { timeout: 5000, position: 'top-center' });
+                setSuccessData(res.credentials);
+                // (sileo as any).success(res.message, { timeout: 5000, position: 'top-center' }); // Omit toast if showing modal/card
 
                 // Clear the form
                 const formElement = document.getElementById('taller-form') as HTMLFormElement;
@@ -33,8 +35,41 @@ export function TallerForm() {
         }
     }
 
+    if (successData) {
+        return (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center animate-in fade-in zoom-in duration-300">
+                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Rocket className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-black text-emerald-900 mb-2">¡Taller Creado con Éxito!</h3>
+                <p className="text-sm text-emerald-700/80 mb-6">
+                    Se ha creado la cuenta de administrador. Por favor, entrega estas credenciales al dueño del taller.
+                </p>
+
+                <div className="bg-white rounded-xl p-4 border border-emerald-200 text-left space-y-3 mb-6 shadow-sm">
+                    <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Email del Administrador</span>
+                        <code className="text-sm font-bold text-slate-800 break-all select-all">{successData.email}</code>
+                    </div>
+                    <div className="pt-3 border-t border-slate-100">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Contraseña Temporal</span>
+                        <code className="text-sm font-bold text-blue-600 select-all">{successData.password}</code>
+                    </div>
+                </div>
+
+                <button
+                    onClick={() => setSuccessData(null)}
+                    className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20"
+                >
+                    Entendido, Crear Otro
+                </button>
+            </div>
+        );
+    }
+
     return (
         <form id="taller-form" action={actionSubmit} className="space-y-5">
+            {/* ... rest of the form ... */}
             <div>
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Nombre del Taller</label>
                 <div className="relative">
@@ -68,6 +103,33 @@ export function TallerForm() {
                     </div>
                 </div>
                 <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Tipo de Negocio (Libre)</label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Rocket className="h-5 w-5 text-slate-400" />
+                        </div>
+                        <input
+                            type="text"
+                            name="tipo"
+                            list="tipos-negocio"
+                            required
+                            className="w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-slate-800 outline-none"
+                            placeholder="Ej: Taller Mecánico"
+                        />
+                        <datalist id="tipos-negocio">
+                            <option value="Taller Mecánico" />
+                            <option value="Vulcanización" />
+                            <option value="Venta de Repuestos" />
+                            <option value="Car Wash" />
+                            <option value="Taller de Performance" />
+                            <option value="Detailing Studio" />
+                        </datalist>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Teléfono Opcional</label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -81,26 +143,33 @@ export function TallerForm() {
                         />
                     </div>
                 </div>
+                <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Contraseña Temporal</label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Lock className="h-5 w-5 text-slate-400" />
+                        </div>
+                        <input
+                            type="password"
+                            name="password"
+                            required
+                            minLength={6}
+                            className="w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-slate-800 outline-none"
+                            placeholder="Min. 6 caracteres"
+                        />
+                    </div>
+                </div>
             </div>
 
             <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Contraseña Temporal</label>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <input
-                        type="password"
-                        name="password"
-                        required
-                        minLength={6}
-                        className="w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-slate-800 outline-none"
-                        placeholder="Min. 6 caracteres"
-                    />
-                </div>
-                <p className="text-xs text-slate-400 mt-2">
-                    El administrador del taller podrá cambiar esta contraseña después de ingresar por primera vez.
-                </p>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Servicios (Separados por comas)</label>
+                <textarea
+                    name="servicios"
+                    required
+                    rows={2}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-slate-800 outline-none resize-none text-sm"
+                    placeholder="Mecánica General, Scanner, Frenos, Suspensión..."
+                />
             </div>
 
             <button

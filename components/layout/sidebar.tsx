@@ -22,6 +22,8 @@ interface NavItem {
     icon: React.ReactNode;
     roles: ('taller_admin' | 'mecanico' | 'superadmin' | 'admin')[];
     showBadge?: boolean;
+    /** Si está definido, el item solo se muestra si ese módulo está activo en el taller */
+    module?: 'agenda' | 'tracking' | 'inventario' | 'checklist' | 'fiscal';
 }
 
 const navItems: NavItem[] = [
@@ -50,6 +52,7 @@ const navItems: NavItem[] = [
         icon: <Calendar className="w-5 h-5" />,
         roles: ['taller_admin', 'superadmin', 'admin'],
         showBadge: true,
+        module: 'agenda',
     },
     {
         href: '/admin/usuarios',
@@ -87,7 +90,15 @@ export function Sidebar() {
 
     if (!user) return null;
 
-    const filteredItems = navItems.filter(item => item.roles.includes(user.role as any));
+    const filteredItems = navItems.filter(item => {
+        // 1. Verificar rol
+        if (!item.roles.includes(user.role as any)) return false;
+        // 2. Verificar módulo activo en el taller (si aplica)
+        if (item.module && user.modulos) {
+            return user.modulos[item.module] === true;
+        }
+        return true;
+    });
 
     const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
         e.preventDefault();

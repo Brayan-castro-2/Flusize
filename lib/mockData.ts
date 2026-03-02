@@ -13,8 +13,10 @@ export interface Workshop {
     description: string;
     availability: string;
     specialties: string[]; // Especialidades (Frenos, Motor, etc)
-    availableSlots: number; // Cupos disponibles hoy
+    availableSlots: number;
     whatsapp?: string;
+    slug?: string;
+    ciudad?: string;
 }
 
 export const workshops: Workshop[] = [

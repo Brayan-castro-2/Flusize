@@ -237,8 +237,21 @@ export default function OrdenDetailCleanPage() {
     const handleUpdateOrden = async (updates: Partial<OrdenDB>) => {
         if (!orderId) return;
         setSaving(true);
+
+        // Inyectar fecha_termino según reglas de Micro-Fase 32
+        const finalUpdates = { ...updates };
+        if (updates.estado) {
+            if (['completada', 'entregada', 'debe'].includes(updates.estado)) {
+                // Solo si no tenía ya una fecha de término (o si el usuario quiere forzarla)
+                // En este caso lo inyectamos siempre que pase a estos estados
+                finalUpdates.fecha_termino = new Date().toISOString();
+            } else if (['pendiente', 'en_proceso'].includes(updates.estado)) {
+                finalUpdates.fecha_termino = null;
+            }
+        }
+
         try {
-            const updated = await actualizarOrden(orderId, updates);
+            const updated = await actualizarOrden(orderId, finalUpdates);
             if (updated) setOrder(updated);
             else loadData();
         } catch (e) {

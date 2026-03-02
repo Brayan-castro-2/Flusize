@@ -745,6 +745,7 @@ export async function actualizarOrden(
         'fecha_ingreso',
         'fecha_estimada_salida',
         'fecha_salida',
+        'fecha_termino',
         'descripcion_problema',
         'diagnostico',
         'trabajos_realizados',

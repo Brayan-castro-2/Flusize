@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { TallerModulos, DEFAULT_MODULOS } from '@/config/modules';
 
 export interface AuthUser {
     id: string;
@@ -11,6 +12,7 @@ export interface AuthUser {
     role: 'cliente' | 'taller_admin' | 'mecanico' | 'superadmin' | 'admin' | 'flusize_admin';
     isActive: boolean;
     tallerId?: string;
+    modulos: TallerModulos;
 }
 
 interface AuthContextType {
@@ -91,10 +93,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 console.log('[AuthContext Debug] perfil fetched:', perfil?.rol, 'error:', error);
             }
 
-            // Determinar Rol (fallback a metadata del token si perfil es null)
+            // Determinar Rol
             const role = perfil?.rol ||
                 authUser.user_metadata?.rol ||
                 (error?.message === 'timeout' ? 'taller_admin' : 'cliente');
+
+            // Cargar modulos_activos del taller (si tiene taller_id)
+            let modulos: TallerModulos = { ...DEFAULT_MODULOS };
+            if (perfil?.taller_id) {
+                const { data: taller } = await supabase
+                    .from('talleres')
+                    .select('modulos_activos')
+                    .eq('id', perfil.taller_id)
+                    .maybeSingle();
+                if (taller?.modulos_activos) {
+                    modulos = { ...DEFAULT_MODULOS, ...taller.modulos_activos };
+                }
+            }
 
             const mappedUser: AuthUser = {
                 id: authUser.id,
@@ -102,7 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 name: perfil ? (perfil.nombre_completo || 'Usuario de Taller') : (authUser.user_metadata?.nombre_completo || 'Usuario'),
                 role: role as any,
                 isActive: perfil ? perfil.activo : true,
-                tallerId: perfil ? perfil.taller_id : undefined
+                tallerId: perfil ? perfil.taller_id : undefined,
+                modulos,
             };
 
             console.log('[AuthContext Debug] mappedUser created:', mappedUser);

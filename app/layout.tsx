@@ -5,6 +5,7 @@ import './globals.css'
 import 'leaflet/dist/leaflet.css'
 import { Toaster } from 'sileo'
 import { ClientProviders } from '@/components/client-providers'
+import { Analytics } from "@vercel/analytics/next"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -42,6 +43,7 @@ export default function RootLayout({
         <ClientProviders>
           {children}
           <Toaster />
+          <Analytics />
         </ClientProviders>
       </body>
     </html>

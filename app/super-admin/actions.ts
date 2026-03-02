@@ -17,10 +17,17 @@ export async function crearTallerAction(formData: FormData) {
     const email = formData.get('email') as string;
     const telefono = formData.get('telefono') as string;
     const password = formData.get('password') as string;
+    const tipo = formData.get('tipo') as string;
+    const serviciosRaw = formData.get('servicios') as string;
 
-    if (!nombre || !email || !password) {
+    if (!nombre || !email || !password || !tipo) {
         return { error: 'Por favor, completa todos los campos obligatorios.' };
     }
+
+    // Procesar servicios como JSONB Array
+    const servicios = serviciosRaw
+        ? serviciosRaw.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
 
     try {
         // 1. Validar que no exista un taller con el mismo nombre (opcional pero seguro)
@@ -31,7 +38,9 @@ export async function crearTallerAction(formData: FormData) {
                 nombre,
                 telefono: telefono || null,
                 activo: true,
-                plan_suscripcion: 'Pro Tracking'
+                plan_suscripcion: 'Pro Tracking',
+                tipo: tipo,
+                servicios: servicios
             })
             .select()
             .single();
@@ -84,7 +93,11 @@ export async function crearTallerAction(formData: FormData) {
             if (insError) throw insError;
         }
 
-        return { success: true, message: `El taller "${nombre}" fue creado con éxito y el plan Pro asignado.` };
+        return {
+            success: true,
+            message: `El taller "${nombre}" fue creado con éxito y el plan Pro asignado.`,
+            credentials: { email, password }
+        };
 
     } catch (e: any) {
         console.error('[Action] Error en crearTallerAction:', e);

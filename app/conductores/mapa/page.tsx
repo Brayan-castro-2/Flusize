@@ -67,7 +67,8 @@ export default function MapView() {
                     availability: "Consulte horario",
                     specialties: taller.etiquetas_servicios || [],
                     availableSlots: 10,
-                    whatsapp: taller.telefono || undefined
+                    whatsapp: taller.whatsapp || taller.telefono || undefined,
+                    slug: taller.slug
                 }));
                 // Sólo renderizamos los talleres reales de Supabase
                 setWorkshops(mappedWorkshops);
@@ -150,7 +151,7 @@ export default function MapView() {
     return (
         <div className="h-[100dvh] w-full relative overflow-hidden bg-slate-100 flex flex-col font-sans">
             {/* 1. Map container (Background 100%) */}
-            <div className={`absolute inset-0 z-0 transition-transform duration-500 ${isSheetExpanded ? 'md:scale-100 -translate-y-[20vh]' : 'translate-y-0'}`}>
+            <div className={`absolute inset-0 z-0 transition-transform duration-500`}>
                 <MapWrapper
                     ref={mapRef}
                     workshops={workshops}
@@ -164,7 +165,7 @@ export default function MapView() {
             </div>
 
             {/* 2. Floating Top Bar */}
-            <div className="absolute top-4 left-4 right-4 md:top-6 md:left-6 md:right-auto md:w-[460px] z-40 flex items-center gap-2">
+            <div className="absolute top-4 left-4 right-4 md:top-6 md:left-6 md:right-auto md:w-[460px] z-[500] flex items-center gap-2">
                 {/* Back Button */}
                 <button
                     onClick={() => router.push('/')}
@@ -295,11 +296,13 @@ export default function MapView() {
                                 <div
                                     key={shop.id}
                                     onClick={(e) => {
-                                        e.stopPropagation(); // Evitar cerrar el sheet
+                                        e.stopPropagation();
                                         setSelectedWorkshop(shop);
                                         if (mapRef.current) {
                                             mapRef.current.flyToLocation(shop.coordinates.lat, shop.coordinates.lng, 16);
                                         }
+                                        // Navegación automática al perfil al hacer clic en la tarjeta (Root Clean URL)
+                                        router.push(`/${shop.slug || shop.id}`);
                                     }}
                                     className={`
                                         group relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300
@@ -341,36 +344,26 @@ export default function MapView() {
                                                             {s}
                                                         </span>
                                                     ))}
-                                                    {shop.specialties.length > 2 && (
-                                                        <span className="text-[9px] uppercase tracking-wider font-bold bg-slate-50 text-slate-400 px-1 py-1 rounded-md border border-slate-100">
-                                                            +{shop.specialties.length - 2}
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Action Foot */}
-                                    <div className={`
-                                        px-4 py-3 border-t flex justify-between items-center transition-colors
-                                        ${selectedWorkshop?.id === shop.id ? 'bg-blue-50 border-blue-100' : 'bg-slate-50/50 border-slate-100 group-hover:bg-slate-50'}
-                                    `}>
+                                    <div
+                                        className={`
+                                            px-4 py-3 border-t flex justify-between items-center transition-colors
+                                            ${selectedWorkshop?.id === shop.id ? 'bg-blue-50 border-blue-100' : 'bg-slate-50/50 border-slate-100 group-hover:bg-slate-100/80'}
+                                        `}
+                                    >
                                         <div className="flex items-center gap-1.5">
                                             <div className={`w-2 h-2 rounded-full ${shop.availableSlots > 0 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                                             <span className={`text-[10px] font-bold uppercase tracking-wider ${shop.availableSlots > 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                                {shop.availableSlots > 0 ? `${shop.availableSlots} Cupos Hoy` : 'Sin Cupo'}
+                                                {shop.availableSlots > 0 ? `${shop.availableSlots} Cupos` : 'Sin Cupo'}
                                             </span>
                                         </div>
-                                        <button
-                                            className="text-white bg-slate-900 hover:bg-slate-800 text-[10px] font-black uppercase tracking-wider px-4 py-2 rounded-xl shadow-md transition-transform active:scale-95 flex items-center gap-1"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                router.push(`/conductores/parking/${shop.id}`);
-                                            }}
-                                        >
-                                            Ver Perfil
-                                        </button>
+                                        <div className="text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                            Ver Perfil →
+                                        </div>
                                     </div>
                                 </div>
                             ))}

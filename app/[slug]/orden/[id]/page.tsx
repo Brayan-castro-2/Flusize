@@ -184,7 +184,7 @@ export default async function OrdenPublicaPage({ params }: PageProps) {
                 <div className="mt-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
                     <h3 className="text-2xl font-bold mb-2">¿Quieres historial de tus mantenciones?</h3>
                     <p className="text-blue-100 mb-6">
-                        Crea tu cuenta gratis en Fluesize y accede al historial completo de todos tus vehículos
+                        Crea tu cuenta gratis en Flusize y accede al historial completo de todos tus vehículos
                     </p>
                     <Link
                         href="/registro"

@@ -22,7 +22,10 @@ import {
     Gauge,
     Cog,
     LogOut,
-    Bell
+    Bell,
+    Plus,
+    X,
+    Loader2
 } from 'lucide-react';
 import { sileo } from 'sileo';
 import Link from 'next/link';
@@ -36,6 +39,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 
 // ──────────────────────────────────────────
 // TYPES
@@ -128,7 +132,10 @@ async function fetchGarageData(userId: string): Promise<GarageData | null> {
         };
     }
 
-    const { data: vehiculos, error: vehError } = await supabase.from('vehiculos').select('*').in('cliente_id', clienteIds);
+    const { data: vehiculos, error: vehError } = await supabase
+        .from('vehiculos')
+        .select('id, patente, marca, modelo, ano, color, kilometraje, motor, potencia_hp, torque_nm, transmision, traccion')
+        .in('cliente_id', clienteIds);
     if (vehError) throw vehError;
 
     const { data: ordenes, error: ordError } = await supabase
@@ -140,7 +147,8 @@ async function fetchGarageData(userId: string): Promise<GarageData | null> {
             fecha_ingreso, 
             descripcion_problema, 
             precio_total, 
-            talleres (nombre)
+            taller_id,
+            talleres:taller_id (nombre)
         `)
         .in('cliente_id', clienteIds)
         .order('fecha_ingreso', { ascending: false });
@@ -172,7 +180,7 @@ async function fetchGarageData(userId: string): Promise<GarageData | null> {
 
     return {
         perfil: perfilSeguro,
-        cliente_id: userId,
+        cliente_id: clienteIds.length > 0 ? clienteIds[0] : null,
         vehiculos: vehiculos || [],
         ordenesRecientes: ordenesMapeadas,
         inversionAnual: {
@@ -183,7 +191,7 @@ async function fetchGarageData(userId: string): Promise<GarageData | null> {
     };
 }
 
-function EmptyGarageState() {
+function EmptyGarageState({ onAddClick }: { onAddClick: () => void }) {
     return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 border border-blue-100/50 shadow-sm">
@@ -193,18 +201,312 @@ function EmptyGarageState() {
             <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8 leading-relaxed">
                 Aún no tienes vehículos ni servicios registrados. Tu historial aparecerá aquí automáticamente cuando visites uno de nuestros talleres asociados.
             </p>
-            <Link href="/onboarding" className="inline-flex items-center justify-center h-12 w-full rounded-xl bg-blue-600 text-white font-bold text-sm shadow-sm shadow-blue-200 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                ¿Tienes historial previo? Buscar datos <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
+            <div className="flex flex-col w-full gap-3">
+                <button
+                    onClick={onAddClick}
+                    className="inline-flex items-center justify-center h-12 w-full rounded-xl bg-blue-600 text-white font-bold text-sm shadow-sm shadow-blue-200 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                    ➕ Agregar mi primer vehículo
+                </button>
+                <Link href="/onboarding" className="text-slate-400 text-xs font-bold hover:text-slate-600 transition-colors py-2 underline decoration-slate-200 underline-offset-4">
+                    ¿Tienes historial previo? Buscar datos <ArrowRight className="w-3 h-3 ml-1 inline" />
+                </Link>
+            </div>
         </div>
+    );
+}
+
+function ModalAgregarVehiculo({ isOpen, onClose, onSuccess, userId, userEmail, userName }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+    userId: string;
+    userEmail: string;
+    userName: string;
+}) {
+    const [loading, setLoading] = useState(false);
+    const [searching, setSearching] = useState(false);
+    const [patente, setPatente] = useState('');
+    const [marca, setMarca] = useState('');
+    const [modelo, setModelo] = useState('');
+    const [ano, setAno] = useState(new Date().getFullYear().toString());
+    const [motor, setMotor] = useState('');
+    const [color, setColor] = useState('');
+    const [potencia, setPotencia] = useState('');
+    const [torque, setTorque] = useState('');
+    const [transmision, setTransmision] = useState('');
+    const [traccion, setTraccion] = useState('');
+    const [discovered, setDiscovered] = useState(false);
+
+    // Búsqueda automática cuando la patente tiene 6 caracteres
+    useEffect(() => {
+        const cleanPatente = patente.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (cleanPatente.length === 6 && !discovered) {
+            handleSearch(cleanPatente);
+        }
+    }, [patente]);
+
+    const handleSearch = async (targetPatente: string) => {
+        setSearching(true);
+        try {
+            const res = await fetch(`/api/vehiculo?patente=${targetPatente}`);
+            if (res.ok) {
+                const apiResponse = await res.json();
+                if (apiResponse.success && apiResponse.data) {
+                    const techData = apiResponse.data;
+                    setMarca(techData.model?.brand?.name || '');
+                    setModelo(techData.model?.name || '');
+                    setAno(techData.year ? String(techData.year) : ano);
+                    setMotor(techData.engine || '');
+                    setColor(techData.color || '');
+                    setPotencia(techData.powerHp ? String(techData.powerHp) : '');
+                    setTorque(techData.torqueNm ? String(techData.torqueNm) : '');
+                    setTransmision(techData.transmission || '');
+                    setTraccion(techData.traction || '');
+                    setDiscovered(true);
+
+                    sileo.success({
+                        title: "¡Vehículo Identificado!",
+                        description: `Hemos encontrado tu ${techData.model?.brand?.name}.`,
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Error in smart discovery:', e);
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            // 1. Obtener o crear Cliente
+            let finalClienteId = null;
+            const { data: existingClients } = await supabase
+                .from('clientes')
+                .select('id')
+                .eq('perfil_global_id', userId);
+
+            if (existingClients && existingClients.length > 0) {
+                finalClienteId = existingClients[0].id;
+            } else {
+                const { data: newClient, error: clientErr } = await supabase
+                    .from('clientes')
+                    .insert([{
+                        perfil_global_id: userId,
+                        nombre_completo: userName || 'Usuario Flusize',
+                        email: userEmail,
+                        tipo: 'persona'
+                    }])
+                    .select()
+                    .single();
+
+                if (clientErr) throw clientErr;
+                finalClienteId = newClient.id;
+            }
+
+            // 2. Insertar Vehículo
+            const { error: vehErr } = await supabase
+                .from('vehiculos')
+                .insert([{
+                    cliente_id: finalClienteId,
+                    patente: patente.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+                    marca: marca,
+                    modelo: modelo,
+                    ano: parseInt(ano),
+                    motor: motor,
+                    color: color,
+                    potencia_hp: potencia,
+                    torque_nm: torque,
+                    transmision: transmision,
+                    traccion: traccion
+                }]);
+
+            if (vehErr) throw vehErr;
+
+            sileo.success({
+                title: "¡Vehículo agregado!",
+                description: `El ${marca} ${modelo} ya está en tu garage.`,
+            });
+            onSuccess();
+            onClose();
+        } catch (error) {
+            console.error("Error agregando vehículo:", error);
+            sileo.error({
+                title: "Error",
+                description: "No pudimos guardar el vehículo. Inténtalo de nuevo.",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <AnimatePresence>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                />
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className="relative bg-white w-full max-w-sm rounded-[28px] shadow-2xl overflow-hidden"
+                >
+                    <div className="p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-black text-slate-800 tracking-tight">Nuevo Vehículo</h3>
+                            <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Patente</label>
+                                <div className="relative">
+                                    <input
+                                        required
+                                        placeholder="ABCD12"
+                                        value={patente}
+                                        onChange={(e) => {
+                                            setPatente(e.target.value.toUpperCase());
+                                            if (discovered) setDiscovered(false);
+                                        }}
+                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 font-mono text-lg font-bold tracking-widest focus:ring-2 focus:ring-blue-500/20 outline-none transition-all uppercase"
+                                    />
+                                    {searching && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <AnimatePresence mode="wait">
+                                {discovered && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="bg-emerald-50 border border-emerald-100/50 rounded-xl p-3 flex items-center gap-3"
+                                    >
+                                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                                            <CheckCircle2 className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest">¡Datos Encontrados!</p>
+                                            <p className="text-[10px] text-emerald-600 font-medium">Motor {motor} • {potencia} HP • {transmision}</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Marca</label>
+                                    <input
+                                        required
+                                        placeholder="Ej: Toyota"
+                                        value={marca}
+                                        onChange={(e) => setMarca(e.target.value)}
+                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Modelo</label>
+                                    <input
+                                        required
+                                        placeholder="Ej: Yaris"
+                                        value={modelo}
+                                        onChange={(e) => setModelo(e.target.value)}
+                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Año</label>
+                                <input
+                                    required
+                                    type="number"
+                                    min="1900"
+                                    max={new Date().getFullYear() + 1}
+                                    value={ano}
+                                    onChange={(e) => setAno(e.target.value)}
+                                    className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                                />
+                            </div>
+
+                            <button
+                                disabled={loading}
+                                type="submit"
+                                className="w-full h-12 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2 mt-4"
+                            >
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Guardar Vehículo"}
+                            </button>
+                        </form>
+                    </div>
+                </motion.div>
+            </div>
+        </AnimatePresence>
     );
 }
 
 // ──────────────────────────────────────────
 // SUB-COMPONENTS
 // ──────────────────────────────────────────
-const Spinner = () => (
-    <div className="w-8 h-8 border-[3px] border-blue-100 border-t-blue-600 rounded-full animate-spin" />
+const SkeletonItem = ({ className }: { className?: string }) => (
+    <div className={`animate-pulse bg-slate-200 rounded-xl ${className}`} />
+);
+
+const SkeletonGarage = () => (
+    <div className="min-h-screen bg-[#f8fafc]">
+        {/* Header simple style placeholder */}
+        <div className="bg-white h-16 border-b border-slate-100 flex items-center px-4 justify-between">
+            <div className="w-10 h-10 rounded-full bg-slate-200/20 animate-pulse" />
+            <div className="flex gap-2">
+                <div className="w-10 h-10 rounded-full bg-slate-200/20 animate-pulse" />
+                <div className="w-10 h-10 rounded-full bg-slate-200/20 animate-pulse" />
+            </div>
+        </div>
+
+        <div className="max-w-md mx-auto px-4 py-8 space-y-8">
+            {/* Gráfico de Inversión Placeholder */}
+            <div className="flex flex-col items-center space-y-4">
+                <div className="w-48 h-48 rounded-full bg-slate-200/10 animate-pulse border border-slate-200/5"></div>
+                <div className="h-6 w-48 bg-slate-200/10 rounded-lg animate-pulse"></div>
+            </div>
+
+            {/* Tarjeta de Vehículo Placeholder */}
+            <div className="space-y-4 pt-4">
+                <div className="h-4 w-24 bg-slate-200/10 rounded-full animate-pulse ml-1"></div>
+                <div className="h-24 bg-slate-200/10 rounded-xl w-full animate-pulse shadow-sm"></div>
+            </div>
+
+            {/* Ficha Técnica / Grid Placeholder */}
+            <div className="grid grid-cols-2 gap-3 mt-8">
+                {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="h-20 bg-slate-200/10 rounded-xl w-full animate-pulse"></div>
+                ))}
+            </div>
+
+            {/* Movimientos Recientes Placeholder */}
+            <div className="space-y-3 pt-6">
+                <div className="h-4 w-32 bg-slate-200/10 rounded-full animate-pulse ml-1 mb-4"></div>
+                {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="h-16 bg-slate-200/10 rounded-xl w-full animate-pulse"></div>
+                ))}
+            </div>
+        </div>
+    </div>
 );
 
 function VehicleCard({ v }: { v: VehiculoData }) {
@@ -275,6 +577,9 @@ function TechnicalGrid({ v }: { v: VehiculoData }) {
 }
 
 function InversionChart({ data }: { data: GarageData['inversionAnual'] }) {
+    const count = useMotionValue(0);
+    const rounded = useTransform(count, (latest) => Math.round(latest).toLocaleString('es-CL'));
+
     const radius = 38;
     const circumference = 2 * Math.PI * radius;
     const mecanicaPct = data.total > 0 ? data.mecanica / data.total : 0;
@@ -283,15 +588,26 @@ function InversionChart({ data }: { data: GarageData['inversionAnual'] }) {
     const strokeMecanica = mecanicaPct * circumference;
     const strokeRepuestos = repuestosPct * circumference;
 
+    useEffect(() => {
+        const controls = animate(count, data.total, {
+            duration: 1.5,
+            ease: "easeOut",
+        });
+        return controls.stop;
+    }, [data.total]);
+
     return (
-        <div className="bg-white rounded-[24px] shadow-sm border border-slate-100 p-6 flex flex-col items-center">
+        <motion.div
+            className="bg-white rounded-[24px] shadow-sm border border-slate-100 p-6 flex flex-col items-center"
+        >
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest w-full text-center flex items-center justify-center gap-1.5 mb-2">
                 <TrendingUp className="w-4 h-4" /> Inversión Anual Total
             </h3>
 
-            <p className="text-[28px] font-black text-slate-800 tracking-tight mb-8">
-                ${data.total.toLocaleString('es-CL')}
-            </p>
+            <div className="text-[28px] font-black text-slate-800 tracking-tight mb-8 tabular-nums flex items-center">
+                <span>$</span>
+                <motion.span>{rounded}</motion.span>
+            </div>
 
             <div className="relative w-36 h-36 flex items-center justify-center mb-6">
                 <svg className="w-full h-full transform -rotate-90">
@@ -299,23 +615,36 @@ function InversionChart({ data }: { data: GarageData['inversionAnual'] }) {
                     {data.total > 0 && (
                         <>
                             {/* Repuestos - Cyan */}
-                            <circle cx="72" cy="72" r={radius} stroke="#06b6d4" strokeWidth="12" fill="none"
-                                strokeDasharray={`${strokeRepuestos} ${circumference}`}
+                            <motion.circle
+                                cx="72" cy="72" r={radius} stroke="#06b6d4" strokeWidth="12" fill="none"
+                                initial={{ strokeDasharray: `0 ${circumference}` }}
+                                animate={{ strokeDasharray: `${strokeRepuestos} ${circumference}` }}
+                                transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
                                 strokeDashoffset={0}
                                 strokeLinecap="round"
                             />
                             {/* Mecánica - Blue */}
-                            <circle cx="72" cy="72" r={radius} stroke="#2563eb" strokeWidth="12" fill="none"
-                                strokeDasharray={`${strokeMecanica} ${circumference}`}
-                                strokeDashoffset={`-${strokeRepuestos}`}
+                            <motion.circle
+                                cx="72" cy="72" r={radius} stroke="#2563eb" strokeWidth="12" fill="none"
+                                initial={{ strokeDasharray: `0 ${circumference}`, strokeDashoffset: 0 }}
+                                animate={{
+                                    strokeDasharray: `${strokeMecanica} ${circumference}`,
+                                    strokeDashoffset: `-${strokeRepuestos}`
+                                }}
+                                transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
                                 strokeLinecap="round"
                             />
                         </>
                     )}
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1 }}
+                    className="absolute inset-0 flex flex-col items-center justify-center"
+                >
                     <Car className="w-6 h-6 text-slate-300" />
-                </div>
+                </motion.div>
             </div>
 
             <div className="flex items-center justify-center gap-6 w-full px-2">
@@ -334,7 +663,7 @@ function InversionChart({ data }: { data: GarageData['inversionAnual'] }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -382,7 +711,28 @@ export default function MiGaragePage() {
     const [data, setData] = useState<GarageData | null>(null);
     const [loading, setLoading] = useState(true);
     const [notifEstado, setNotifEstado] = useState<string | null>(null);
+    const [showAddModal, setShowAddModal] = useState(false);
     const router = useRouter();
+
+    async function loadData() {
+        if (!user) return;
+        try {
+            setLoading(true);
+            const d = await fetchGarageData(user.id);
+            setData(d);
+        } catch (error) {
+            console.error("🔥 Error CRÍTICO cargando Mi Garage:", error);
+            setData({
+                perfil: { id: user.id, nombre_completo: user.name || 'Usuario', email: user.email || '' },
+                cliente_id: user.id,
+                vehiculos: [],
+                ordenesRecientes: [],
+                inversionAnual: { total: 0, mecanica: 0, repuestos: 0 }
+            });
+        } finally {
+            setLoading(false);
+        }
+    }
 
     // Dynamically fetch GetAPI technical specs
     useEffect(() => {
@@ -444,31 +794,6 @@ export default function MiGaragePage() {
 
         let isMounted = true;
 
-        async function loadData() {
-            try {
-                setLoading(true);
-                const d = await fetchGarageData(user.id);
-                if (isMounted) {
-                    setData(d);
-                }
-            } catch (error) {
-                console.error("🔥 Error CRÍTICO cargando Mi Garage:", error);
-                if (isMounted) {
-                    setData({
-                        perfil: { id: user.id, nombre_completo: user.name || 'Usuario', email: user.email || '' },
-                        cliente_id: user.id,
-                        vehiculos: [],
-                        ordenesRecientes: [],
-                        inversionAnual: { total: 0, mecanica: 0, repuestos: 0 }
-                    });
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        }
-
         loadData();
 
         return () => { isMounted = false; };
@@ -510,33 +835,22 @@ export default function MiGaragePage() {
         };
     }, [user?.id]);
 
-    if (loading) return (
-        <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
-            <Spinner />
-        </div>
-    );
+    if (loading || (isLoadingAuth && !user)) return <SkeletonGarage />;
 
-    // Si terminó de cargar pero no hay data (raro con el catch, pero por seguridad)
-    if (!data || !data.vehiculos || data.vehiculos.length === 0) return (
-        <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
-                <Car className="w-8 h-8 text-slate-300" />
-            </div>
-            <h1 className="text-xl font-bold text-slate-800 mb-2">No tienes vehículos registrados</h1>
-            <p className="text-sm text-slate-500 max-w-xs mb-6">Aún no hay vehículos vinculados a tu cuenta de cliente.</p>
-            <Link href="/" className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors">
-                Volver al Inicio
-            </Link>
-        </div>
-    );
-
-    const { vehiculos, ordenesRecientes, inversionAnual } = data;
-    const vActivo = vehiculos[0];
+    const vehiculos = data?.vehiculos || [];
+    const ordenesRecientes = data?.ordenesRecientes || [];
+    const inversionAnual = data?.inversionAnual || { total: 0, mecanica: 0, repuestos: 0 };
+    const vActivo = vehiculos.length > 0 ? vehiculos[0] : null;
 
     return (
         <div className="min-h-screen bg-[#f8fafc] pb-10">
             {/* ── HEADER FINANCIERO ── */}
-            <header className="bg-white border-b border-slate-100 shadow-sm sticky top-0 z-30">
+            <motion.header
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.4 }}
+                className="bg-white border-b border-slate-100 shadow-sm sticky top-0 z-30"
+            >
                 <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Link href="/conductores/mapa" className="w-9 h-9 border border-slate-200 rounded-full bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors shadow-sm active:scale-95 shrink-0">
@@ -553,6 +867,17 @@ export default function MiGaragePage() {
 
                     {/* CONTROLES DERECHOS (CAMPANITA + PERFIL) */}
                     <div className="flex items-center gap-2">
+                        {/* BOTÓN AGREGAR VEHÍCULO RÁPIDO */}
+                        {vehiculos.length > 0 && (
+                            <button
+                                onClick={() => setShowAddModal(true)}
+                                title="Agregar vehículo"
+                                className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 hover:bg-blue-100 transition-colors shadow-sm active:scale-90"
+                            >
+                                <Plus className="w-5 h-5 text-blue-600" />
+                            </button>
+                        )}
+
                         {/* CAMPANITA NOTIFICACIONES */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -615,50 +940,98 @@ export default function MiGaragePage() {
                         </DropdownMenu>
                     </div>
                 </div>
-            </header>
+            </motion.header>
 
             <main className="max-w-md mx-auto px-4 py-6 space-y-6">
 
-                {(!vActivo && ordenesRecientes.length === 0) ? (
-                    <EmptyGarageState />
+                {vehiculos.length === 0 && ordenesRecientes.length === 0 ? (
+                    <EmptyGarageState onAddClick={() => setShowAddModal(true)} />
                 ) : (
                     <>
                         {/* ── INVERSIÓN TOTAL ── */}
-                        <section>
-                            <InversionChart data={inversionAnual} />
-                        </section>
+                        <motion.div
+                            initial="hidden"
+                            animate="visible"
+                            variants={{
+                                hidden: { opacity: 0, y: 30 },
+                                visible: {
+                                    opacity: 1,
+                                    y: 0,
+                                    transition: {
+                                        duration: 0.6,
+                                        staggerChildren: 0.12,
+                                        ease: "easeOut"
+                                    }
+                                }
+                            }}
+                            className="space-y-6"
+                        >
+                            {/* ── INVERSIÓN TOTAL ── */}
+                            <motion.section
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                                }}
+                            >
+                                <InversionChart data={inversionAnual} />
+                            </motion.section>
 
-                        {/* ── VEHÍCULOS (HORIZONTAL CARD) ── */}
-                        {vActivo && (
-                            <section>
-                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Mi Vehículo</h2>
-                                <VehicleCard v={vActivo} />
-                            </section>
-                        )}
+                            {/* ── VEHÍCULOS (HORIZONTAL CARD) ── */}
+                            {vActivo && (
+                                <motion.section
+                                    variants={{
+                                        hidden: { opacity: 0, y: 20 },
+                                        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                                    }}
+                                >
+                                    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Mi Vehículo</h2>
+                                    <VehicleCard v={vActivo} />
+                                </motion.section>
+                            )}
 
-                        {/* ── FICHA TÉCNICA (GRID) ── */}
-                        {vActivo && (
-                            <section>
-                                <div className="flex items-center justify-between mb-3 ml-1">
-                                    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ficha Técnica</h2>
-                                </div>
-                                <TechnicalGrid v={vActivo} />
-                            </section>
-                        )}
+                            {/* ── FICHA TÉCNICA (GRID) ── */}
+                            {vActivo && (
+                                <motion.section
+                                    variants={{
+                                        hidden: { opacity: 0, y: 20 },
+                                        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between mb-3 ml-1">
+                                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ficha Técnica</h2>
+                                    </div>
+                                    <TechnicalGrid v={vActivo} />
+                                </motion.section>
+                            )}
 
-                        {/* ── HISTORIAL "BANCARIO" ── */}
-                        {ordenesRecientes.length > 0 && (
-                            <section>
-                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Movimientos Recientes</h2>
-                                <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-4">
-                                    {ordenesRecientes.map(o => <BankActivityItem key={o.id} orden={o} />)}
-                                </div>
-                            </section>
-                        )}
+                            {/* ── HISTORIAL "BANCARIO" ── */}
+                            {ordenesRecientes.length > 0 && (
+                                <motion.section
+                                    variants={{
+                                        hidden: { opacity: 0, y: 20 },
+                                        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                                    }}
+                                >
+                                    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Movimientos Recientes</h2>
+                                    <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-4">
+                                        {ordenesRecientes.map(o => <BankActivityItem key={o.id} orden={o} />)}
+                                    </div>
+                                </motion.section>
+                            )}
+                        </motion.div>
                     </>
                 )}
 
             </main>
+
+            <ModalAgregarVehiculo
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={loadData}
+                userId={user?.id || ''}
+                userEmail={user?.email || ''}
+                userName={user?.name || ''}
+            />
         </div>
     );
 }

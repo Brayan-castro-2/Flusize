@@ -308,8 +308,10 @@ function OrderEditContent() {
         if (estado === 'completada' && order.estado !== 'completada') {
             const now = new Date().toISOString();
             updateData.fecha_salida = now;
+            updateData.fecha_termino = now;
         } else if (estado === 'pendiente' && order.estado === 'completada') {
             updateData.fecha_salida = null;
+            updateData.fecha_termino = null;
         }
 
         try {
@@ -357,9 +359,18 @@ function OrderEditContent() {
     const handleCambiarEstado = async (nuevoEstado: string) => {
         if (!order) return;
         setIsSaving(true);
+        const updates: any = { estado: nuevoEstado };
+
+        // Inyectar fecha_termino según reglas de Micro-Fase 32
+        if (nuevoEstado === 'completada' || nuevoEstado === 'entregada') {
+            updates.fecha_termino = new Date().toISOString();
+        } else if (nuevoEstado === 'pendiente' || nuevoEstado === 'reparacion' || nuevoEstado === 'en_revision') {
+            updates.fecha_termino = null;
+        }
+
         try {
-            await actualizarOrden(String(orderIdParam), { estado: nuevoEstado as any });
-            setOrder({ ...order, estado: nuevoEstado as any });
+            await actualizarOrden(String(orderIdParam), updates);
+            setOrder({ ...order, ...updates });
             setEstado(nuevoEstado);
         } catch (error) {
             console.error("Error cambiando estado:", error);

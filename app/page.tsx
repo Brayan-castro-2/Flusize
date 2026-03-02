@@ -92,6 +92,8 @@ const HeroSection = () => {
         loop
         muted
         playsInline
+        poster="/hero-bg-poster.jpg"
+        preload="metadata"
         className="absolute inset-0 w-full h-full object-cover z-0"
       >
         <source src="/hero-bg.mp4" type="video/mp4" />
@@ -122,15 +124,15 @@ const HeroSection = () => {
             </div>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[1.1] mb-6 drop-shadow-xl">
-            El Sistema Operativo del <br />
+          <h1 className="text-5xl md:text-8xl font-black text-white tracking-tight leading-[1.1] mb-6 drop-shadow-2xl uppercase">
+            ECOSISTEMA <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 drop-shadow-sm">
-              Taller del Futuro
+              AUTOMOTRIZ INTELIGENTE
             </span>
           </h1>
 
-          <p className="text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-md font-medium">
-            Conectamos tu taller con el cliente en tiempo real. Adiós a las llamadas infinitas. Bienvenido a la digitalización absoluta y satisfacción garantizada.
+          <p className="text-xl text-slate-200 mb-10 max-w-3xl mx-auto leading-relaxed drop-shadow-lg font-medium">
+            <strong>Confianza total</strong> para el conductor. <strong>Control absoluto</strong> para el negocio. Digitaliza tu taller al 100%, simplifica la vida de tus mecánicos y garantiza <strong>transparencia absoluta</strong>. Conecta cada servicio con <strong>tracking en tiempo real</strong> y evidencia fotográfica, creando el nexo perfecto entre la calidad de tu trabajo y la tranquilidad del cliente.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
@@ -139,7 +141,7 @@ const HeroSection = () => {
               className="w-full sm:w-auto"
             >
               <button className="w-full px-8 py-4 bg-white/10 backdrop-blur-md text-white border-2 border-white/20 hover:border-white/50 hover:bg-white/20 rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2 text-lg group">
-                <Wrench className="h-5 w-5 text-slate-300 group-hover:text-white transition-colors" /> Soy un Taller
+                <Wrench className="h-5 w-5 text-slate-300 group-hover:text-white transition-colors" /> Registrar Taller
               </button>
             </Link>
             <Link href="/conductores/mapa" className="w-full sm:w-auto">
