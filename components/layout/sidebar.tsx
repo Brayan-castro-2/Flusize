@@ -12,6 +12,7 @@ import {
     FileText,
     Calendar,
     X,
+    Settings,
 } from 'lucide-react';
 import { NewBadge } from '@/components/ui/new-badge';
 import { FEATURE_FLAGS } from '@/config/modules';
@@ -66,6 +67,12 @@ const navItems: NavItem[] = [
         icon: <Users className="w-5 h-5" />,
         roles: ['taller_admin', 'superadmin', 'admin'],
         showBadge: false,
+    },
+    {
+        href: '/admin/perfil',
+        label: 'Perfil Taller',
+        icon: <Settings className="w-5 h-5" />,
+        roles: ['superadmin', 'taller_admin'],
     },
 ];
 

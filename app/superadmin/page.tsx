@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { Link as LinkIcon, Key } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { MODULOS_INFO, DEFAULT_MODULOS, TallerModulos } from '@/config/modules';
 import { REGIONES_CHILE } from '@/config/chile-data';
@@ -107,6 +108,16 @@ export default function GodModePage() {
         } finally {
             setActionLoading(null);
         }
+    };
+
+    const handleCopyLink = (taller: Taller) => {
+        if (!taller.email) {
+            showToast('El taller no tiene email de contacto.', 'err');
+            return;
+        }
+        const url = `${window.location.origin}/activar?email=${encodeURIComponent(taller.email)}`;
+        navigator.clipboard.writeText(url);
+        showToast(`Enlace de activación copiado`);
     };
 
     const filteredTalleres = talleres.filter(t =>
@@ -236,7 +247,18 @@ export default function GodModePage() {
                                                         </div>
                                                         <div>
                                                             <p className="text-white font-semibold text-sm">{taller.nombre}</p>
-                                                            {taller.slug && <p className="text-slate-600 text-xs font-mono">/{taller.slug}</p>}
+                                                            {taller.slug && (
+                                                                <div className="flex items-center gap-2 group/slug">
+                                                                    <p className="text-slate-600 text-xs font-mono">/{taller.slug}</p>
+                                                                    <button
+                                                                        onClick={() => handleCopyLink(taller)}
+                                                                        className="opacity-40 hover:opacity-100 p-1 hover:bg-slate-800 rounded transition-all text-slate-500 hover:text-violet-400"
+                                                                        title="Copiar Enlace de Activación"
+                                                                    >
+                                                                        <Key className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
