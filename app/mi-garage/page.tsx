@@ -730,7 +730,7 @@ function DigitalAccessPortal() {
                 loop
                 playsInline
                 className="absolute inset-0 w-full h-full object-cover"
-                src="/bg-video.mp4"
+                src="/hero-bg.mp4"
             />
             {/* Dark overlay + blur */}
             <div className="absolute inset-0 bg-black/70 backdrop-blur-[12px]" />
