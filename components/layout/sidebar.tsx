@@ -77,7 +77,7 @@ const navItems: NavItem[] = [
 ];
 
 export function Sidebar() {
-    const { user } = useAuth();
+    const { user, isLoading } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -95,12 +95,24 @@ export function Sidebar() {
         setDrawerOpen(false);
     }, [pathname]);
 
-    if (!user) return null;
+    if (!user && !isLoading) return null;
 
     const filteredItems = navItems.filter(item => {
-        // 1. Verificar rol
+        if (!user) return false;
+
+        // 1. FASE 75: Bloqueo de Plan Gratis
+        // Si el plan es Gratis, solo puede ver Perfil Taller
+        if (user.plan === 'Gratis' && item.href !== '/admin/perfil' && item.href !== '/recepcion') {
+            // Permitimos recepción solo si tiene permisos legacy, pero el prompt dice 
+            // "Perfil del Taller sea el único accesible por defecto para el estado Gratis"
+            // Por seguridad, bloqueamos todo excepto Perfil Taller.
+            if (item.href !== '/admin/perfil') return false;
+        }
+
+        // 2. Verificar rol
         if (!item.roles.includes(user.role as any)) return false;
-        // 2. Verificar módulo activo en el taller (si aplica)
+
+        // 3. Verificar módulo activo en el taller (si aplica)
         if (item.module && user.modulos) {
             return user.modulos[item.module] === true;
         }
@@ -125,28 +137,38 @@ export function Sidebar() {
                     </div>
                 )}
                 <nav className="flex-1 p-4 space-y-1">
-                    {filteredItems.map((item) => {
-                        const isActive = pathname === item.href ||
-                            (item.href !== '/admin' && item.href !== '/recepcion' && pathname.startsWith(item.href));
+                    {isLoading ? (
+                        // Skeletons de Carga
+                        Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl animate-pulse">
+                                <div className="w-5 h-5 bg-gray-200 rounded-md" />
+                                <div className="h-4 bg-gray-200 rounded-md w-32" />
+                            </div>
+                        ))
+                    ) : (
+                        filteredItems.map((item) => {
+                            const isActive = pathname === item.href ||
+                                (item.href !== '/admin' && item.href !== '/recepcion' && pathname.startsWith(item.href));
 
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                onClick={(e) => handleNavigation(e, item.href)}
-                                className={cn(
-                                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150",
-                                    isActive
-                                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
-                                        : "text-gray-600 hover:bg-blue-50 hover:text-blue-600",
-                                    isPending && "opacity-70 pointer-events-none"
-                                )}
-                            >
-                                {item.icon}
-                                <span className="font-medium">{item.label}</span>
-                            </Link>
-                        );
-                    })}
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    onClick={(e) => handleNavigation(e, item.href)}
+                                    className={cn(
+                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150",
+                                        isActive
+                                            ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
+                                            : "text-gray-600 hover:bg-blue-50 hover:text-blue-600",
+                                        isPending && "opacity-70 pointer-events-none"
+                                    )}
+                                >
+                                    {item.icon}
+                                    <span className="font-medium">{item.label}</span>
+                                </Link>
+                            );
+                        })
+                    )}
                 </nav>
 
                 {/* Footer */}
@@ -201,29 +223,38 @@ export function Sidebar() {
 
                 {/* Nav links */}
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                    {filteredItems.map((item) => {
-                        const isActive = pathname === item.href ||
-                            (item.href !== '/admin' && item.href !== '/recepcion' && pathname.startsWith(item.href));
+                    {isLoading ? (
+                        Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-4 px-4 py-3.5 rounded-xl animate-pulse">
+                                <div className="w-5 h-5 bg-white/10 rounded-md" />
+                                <div className="h-4 bg-white/10 rounded-md w-32" />
+                            </div>
+                        ))
+                    ) : (
+                        filteredItems.map((item) => {
+                            const isActive = pathname === item.href ||
+                                (item.href !== '/admin' && item.href !== '/recepcion' && pathname.startsWith(item.href));
 
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                onClick={(e) => handleNavigation(e, item.href)}
-                                className={cn(
-                                    "flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-150",
-                                    isActive
-                                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
-                                        : "text-gray-400 hover:bg-white/10 hover:text-white",
-                                    isPending && "opacity-70 pointer-events-none"
-                                )}
-                            >
-                                {item.icon}
-                                <span className="font-medium text-sm">{item.label}</span>
-                                {item.showBadge && <NewBadge />}
-                            </Link>
-                        );
-                    })}
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    onClick={(e) => handleNavigation(e, item.href)}
+                                    className={cn(
+                                        "flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-150",
+                                        isActive
+                                            ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
+                                            : "text-gray-400 hover:bg-white/10 hover:text-white",
+                                        isPending && "opacity-70 pointer-events-none"
+                                    )}
+                                >
+                                    {item.icon}
+                                    <span className="font-medium text-sm">{item.label}</span>
+                                    {item.showBadge && <NewBadge />}
+                                </Link>
+                            );
+                        })
+                    )}
                 </nav>
 
                 {/* Drawer footer */}

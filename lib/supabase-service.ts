@@ -3,11 +3,23 @@ import { supabase, VehiculoDB, OrdenDB, PerfilDB, CitaDB, ClienteDB, ServicioDB,
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserTallerId } from './auth-helpers';
 
+// Helper interno para asegurar que los IDs (UUID) sean strings y no objetos
+function ensureStringId(id: any): string | null {
+    if (!id) return null;
+    if (typeof id === 'string') return id;
+    if (typeof id === 'object') {
+        if (id.id && typeof id.id === 'string') return id.id;
+        // Si es un objeto vacío o no tiene .id, retornar null para evitar [object Object]
+        return null;
+    }
+    return String(id);
+}
+
 // ============ VEHÍCULOS ============
 
 // Buscar vehículo por patente (la función "mágica") - MULTI-TENANT
 export async function buscarVehiculoPorPatente(patente: string, tallerIdOverride?: string): Promise<VehiculoDB | null> {
-    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
+    let tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
     if (!tallerId) {
         console.error('❌ Usuario sin taller asignado');
         return null;
@@ -91,7 +103,7 @@ async function _ensureGlobalVehicle(vehiculo: Partial<VehiculoDB>): Promise<stri
 
 // Crear nuevo vehículo (o actualizar si ya existe) - MULTI-TENANT (HUB & SPOKE ADAPTED)
 export async function crearVehiculo(vehiculo: Partial<VehiculoDB> & { cliente_rut?: string }, tallerIdOverride?: string): Promise<VehiculoDB | null> {
-    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
     if (!tallerId) {
         console.error('❌ Usuario sin taller asignado');
         return null;
@@ -341,10 +353,13 @@ export async function crearCliente(cliente: Omit<ClienteDB, 'id' | 'fecha_creaci
 // ============ ÓRDENES ============
 
 // Obtener todas las órdenes
-// Obtener todas las órdenes (con paginación opcional) - MULTI-TENANT
-export async function obtenerOrdenes(limit?: number, offset?: number, tallerIdOverride?: string): Promise<OrdenDB[]> {
-    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
-    if (!tallerId) return [];
+// Obtener todas las órdenes (con paginación opcional) - MULTI-TENANT: Obtener órdenes filtradas por taller
+export async function obtenerOrdenes(limit: number = 20, offset: number = 0, tallerIdOverride?: string): Promise<OrdenDB[]> {
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
+    if (!tallerId) {
+        console.warn('⚠️ Intentando obtener órdenes sin taller_id');
+        return [];
+    }
 
     let query = supabase
         .from('ordenes')
@@ -391,9 +406,9 @@ export async function obtenerOrdenes(limit?: number, offset?: number, tallerIdOv
     return data || [];
 }
 
-// Obtener conteo total de órdenes
+// Para el contador del dashboard
 export async function obtenerOrdenesCount(tallerIdOverride?: string): Promise<number> {
-    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
     if (!tallerId) return 0;
 
     const { count, error } = await supabase
@@ -1018,7 +1033,7 @@ export async function crearUsuario(
 
 // ============ CITAS/AGENDAMIENTO ============
 export async function obtenerCitas(tallerIdOverride?: string): Promise<CitaDB[]> {
-    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
     if (!tallerId) return [];
 
     const { data, error } = await supabase
@@ -1046,7 +1061,7 @@ export async function obtenerCitas(tallerIdOverride?: string): Promise<CitaDB[]>
 
 // Obtener citas de hoy (con datos de cliente)
 export async function obtenerCitasHoy(tallerIdOverride?: string): Promise<CitaDB[]> {
-    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
     if (!tallerId) return [];
 
     const today = new Date();
@@ -1096,7 +1111,7 @@ export async function obtenerServiciosFrecuentes(): Promise<ServicioDB[]> {
 }
 
 export async function obtenerCitasSemana(startDate: Date, endDate: Date, tallerIdOverride?: string): Promise<CitaDB[]> {
-    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
     if (!tallerId) return [];
 
     const startISO = startDate.toISOString();
@@ -1160,7 +1175,7 @@ export async function obtenerCitasSemana(startDate: Date, endDate: Date, tallerI
 
 
 export async function crearCita(cita: any): Promise<CitaDB | null> {
-    const tallerId = await getCurrentUserTallerId();
+    const tallerId = ensureStringId(await getCurrentUserTallerId());
     if (!tallerId) return null;
 
     console.log('📅 Creando cita (V4 Full Mapping)...', cita);

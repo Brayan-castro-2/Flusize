@@ -53,7 +53,8 @@ function MapViewContent() {
             const { data, error } = await supabase
                 .from('talleres')
                 .select('*')
-                .eq('activo', true);
+                .eq('activo', true)
+                .eq('mostrar_en_mapa', true);
 
             if (data && !error) {
                 const mappedWorkshops: Workshop[] = data.map((taller: any) => ({

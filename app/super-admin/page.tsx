@@ -1,7 +1,7 @@
-import { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { Store, Car, DollarSign, Rocket, Users } from 'lucide-react';
 import { TallerForm } from './TallerForm';
+import { PlanSelector } from './PlanSelector';
 
 export const revalidate = 0; // Force dynamic rendering for admin dashboard
 
@@ -23,7 +23,7 @@ async function getAdminMetrics() {
     // Talleres para la tabla
     const { data: talleres } = await supabase
         .from('talleres')
-        .select('id, nombre, direccion, telefono, activo, creado_en')
+        .select('id, nombre, direccion, telefono, activo, creado_en, plan_suscripcion')
         .order('creado_en', { ascending: false });
 
     return {
@@ -120,33 +120,30 @@ export default async function SuperAdminPage() {
                             <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
                                 <tr>
                                     <th className="px-6 py-4 rounded-tl-xl font-medium uppercase text-xs tracking-wider">Taller</th>
-                                    <th className="px-6 py-4 font-medium uppercase text-xs tracking-wider">Teléfono / Dir</th>
-                                    <th className="px-6 py-4 font-medium uppercase text-xs tracking-wider">Registro</th>
-                                    <th className="px-6 py-4 font-medium uppercase text-xs tracking-wider">Estado</th>
+                                    <th className="px-6 py-4 font-medium uppercase text-xs tracking-wider">Plan / Facturación</th>
+                                    <th className="px-6 py-4 font-medium uppercase text-xs tracking-wider">Estado / Registro</th>
                                     <th className="px-6 py-4 rounded-tr-xl font-medium uppercase text-xs tracking-wider text-right">Acción</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {talleres.map((taller) => (
+                                {talleres.map((taller: any) => (
                                     <tr key={taller.id} className="hover:bg-slate-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-slate-800">{taller.nombre}</div>
                                             <div className="text-xs text-slate-500 font-mono mt-0.5">{taller.id.slice(0, 8)}...</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-slate-700">{taller.telefono || '—'}</div>
-                                            <div className="text-xs text-slate-500 truncate max-w-[200px]">{taller.direccion || '—'}</div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-600">
-                                            {new Date(taller.creado_en).toLocaleDateString('es-CL')}
+                                            <PlanSelector tallerId={taller.id} currentPlan={taller.plan_suscripcion} />
+                                            <div className="text-[10px] text-slate-400 font-mono mt-1">{taller.telefono || 'Sin tel.'}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${taller.activo
-                                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'
-                                                : 'bg-slate-100 text-slate-600 border border-slate-200'
-                                                }`}>
-                                                {taller.activo ? 'Activo' : 'Inactivo'}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full ${taller.activo ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                                                <span className="text-slate-700 font-medium">{taller.activo ? 'Activo' : 'Inactivo'}</span>
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 mt-0.5">
+                                                ID: {taller.id.slice(0, 8)} • {new Date(taller.creado_en).toLocaleDateString('es-CL')}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button className="text-blue-600 hover:text-blue-800 font-semibold text-sm transition-colors">

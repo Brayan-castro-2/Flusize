@@ -11,7 +11,11 @@ import {
     AlertCircle,
     Instagram,
     Facebook,
-    Globe
+    Globe,
+    Trophy,
+    Zap,
+    ShieldCheck,
+    Star
 } from 'lucide-react';
 
 interface WorkshopData {
@@ -27,6 +31,7 @@ interface WorkshopData {
     facebook: string | null;
     ciudad: string | null;
     region: string | null;
+    reconocimientos?: { icon: string; label: string }[];
 }
 
 export default function WorkshopDetail() {
@@ -109,18 +114,30 @@ export default function WorkshopDetail() {
     const waMsg = encodeURIComponent(`Hola ${workshop.nombre}, vengo de Flusize. Necesito cotizar un servicio.`);
     const waLink = telefonoLimpio ? `https://wa.me/${phoneWithCode}?text=${waMsg}` : '';
 
+    // Lógica de Branding "Titán"
+    const isSteelmonkey = workshop.slug === 'steelmonkey';
+    const primaryColor = isSteelmonkey ? '#FF4D00' : '#7C3AED'; // Naranja Steelmonkey vs Violeta Flusize
+    const secondaryColor = isSteelmonkey ? '#0B0B0B' : '#020617'; // Negro Carbón
+    const accentColor = isSteelmonkey ? '#FF4D00' : '#A78BFA';
+
     return (
-        <div className="min-h-screen bg-[#020617] pb-24 text-slate-300">
+        <div className={`min-h-screen ${isSteelmonkey ? 'bg-[#0B0B0B]' : 'bg-[#020617]'} pb-24 text-slate-300`}>
             {/* ── Navbar Premium ── */}
-            <nav className="bg-[#020617]/80 backdrop-blur-xl border-b border-white/5 z-50 sticky top-0 transition-all">
+            <nav className={`${isSteelmonkey ? 'bg-[#0B0B0B]/80' : 'bg-[#020617]/80'} backdrop-blur-xl border-b border-white/5 z-50 sticky top-0 transition-all`}>
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="flex justify-between h-20">
                         <div className="flex items-center gap-3 cursor-pointer group" onClick={() => router.push('/conductores/mapa')}>
-                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-violet-600/20 group-hover:scale-105 transition-transform">
-                                <span className="text-white font-black text-lg">F</span>
+                            <div
+                                className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105"
+                                style={{
+                                    background: `linear-gradient(to bottom right, ${primaryColor}, ${isSteelmonkey ? '#CC3D00' : '#4338CA'})`,
+                                    boxShadow: `0 10px 15px -3px ${primaryColor}40`
+                                }}
+                            >
+                                <span className="text-white font-black text-lg">{isSteelmonkey ? 'S' : 'F'}</span>
                             </div>
                             <span className="font-black text-2xl tracking-tighter text-white">
-                                Flusize <span className="text-[10px] text-violet-400 uppercase tracking-[0.2em] font-bold block leading-none ml-1">Premium Network</span>
+                                {isSteelmonkey ? 'Steelmonkey' : 'Flusize'} <span className={`text-[10px] uppercase tracking-[0.2em] font-bold block leading-none ml-1 ${isSteelmonkey ? 'text-[#FF4D00]' : 'text-violet-400'}`}>{isSteelmonkey ? 'Titán Performance' : 'Premium Network'}</span>
                             </span>
                         </div>
                         <div className="flex items-center">
@@ -144,17 +161,39 @@ export default function WorkshopDetail() {
                         <div className="relative rounded-[32px] overflow-hidden bg-slate-900 border border-white/5 shadow-2xl group">
                             <div className="h-64 sm:h-96 relative">
                                 <img
-                                    src={workshop.logo_url || 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=80&w=1600'}
+                                    src={isSteelmonkey ? '/workshops/steelmonkey-hero.png' : (workshop.logo_url || 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=80&w=1600')}
                                     alt={workshop.nombre}
-                                    className="w-full h-full object-cover opacity-40 mix-blend-luminosity group-hover:scale-105 transition-transform duration-1000"
+                                    className={`w-full h-full object-cover ${isSteelmonkey ? 'opacity-60' : 'opacity-40 mix-blend-luminosity'} group-hover:scale-105 transition-transform duration-1000`}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent" />
+                                <div className={`absolute inset-0 bg-gradient-to-t from-${isSteelmonkey ? '[#0B0B0B]' : '[#020617]'} via-transparent to-transparent`} />
                             </div>
 
                             <div className="absolute bottom-0 left-0 right-0 p-8 sm:p-12">
+                                {/* Medallas de Autoridad */}
+                                {isSteelmonkey && workshop.reconocimientos && (
+                                    <div className="flex flex-wrap gap-4 mb-8">
+                                        {workshop.reconocimientos.map((badge, idx) => {
+                                            const Icon = badge.icon === 'Trophy' ? Trophy : badge.icon === 'Zap' ? Zap : ShieldCheck;
+                                            return (
+                                                <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-black/60 backdrop-blur-xl border border-[#FF4D00]/30 rounded-2xl shadow-xl">
+                                                    <Icon className="w-4 h-4 text-[#FF4D00]" />
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-widest">{badge.label}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
                                 <div className="flex flex-wrap gap-3 mb-6">
-                                    <span className="bg-violet-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-violet-400/50 shadow-lg shadow-violet-500/20">
-                                        Partner Verificado
+                                    <span
+                                        className="text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-opacity-50 shadow-lg"
+                                        style={{
+                                            backgroundColor: primaryColor,
+                                            borderColor: accentColor,
+                                            boxShadow: `0 10px 15px -3px ${primaryColor}40`
+                                        }}
+                                    >
+                                        {isSteelmonkey ? 'Taller Titán' : 'Partner Verificado'}
                                     </span>
                                     {workshop.ciudad && (
                                         <span className="bg-white/10 backdrop-blur-md text-slate-200 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">
@@ -211,45 +250,69 @@ export default function WorkshopDetail() {
                     {/* Right: Acciones & Redes */}
                     <div className="lg:col-span-4 space-y-8">
                         {/* Card Contacto */}
-                        <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-[32px] p-8 shadow-2xl shadow-violet-900/40 sticky top-28">
+                        <div
+                            className="rounded-[32px] p-8 shadow-2xl sticky top-28 border border-white/5"
+                            style={{
+                                background: isSteelmonkey
+                                    ? `linear-gradient(135deg, #FF4D00 0%, #CC3D00 100%)`
+                                    : `linear-gradient(135deg, #7C3AED 0%, #4338CA 100%)`,
+                                boxShadow: isSteelmonkey ? `0 25px 50px -12px rgba(255, 77, 0, 0.4)` : `0 25px 50px -12px rgba(124, 58, 237, 0.4)`
+                            }}
+                        >
                             <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-8 border border-white/10">
                                 <MessageCircle className="w-8 h-8 text-white" />
                             </div>
 
                             <h3 className="text-3xl font-black text-white mb-3 tracking-tight">Contacto Directo</h3>
-                            <p className="text-violet-100/80 text-sm mb-10 font-bold leading-relaxed uppercase tracking-wider">
+                            <p className="text-white/80 text-sm mb-10 font-bold leading-relaxed uppercase tracking-wider">
                                 Atencion inmediata vía WhatsApp
                             </p>
 
-                            {waLink ? (
-                                <a
-                                    href={waLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-full py-5 bg-white hover:bg-slate-50 active:scale-[0.98] transition-all text-violet-700 font-black rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-black/20"
-                                >
-                                    <MessageCircle className="w-6 h-6" />
-                                    <span>ENVIAR MENSAJE</span>
-                                </a>
-                            ) : (
-                                <div className="w-full py-5 bg-black/20 text-white/50 font-black rounded-2xl text-center border border-white/5">
-                                    SIN ACCESO WHATSAPP
-                                </div>
-                            )}
-
-                            {/* Redes */}
-                            <div className="mt-10 pt-8 border-t border-white/10 flex items-center justify-center gap-6">
-                                {workshop.instagram && (
-                                    <a href={`https://instagram.com/${workshop.instagram}`} target="_blank" className="text-white/60 hover:text-white transition-colors">
-                                        <Instagram className="w-6 h-6" />
+                            <div className="space-y-4">
+                                {waLink ? (
+                                    <a
+                                        href={waLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`w-full py-5 bg-white hover:bg-slate-50 active:scale-[0.98] transition-all font-black rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-black/20 ${isSteelmonkey ? 'text-[#FF4D00]' : 'text-violet-700'}`}
+                                    >
+                                        <MessageCircle className="w-6 h-6" />
+                                        <span>ENVIAR MENSAJE</span>
                                     </a>
+                                ) : (
+                                    <div className="w-full py-5 bg-black/20 text-white/50 font-black rounded-2xl text-center border border-white/5">
+                                        SIN ACCESO WHATSAPP
+                                    </div>
                                 )}
-                                {workshop.facebook && (
-                                    <a href={workshop.facebook} target="_blank" className="text-white/60 hover:text-white transition-colors">
-                                        <Facebook className="w-6 h-6" />
+
+                                {isSteelmonkey && (
+                                    <a
+                                        href={`https://instagram.com/${workshop.instagram}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full py-5 bg-black hover:bg-slate-900 active:scale-[0.98] transition-all text-white font-black rounded-2xl flex items-center justify-center gap-3 shadow-xl border border-white/10"
+                                    >
+                                        <Instagram className="w-6 h-6 text-[#FF4D00]" />
+                                        <span>VER PROYECTOS INSTAGRAM</span>
                                     </a>
                                 )}
                             </div>
+
+                            {/* Redes SECUNDARIAS Fallback */}
+                            {!isSteelmonkey && (
+                                <div className="mt-10 pt-8 border-t border-white/10 flex items-center justify-center gap-6">
+                                    {workshop.instagram && (
+                                        <a href={`https://instagram.com/${workshop.instagram}`} target="_blank" className="text-white/60 hover:text-white transition-colors">
+                                            <Instagram className="w-6 h-6" />
+                                        </a>
+                                    )}
+                                    {workshop.facebook && (
+                                        <a href={workshop.facebook} target="_blank" className="text-white/60 hover:text-white transition-colors">
+                                            <Facebook className="w-6 h-6" />
+                                        </a>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Footer Link */}

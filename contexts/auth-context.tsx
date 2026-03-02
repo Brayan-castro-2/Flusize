@@ -3,7 +3,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { TallerModulos, DEFAULT_MODULOS } from '@/config/modules';
+import { TallerModulos } from '@/config/modules';
+
+const DEFAULT_MODULOS: TallerModulos = {
+    agenda: false,
+    tracking: false,
+    inventario: false,
+    checklist: false,
+    fiscal: false,
+};
+
+const DEFAULT_PLAN = 'GRATIS';
 
 export interface AuthUser {
     id: string;
@@ -13,6 +23,7 @@ export interface AuthUser {
     isActive: boolean;
     tallerId?: string;
     modulos: TallerModulos;
+    plan: string; // FASE 75: 'Gratis', 'Pro Tracking', etc.
 }
 
 interface AuthContextType {
@@ -73,11 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const fetchAndSetUser = async (authUser: any) => {
-        console.log('[AuthContext Debug] fetchAndSetUser started for id:', authUser.id);
+        console.log('[AuthContext Debug] fetchAndSetUser started for id:', authUser.id, 'email:', authUser.email);
         try {
-            // Timeout de 5s para evitar spinner infinito si Supabase cuelga
+            // Timeout de 7s para Supabase
             const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) =>
-                setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 5000)
+                setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 7000)
             );
             const queryPromise = supabase
                 .from('perfiles')
@@ -88,26 +99,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const { data: perfil, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
             if (error?.message === 'timeout') {
-                console.warn('[AuthContext Debug] perfil query timed out, proceeding with auth user data only');
+                console.warn('[AuthContext Debug] perfil query timed out');
             } else {
-                console.log('[AuthContext Debug] perfil fetched:', perfil?.rol, 'error:', error);
+                console.log('[AuthContext Debug] perfil result:', perfil ? `Role: ${perfil.rol}, Taller: ${perfil.taller_id}` : 'No profile found', 'Error:', error);
             }
 
-            // Determinar Rol
-            const role = perfil?.rol ||
-                authUser.user_metadata?.rol ||
-                (error?.message === 'timeout' ? 'taller_admin' : 'cliente');
+            // RED DE SEGURIDAD PARA SUPERADMIN (FUNDERS)
+            const FOUNDER_EMAILS = ['flusize@gmail.com', 'brayan.castro.2@gmail.com'];
+            const isFounder = authUser.email && FOUNDER_EMAILS.includes(authUser.email.toLowerCase());
 
-            // Cargar modulos_activos del taller (si tiene taller_id)
+            // Determinar Rol con PRIORIDAD:
+            // 1. Perfil de Base de Datos (Suelo de Verdad)
+            // 2. Metadata del usuario (Auth)
+            // 3. Si es Founder -> superadmin
+            // 4. Fallback -> cliente
+            let role = perfil?.rol || authUser.user_metadata?.rol;
+
+            if (!role && isFounder) {
+                role = 'superadmin';
+                console.log('[AuthContext Debug] No role found in DB/Metadata, but user is founder. Elevating to superadmin.');
+            }
+
+            if (!role) {
+                role = 'cliente';
+                console.log('[AuthContext Debug] No role found, defaulting to cliente');
+            }
+
+            console.log(`[AuthContext Debug] Final resolved role for ${authUser.email}: ${role}`);
+
+            // Cargar modulos_activos y plan del taller (si tiene taller_id)
             let modulos: TallerModulos = { ...DEFAULT_MODULOS };
-            if (perfil?.taller_id) {
+            let plan = DEFAULT_PLAN;
+            const finalTallerId = perfil?.taller_id || authUser.user_metadata?.taller_id;
+
+            if (finalTallerId) {
                 const { data: taller } = await supabase
                     .from('talleres')
-                    .select('modulos_activos')
-                    .eq('id', perfil.taller_id)
+                    .select('modulos_activos, plan_suscripcion')
+                    .eq('id', finalTallerId)
                     .maybeSingle();
-                if (taller?.modulos_activos) {
-                    modulos = { ...DEFAULT_MODULOS, ...taller.modulos_activos };
+
+                if (taller) {
+                    if (taller.modulos_activos) {
+                        modulos = { ...DEFAULT_MODULOS, ...taller.modulos_activos };
+                    }
+                    if (taller.plan_suscripcion) {
+                        plan = taller.plan_suscripcion || 'GRATIS';
+                    }
                 }
             }
 
@@ -117,16 +155,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 name: perfil ? (perfil.nombre_completo || 'Usuario de Taller') : (authUser.user_metadata?.nombre_completo || 'Usuario'),
                 role: role as any,
                 isActive: perfil ? perfil.activo : true,
-                tallerId: perfil ? perfil.taller_id : undefined,
+                tallerId: finalTallerId,
                 modulos,
+                plan,
             };
 
-            console.log('[AuthContext Debug] mappedUser created:', mappedUser);
+            console.log('[AuthContext Debug] mappedUser successfully set:', mappedUser.email, mappedUser.role);
             setUser(mappedUser);
         } catch (error) {
-            console.error('[AuthContext Debug] Error fetching role', error);
+            console.error('[AuthContext Debug] Critical error in fetchAndSetUser:', error);
         } finally {
-            console.log('[AuthContext Debug] fetchAndSetUser finally, setting isLoading false');
             setIsLoading(false);
         }
     };

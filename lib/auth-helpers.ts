@@ -34,7 +34,8 @@ export async function getCurrentUserTallerId(): Promise<string | null> {
         if (userError || !user) {
             console.log('❌ No user from token:', userError?.message, '- using fallback')
             const { getDefaultTallerId } = await import('./taller-fallback')
-            return await getDefaultTallerId()
+            const fallbackId = await getDefaultTallerId()
+            return typeof fallbackId === 'string' ? fallbackId : null
         }
 
         console.log('✅ User found:', user.email)
@@ -56,21 +57,39 @@ export async function getCurrentUserTallerId(): Promise<string | null> {
         if (error) {
             console.error('❌ Error getting taller_id:', error.message, '- using fallback')
             const { getDefaultTallerId } = await import('./taller-fallback')
-            return await getDefaultTallerId()
+            const fallbackId = await getDefaultTallerId()
+            return typeof fallbackId === 'string' ? fallbackId : null
         }
 
         if (!data?.taller_id) {
             console.error('❌ User has no taller_id in database - using fallback')
             const { getDefaultTallerId } = await import('./taller-fallback')
-            return await getDefaultTallerId()
+            const fallbackId = await getDefaultTallerId()
+            return typeof fallbackId === 'string' ? fallbackId : null
         }
 
-        console.log('✅ Taller ID:', data.taller_id)
-        return data.taller_id
+        // Defensive check: ensure tallerId is a string
+        const finalTallerId = data.taller_id
+        if (typeof finalTallerId !== 'string') {
+            console.error('❌ Taller ID is not a string:', finalTallerId)
+            // If it's an object with id (rare case but possible if DB driver misbehaves), extract it
+            if (finalTallerId && typeof finalTallerId === 'object' && (finalTallerId as any).id) {
+                return (finalTallerId as any).id
+            }
+            return null
+        }
+
+        console.log('✅ Taller ID:', finalTallerId)
+        return finalTallerId
     } catch (error) {
         console.error('❌ Error in getCurrentUserTallerId:', error, '- using fallback')
-        const { getDefaultTallerId } = await import('./taller-fallback')
-        return await getDefaultTallerId()
+        try {
+            const { getDefaultTallerId } = await import('./taller-fallback')
+            const fallbackId = await getDefaultTallerId()
+            return typeof fallbackId === 'string' ? fallbackId : null
+        } catch {
+            return null
+        }
     }
 }
 

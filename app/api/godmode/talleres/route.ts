@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -73,6 +74,12 @@ export async function PATCH(req: NextRequest) {
 
     const { error } = await supabaseAdmin.from('talleres').update(updates).eq('id', tallerId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Revalidación instantánea para que el taller vea los cambios
+    revalidatePath('/admin');
+    revalidatePath('/(dashboard)/admin');
+    revalidatePath('/superadmin');
+
     return NextResponse.json({ success: true }, { status: 200 });
 }
 
@@ -211,4 +218,8 @@ export async function POST(req: NextRequest) {
         accesUrl: `/admin/ordenes`,
         slug: nuevoTaller.slug,
     }, { status: 201 });
+
+    // Revalidación para listar el nuevo taller
+    revalidatePath('/superadmin');
+    revalidatePath('/admin');
 }

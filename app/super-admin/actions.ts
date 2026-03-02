@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { revalidatePath } from 'next/cache';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -102,5 +103,28 @@ export async function crearTallerAction(formData: FormData) {
     } catch (e: any) {
         console.error('[Action] Error en crearTallerAction:', e);
         return { error: e.message || 'Error desconocido al crear el taller.' };
+    }
+}
+
+export async function actualizarPlanTallerAction(tallerId: string, nuevoPlan: string) {
+    if (!tallerId || !nuevoPlan) return { error: 'Faltan parámetros' };
+
+    try {
+        const { error } = await supabaseAdmin
+            .from('talleres')
+            .update({ plan_suscripcion: nuevoPlan })
+            .eq('id', tallerId);
+
+        if (error) throw error;
+
+        // Revalidar rutas críticas para que el cambio sea "instantáneo"
+        revalidatePath('/admin', 'layout');
+        revalidatePath('/super-admin');
+        revalidatePath('/(dashboard)/admin', 'layout');
+
+        return { success: true, message: `Plan actualizado a ${nuevoPlan}` };
+    } catch (e: any) {
+        console.error('[Action] Error en actualizarPlanTallerAction:', e);
+        return { error: e.message || 'Error al actualizar el plan' };
     }
 }

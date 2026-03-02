@@ -41,9 +41,10 @@ export async function middleware(request: NextRequest) {
     const isSuperAdminRoute = url.pathname.startsWith('/super-admin')
 
     const FOUNDER_EMAILS = [
-        'flusize@gmail.com'
+        'flusize@gmail.com',
+        'brayan.castro.2@gmail.com'
     ];
-    const isSuperAdmin = user && FOUNDER_EMAILS.includes(user.email || '');
+    const isFounder = user && user.email && FOUNDER_EMAILS.includes(user.email.toLowerCase());
 
     // 1. Visitante sin cuenta queriendo entrar a zonas protegidas
     if (!user && (isAdminRoute || isGarageRoute || isSuperAdminRoute)) {
@@ -51,29 +52,37 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    if (user && isSuperAdminRoute && !isSuperAdmin) {
-        url.pathname = '/mi-garage'
+    // --- REGLA ESPECIAL PARA SUPERADMIN (FUNDERS) ---
+    // Si es founder, siempre puede entrar a super-admin
+    if (user && isSuperAdminRoute && !isFounder) {
+        url.pathname = '/mi-garage' // Redirigir a garage si no es founder
         return NextResponse.redirect(url)
     }
 
     // 2. Usuario con cuenta decidiendo a dónde ir (o entrando de un link)
     if (user && isAuthRoute) {
-        if (isSuperAdmin) {
+        if (isFounder) {
             url.pathname = '/super-admin'
             return NextResponse.redirect(url)
         }
 
-        // Usar Supabase SSR Client para chequear el ROL en Base de datos `perfiles`
+        // Usar Supabase SSR Client para chequear el ROL y PLAN en Base de datos
         const { data: perfil } = await supabase
             .from('perfiles')
-            .select('rol')
+            .select('rol, talleres(plan_suscripcion)')
             .eq('id', user.id)
             .single()
 
         if (perfil) {
+            const plan = (perfil as any).talleres?.plan_suscripcion || 'Gratis'
+
             // Existe en perfiles de Taller
-            if (perfil.rol === 'taller_admin' || perfil.rol === 'admin' || perfil.rol === 'superadmin' || perfil.rol === 'mecanico') {
-                url.pathname = '/admin/ordenes'
+            if (['taller_admin', 'admin', 'superadmin', 'mecanico'].includes(perfil.rol)) {
+                if (plan === 'Gratis') {
+                    url.pathname = '/admin/perfil'
+                } else {
+                    url.pathname = '/admin/ordenes'
+                }
                 return NextResponse.redirect(url)
             } else {
                 // Es rol cliente u otro
@@ -90,10 +99,25 @@ export async function middleware(request: NextRequest) {
     // 3. Usuario ya validado y en su zona correcta (o yendo a otra API, etc). 
     // OJO: Podríamos validar que un cliente no entre a /admin aquí.
     if (user && isAdminRoute) {
-        const { data: perfil } = await supabase.from('perfiles').select('rol').eq('id', user.id).single()
+        const { data: perfil } = await supabase
+            .from('perfiles')
+            .select('rol, talleres(plan_suscripcion)')
+            .eq('id', user.id)
+            .single()
+
         if (!perfil || !['taller_admin', 'admin', 'superadmin', 'mecanico'].includes(perfil.rol)) {
             // Un cliente tratando de hackear /admin
             url.pathname = '/mi-garage'
+            return NextResponse.redirect(url)
+        }
+
+        const userPlan = (perfil as any).talleres?.plan_suscripcion || 'GRATIS'
+        const isAllowedFreeRoute = url.pathname === '/admin/perfil' || url.pathname === '/admin/perfil/'
+
+        if (userPlan === 'GRATIS' && !url.pathname.startsWith('/admin/perfil')) {
+            // Bloqueo estricto FASE 75
+            console.log('🚫 Bloqueo Middleware FASE 75: Plan Gratis intentando acceder a', url.pathname)
+            url.pathname = '/admin/perfil'
             return NextResponse.redirect(url)
         }
     }
