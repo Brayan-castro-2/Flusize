@@ -51,6 +51,9 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Steelmonkey Premium Colors
+        titanOrange: "#FF4D00",
+        titanBlack: "#0A0A0A",
       },
       borderRadius: {
         lg: "var(--radius)",
