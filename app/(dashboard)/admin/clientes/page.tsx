@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -29,7 +29,8 @@ import {
     ArrowUp,
     ArrowDown,
     ArrowRight,
-    AlertTriangle
+    AlertTriangle,
+    MessageCircle
 } from 'lucide-react';
 import { obtenerClientes } from '@/lib/storage-adapter';
 import type { ClienteWithStats, VehiculoDB } from '@/lib/storage-adapter';
@@ -235,7 +236,7 @@ export default function ClientesPage() {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="bg-[#1E293B] border-slate-700 p-6 flex items-center gap-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all group rounded-2xl">
                     <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors border border-blue-500/20 group-hover:scale-110">
                         <Users className="w-7 h-7 text-blue-400" />
@@ -256,6 +257,16 @@ export default function ClientesPage() {
                     </div>
                 </Card>
 
+                <Card className="bg-[#1E293B] border-slate-700 p-6 flex items-center gap-5 hover:border-yellow-500/50 hover:shadow-lg hover:shadow-yellow-500/10 transition-all group rounded-2xl">
+                    <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center group-hover:bg-yellow-500/20 transition-colors border border-yellow-500/20 group-hover:scale-110">
+                        <Wallet className="w-7 h-7 text-yellow-400" />
+                    </div>
+                    <div>
+                        <p className="text-yellow-400/80 text-[11px] font-bold uppercase tracking-widest mb-1">Ingresos Totales</p>
+                        <p className="text-2xl font-black text-white leading-none tracking-tight">{formatCurrency(kpis.totalRevenue)}</p>
+                    </div>
+                </Card>
+
                 <Card className="bg-[#1E293B] border-slate-700/50 p-6 flex items-center gap-5 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10 transition-all group rounded-2xl relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     <div className="relative z-10 w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center group-hover:bg-red-500/20 transition-colors border border-red-500/20 group-hover:scale-110">
@@ -263,7 +274,7 @@ export default function ClientesPage() {
                     </div>
                     <div className="relative z-10">
                         <p className="text-red-400/80 text-[11px] font-bold uppercase tracking-widest mb-1">Cartera Vencida</p>
-                        <p className="text-3xl font-black text-red-400 leading-none tracking-tight">{formatCurrency(kpis.totalDebt)}</p>
+                        <p className="text-2xl font-black text-red-400 leading-none tracking-tight">{formatCurrency(kpis.totalDebt)}</p>
                     </div>
                 </Card>
             </div>
@@ -480,6 +491,18 @@ export default function ClientesPage() {
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
+                                                                            {cliente.telefono && (
+                                                                                <a
+                                                                                    href={`https://wa.me/${cliente.telefono.replace(/\D/g, "")}`}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                    className="h-9 w-9 flex items-center justify-center rounded-full text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-emerald-500/30"
+                                                                                    title="Contactar por WhatsApp"
+                                                                                >
+                                                                                    <MessageCircle className="w-4 h-4" />
+                                                                                </a>
+                                                                            )}
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"

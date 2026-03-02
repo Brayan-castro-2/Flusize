@@ -1,9 +1,9 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
-import { Search, MapPin, Loader2, Wrench, Star, Calendar, Filter, User, ChevronUp, ChevronDown, Bell, CheckCircle2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect, Suspense } from 'react';
+import { Search, MapPin, Loader2, Wrench, Star, Calendar, Filter, User, ChevronUp, ChevronDown, Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Workshop } from '@/lib/mockData'; // Keeping Workshop interface if needed, but not the mocked data
+import { Workshop } from '@/lib/mockData';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { sileo } from 'sileo';
@@ -26,14 +26,19 @@ const MapWrapper = dynamic(() => import('@/components/drivers/MapWrapper'), {
     )
 });
 
-export default function MapView() {
+function MapViewContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const mapRef = useRef<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
     const [isSearching, setIsSearching] = useState(false);
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
+    const [allWorkshops, setAllWorkshops] = useState<Workshop[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const filterParam = searchParams.get('filter');
+    const isEmergency = searchParams.get('emergency') === 'true';
 
     // Auth and Notifications
     const { user } = useAuth();
@@ -70,16 +75,49 @@ export default function MapView() {
                     whatsapp: taller.whatsapp || taller.telefono || undefined,
                     slug: taller.slug
                 }));
-                // Sólo renderizamos los talleres reales de Supabase
-                setWorkshops(mappedWorkshops);
+
+                setAllWorkshops(mappedWorkshops);
+
+                // Apply initial emergency filter if present
+                if (filterParam) {
+                    const filtered = mappedWorkshops.filter(shop =>
+                        shop.specialties.some((s: string) => s.toLowerCase().includes(filterParam.toLowerCase()))
+                    );
+                    setWorkshops(filtered.length > 0 ? filtered : mappedWorkshops);
+                } else {
+                    setWorkshops(mappedWorkshops);
+                }
             } else {
                 setWorkshops([]);
+                setAllWorkshops([]);
             }
             setLoading(false);
         };
 
         fetchTalleres();
-    }, []);
+    }, [filterParam]);
+
+    // Handle Auto-Geolocation in Emergency Mode
+    useEffect(() => {
+        if (isEmergency && !loading && mapRef.current) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        mapRef.current.flyToLocation(latitude, longitude, 15);
+                        sileo.info({
+                            title: 'Ubicación Detectada',
+                            description: 'Buscando talleres especializados cerca de ti.',
+                            position: "top-center"
+                        });
+                    },
+                    (error) => {
+                        console.error("Geolocation error:", error);
+                    }
+                );
+            }
+        }
+    }, [isEmergency, loading]);
 
     // ──────────────────────────────────────────
     // NOTIFICACIONES EN TIEMPO REAL
@@ -155,7 +193,7 @@ export default function MapView() {
                 <MapWrapper
                     ref={mapRef}
                     workshops={workshops}
-                    selectedId={selectedWorkshop?.id}
+                    selectedId={selectedWorkshop?.id ? String(selectedWorkshop.id) : undefined}
                     onSelect={(id: string | number) => {
                         const shop = workshops.find(s => s.id === id);
                         setSelectedWorkshop(shop || null);
@@ -163,6 +201,21 @@ export default function MapView() {
                     }}
                 />
             </div>
+
+            {/* Emergency Banner */}
+            {isEmergency && (
+                <div className="absolute top-[80px] md:top-[100px] left-1/2 -translate-x-1/2 z-[600] w-[90%] max-w-lg">
+                    <div className="bg-red-600 text-white p-4 rounded-2xl shadow-[0_15px_40px_rgba(220,38,38,0.4)] flex items-center gap-4 animate-bounce-subtle border-b-4 border-red-800">
+                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                            <AlertTriangle className="w-7 h-7" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest opacity-80">Asistencia Activa</p>
+                            <p className="text-sm font-bold">Localizando talleres para: <span className="underline">{filterParam || 'Emergencia'}</span></p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 2. Floating Top Bar */}
             <div className="absolute top-4 left-4 right-4 md:top-6 md:left-6 md:right-auto md:w-[460px] z-[500] flex items-center gap-2">
@@ -270,7 +323,7 @@ export default function MapView() {
                         <div className="flex flex-col">
                             <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
                                 <Wrench className="w-5 h-5 text-blue-600" />
-                                Talleres Premium
+                                {isEmergency ? 'Auxilio Cercano' : 'Talleres Premium'}
                             </h2>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                                 {loading ? 'Buscando...' : `${workshops.length} Cerca de ti`}
@@ -292,6 +345,21 @@ export default function MapView() {
                         </div>
                     ) : (
                         <>
+                            {workshops.length === 0 && (
+                                <div className="py-12 px-6 text-center">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                                        <Search className="w-8 h-8 text-slate-300" />
+                                    </div>
+                                    <p className="text-slate-800 font-black text-sm mb-1 uppercase tracking-tight">Sin resultados exactos</p>
+                                    <p className="text-xs text-slate-500 font-bold mb-6">No hay talleres especializados en {filterParam} en esta zona específica.</p>
+                                    <button
+                                        onClick={() => setWorkshops(allWorkshops)}
+                                        className="text-blue-600 text-[10px] font-black uppercase tracking-widest bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-100 transition-colors"
+                                    >
+                                        Ver todos los talleres
+                                    </button>
+                                </div>
+                            )}
                             {workshops.map((shop) => (
                                 <div
                                     key={shop.id}
@@ -391,5 +459,23 @@ export default function MapView() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function MapView() {
+    return (
+        <Suspense fallback={
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
+                <div className="relative mb-8">
+                    <div className="w-20 h-20 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <img src="/logo_flusize.png" alt="Flusize" className="w-8 h-8 object-contain animate-pulse" />
+                    </div>
+                </div>
+                <p className="text-sm font-black text-slate-800 uppercase tracking-[0.3em] animate-pulse">Cargando Ecosistema...</p>
+            </div>
+        }>
+            <MapViewContent />
+        </Suspense>
     );
 }

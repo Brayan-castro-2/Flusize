@@ -355,7 +355,7 @@ export async function obtenerOrdenes(limit?: number, offset?: number, tallerIdOv
                 nombre_completo,
                 telefono
             ),
-            vehiculos:vehiculos!vehiculo_local_id (
+            vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
                 id,
                 patente,
                 marca,
@@ -431,7 +431,7 @@ export async function obtenerOrdenesLight(mecanicoId?: string): Promise<OrdenDB[
             cliente:clientes (
                 nombre_completo
             ),
-            vehiculos:vehiculos!vehiculo_local_id (
+            vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
                 marca,
                 modelo
             ),
@@ -495,7 +495,7 @@ export async function obtenerOrdenPorId(id: string): Promise<OrdenDB | null> {
         .from('ordenes')
         .select(`
             *,
-            vehiculos:vehiculos!vehiculo_local_id (
+            vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
                 id,
                 marca,
                 modelo,
@@ -505,12 +505,12 @@ export async function obtenerOrdenPorId(id: string): Promise<OrdenDB | null> {
                 motor,
                 clientes (*)
             ),
-            asignado:perfiles!asignado_a (
+            asignado:perfiles!ordenes_asignado_a_fkey (
                 id,
                 nombre_completo,
                 rol
             ),
-            creado:perfiles!creado_por (
+            creado:perfiles!ordenes_creado_por_fkey (
                 id,
                 nombre_completo,
                 rol

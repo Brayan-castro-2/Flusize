@@ -30,6 +30,7 @@ import {
     Cog,
     Settings
 } from 'lucide-react';
+import { sileo } from 'sileo';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -222,15 +223,15 @@ function StatusTimeline({ data }: { data: TrackingData }) {
 
     const StepIndicator = ({ status, icon }: { status: StepStatus; icon: React.ReactNode }) => {
         if (status === "done") return (
-            <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white shadow-md shadow-blue-200">
+            <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-200">
                 <Check className="h-4 w-4" />
             </div>
         )
         if (status === "active") return (
             <div className="relative z-10 flex h-9 w-9 items-center justify-center">
-                <div className="absolute inset-0 rounded-full bg-blue-100 animate-pulse" />
-                <div className="absolute inset-0.5 rounded-full bg-blue-50 animate-ping" style={{ animationDuration: "2s" }} />
-                <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white shadow-md shadow-blue-300">{icon}</div>
+                <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-pulse-ring" />
+                <div className="absolute inset-0.5 rounded-full bg-blue-400/10 animate-ping" style={{ animationDuration: "2s" }} />
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl shadow-blue-300">{icon}</div>
             </div>
         )
         return <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-slate-400">{icon}</div>
@@ -402,8 +403,10 @@ function WorkshopFooter({ taller, numeroOrden }: { taller: TrackingData['taller'
     const copiarDireccion = () => {
         if (taller.direccion) {
             navigator.clipboard.writeText(taller.direccion);
-            // Reemplazar después por un toast más elegante
-            alert("Dirección copiada al portapapeles: " + taller.direccion);
+            sileo.success({
+                title: "Dirección Copiada",
+                description: "La dirección del taller está en tu portapapeles.",
+            });
         }
     };
 
@@ -440,7 +443,7 @@ function WorkshopFooter({ taller, numeroOrden }: { taller: TrackingData['taller'
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Acciones rápidas</h4>
                 <div className="grid grid-cols-2 gap-3">
                     {waLink ? (
-                        <Button className="h-11 rounded-[14px] text-[13px] font-bold shadow-none bg-[#f8f9fa] text-slate-400 hover:bg-slate-100 border-none" asChild>
+                        <Button className="h-11 rounded-[14px] text-[13px] font-bold shadow-none bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-none" asChild>
                             <a href={waLink} target="_blank" rel="noopener noreferrer">
                                 <MessageCircle className="h-4 w-4 mr-1.5" /> WhatsApp
                             </a>

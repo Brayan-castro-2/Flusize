@@ -533,13 +533,18 @@ function VehicleCard({ v }: { v: VehiculoData }) {
                 </div>
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-[14px]">
-                <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-xs font-semibold text-slate-500 flex items-center"><Activity className="w-3.5 h-3.5 mr-1" /> Salud del Motor</span>
-                    <span className="text-xs font-bold text-emerald-600">85% — Buena</span>
+            <div className="bg-slate-50 p-4 rounded-[20px] border border-slate-100/50">
+                <div className="flex justify-between items-center mb-2">
+                    <span className="text-[11px] font-bold text-slate-400 flex items-center uppercase tracking-widest"><Activity className="w-3.5 h-3.5 mr-1.5 text-blue-500" /> Estado General</span>
+                    <span className="text-xs font-black text-emerald-600">85% — Óptimo</span>
                 </div>
-                <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: '85%' }} />
+                <div className="h-2 bg-slate-200/50 rounded-full overflow-hidden">
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: '85%' }}
+                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
+                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                    />
                 </div>
             </div>
         </div>
@@ -600,8 +605,10 @@ function InversionChart({ data }: { data: GarageData['inversionAnual'] }) {
         <motion.div
             className="bg-white rounded-[24px] shadow-sm border border-slate-100 p-6 flex flex-col items-center"
         >
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest w-full text-center flex items-center justify-center gap-1.5 mb-2">
-                <TrendingUp className="w-4 h-4" /> Inversión Anual Total
+            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] w-full text-center flex items-center justify-center gap-2 mb-2">
+                <div className="w-8 h-px bg-slate-100" />
+                Inversión Anual Total
+                <div className="w-8 h-px bg-slate-100" />
             </h3>
 
             <div className="text-[28px] font-black text-slate-800 tracking-tight mb-8 tabular-nums flex items-center">
@@ -689,17 +696,91 @@ function BankActivityItem({ orden }: { orden: OrdenReciente }) {
                     </div>
                 </div>
                 <div className="flex flex-col items-end shrink-0 pl-2">
-                    <p className="text-sm font-black text-slate-800 whitespace-nowrap">
+                    <p className="text-sm font-black text-slate-900 whitespace-nowrap">
                         {orden.precio_total ? `-$${orden.precio_total.toLocaleString('es-CL')}` : '—'}
                     </p>
                     {!isCompleted && (
-                        <p className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm mt-0.5 bg-amber-50 text-amber-600`}>
-                            En progreso
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <div className="relative flex h-2 w-2">
+                                <span className="animate-pulse-ring absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                            </div>
+                            <p className={`text-[10px] font-black uppercase tracking-tight text-amber-600`}>
+                                En progreso
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>
         </Link>
+    );
+}
+
+// ──────────────────────────────────────────
+// AUTH GATE: DIGITAL ACCESS PORTAL
+// ──────────────────────────────────────────
+function DigitalAccessPortal() {
+    const router = useRouter();
+    return (
+        <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+            {/* Video background */}
+            <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+                src="/bg-video.mp4"
+            />
+            {/* Dark overlay + blur */}
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-[12px]" />
+
+            {/* Subtle radial glow */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(37,99,235,0.25)_0%,_transparent_70%)] pointer-events-none" />
+
+            {/* Glass card */}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.7, ease: 'easeOut' }}
+                className="relative z-10 w-full max-w-sm mx-4 bg-white/10 border border-white/20 rounded-[2.5rem] shadow-2xl shadow-black/50 p-10 flex flex-col items-center text-center backdrop-blur-md"
+            >
+                {/* Logo mark */}
+                <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-xl shadow-blue-900/50 mb-8 border border-blue-400/30">
+                    <Car className="w-9 h-9 text-white" />
+                </div>
+
+                <p className="text-blue-400 text-[9px] font-black uppercase tracking-[0.3em] mb-2">Flusize — ADN Digital</p>
+                <h1 className="text-2xl font-black text-white tracking-tight leading-tight mb-4">
+                    PORTAL DE<br />ACCESO DIGITAL
+                </h1>
+                <p className="text-slate-300 text-sm font-medium leading-relaxed mb-10">
+                    Ingresa para gestionar el ADN de tu vehículo y asegurar su valor con evidencia inmutable.
+                </p>
+
+                <div className="flex flex-col w-full gap-3">
+                    <button
+                        onClick={() => router.push('/login?redirectTo=/mi-garage')}
+                        className="w-full h-13 py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-2xl text-white font-black text-sm tracking-wide transition-all shadow-lg shadow-blue-900/40"
+                    >
+                        Iniciar Sesión
+                    </button>
+                    <button
+                        onClick={() => router.push('/onboarding')}
+                        className="w-full h-13 py-3.5 bg-transparent border border-white/40 hover:bg-white/10 active:scale-95 rounded-2xl text-white font-bold text-sm tracking-wide transition-all"
+                    >
+                        Registrar mi Vehículo
+                    </button>
+                </div>
+
+                <p className="text-slate-500 text-[10px] font-bold mt-8">
+                    ¿Busca un taller?{' '}
+                    <a href="/conductores/mapa" className="text-blue-400 hover:underline">
+                        Ver mapa
+                    </a>
+                </p>
+            </motion.div>
+        </div>
     );
 }
 
@@ -836,6 +917,9 @@ export default function MiGaragePage() {
     }, [user?.id]);
 
     if (loading || (isLoadingAuth && !user)) return <SkeletonGarage />;
+
+    // 🔐 AUTH GATE: show premium portal if not logged in
+    if (!user) return <DigitalAccessPortal />;
 
     const vehiculos = data?.vehiculos || [];
     const ordenesRecientes = data?.ordenesRecientes || [];
