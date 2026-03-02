@@ -41,6 +41,20 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ClientProviders>
+          {/* Script para desestancar Service Workers antiguos que redirigían mal los assets */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                      registration.unregister();
+                    }
+                  });
+                }
+              `
+            }}
+          />
           {children}
           <Toaster />
           <Analytics />
