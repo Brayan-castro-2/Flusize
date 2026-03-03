@@ -108,10 +108,9 @@ export function RevenueChart({ orders }: RevenueChartProps) {
         return ranges.map((range) => {
             const rangeRevenue = orders
                 .filter(order => {
-                    if (order.estado !== 'completada') return false;
+                    if (order.estado !== 'completada' && order.estado !== 'entregada') return false;
 
-                    // Use fecha_ingreso as the only available date
-                    const dateToCheck = order.fecha_ingreso;
+                    const dateToCheck = order.fecha_ingreso || (order as any).created_at || (order as any).creado_en;
                     if (!dateToCheck) return false;
 
                     const orderDate = new Date(dateToCheck);
