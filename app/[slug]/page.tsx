@@ -31,6 +31,7 @@ interface WorkshopData {
     facebook: string | null;
     ciudad: string | null;
     region: string | null;
+    sitio_web: string | null;
     reconocimientos?: { icon: string; label: string }[];
 }
 
@@ -285,7 +286,7 @@ export default function WorkshopDetail() {
                                     </div>
                                 )}
 
-                                {isSteelmonkey && (
+                                {isSteelmonkey && workshop.instagram && (
                                     <a
                                         href={`https://instagram.com/${workshop.instagram}`}
                                         target="_blank"
@@ -294,6 +295,18 @@ export default function WorkshopDetail() {
                                     >
                                         <Instagram className="w-6 h-6 text-[#FF4D00]" />
                                         <span>VER PROYECTOS INSTAGRAM</span>
+                                    </a>
+                                )}
+
+                                {workshop.sitio_web && (
+                                    <a
+                                        href={workshop.sitio_web.startsWith('http') ? workshop.sitio_web : `https://${workshop.sitio_web}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full py-5 bg-slate-900/50 hover:bg-slate-800 active:scale-[0.98] transition-all text-white font-black rounded-2xl flex items-center justify-center gap-3 shadow-xl border border-white/20"
+                                    >
+                                        <Globe className={`w-6 h-6 ${isSteelmonkey ? 'text-[#FF4D00]' : 'text-violet-400'}`} />
+                                        <span>SITIO WEB OFICIAL</span>
                                     </a>
                                 )}
                             </div>
