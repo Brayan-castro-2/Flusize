@@ -136,7 +136,7 @@ export async function POST(request: Request) {
                         vehiculo_local_id: vehiculoId,
                         patente_vehiculo: patenteLimpia,
                         numero_orden: numeroOT,
-                        estado: 'entregado', // Asumimos que es historial completado
+                        estado: 'entregada', // Asumimos que es historial completado
                         fecha_ingreso: fechaIngreso,
                         fecha_estimada_salida: fechaIngreso,
                         fecha_salida: fechaIngreso,
