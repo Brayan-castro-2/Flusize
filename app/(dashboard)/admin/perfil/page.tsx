@@ -15,7 +15,8 @@ import {
     Loader2,
     AlertCircle,
     Settings,
-    UserCircle
+    UserCircle,
+    Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { actualizarPerfil } from '@/lib/storage-adapter';
@@ -65,6 +66,7 @@ export default function PerfilTallerPage() {
             whatsapp: workshop.whatsapp,
             instagram: workshop.instagram,
             facebook: workshop.facebook,
+            sitio_web: workshop.sitio_web,
             ciudad: workshop.ciudad,
             servicios: Array.isArray(workshop.servicios)
                 ? workshop.servicios
@@ -135,15 +137,27 @@ export default function PerfilTallerPage() {
                     </h1>
                     <p className="text-gray-500 font-medium">Gestiona tu identidad pública y presencia digital</p>
                 </div>
-                {workshop?.slug && (
-                    <a
-                        href={`/${workshop.slug}`}
-                        target="_blank"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:text-blue-600 hover:border-blue-500 transition-all uppercase tracking-widest shadow-sm shadow-gray-200/50"
-                    >
-                        <span>🔗</span> Ver Bio-Link Público
-                    </a>
-                )}
+                <div className="flex flex-wrap gap-3">
+                    {workshop?.sitio_web && (
+                        <a
+                            href={workshop.sitio_web.startsWith('http') ? workshop.sitio_web : `https://${workshop.sitio_web}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:text-blue-600 hover:border-blue-500 transition-all uppercase tracking-widest shadow-sm shadow-gray-200/50"
+                        >
+                            <Globe className="w-4 h-4 text-blue-500" /> Sitio Web
+                        </a>
+                    )}
+                    {workshop?.slug && (
+                        <a
+                            href={`/${workshop.slug}`}
+                            target="_blank"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:text-blue-600 hover:border-blue-500 transition-all uppercase tracking-widest shadow-sm shadow-gray-200/50"
+                        >
+                            <span>🔗</span> Ver Bio-Link Público
+                        </a>
+                    )}
+                </div>
             </div>
 
             <form onSubmit={handleSave} className="space-y-8">
@@ -285,6 +299,18 @@ export default function PerfilTallerPage() {
                                         placeholder="+569"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Sitio Web Oficial</label>
+                                    <input
+                                        type="url"
+                                        value={workshop.sitio_web || ''}
+                                        onChange={e => setWorkshop({ ...workshop, sitio_web: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                        placeholder="https://www.misitio.com"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Instagram</label>
                                     <input
