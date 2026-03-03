@@ -1,13 +1,3 @@
-export default function TestPage() {
-  return (
-    <div className="flex flex-col min-h-screen items-center justify-center bg-black text-white p-4">
-      <h1 className="text-5xl font-bold text-orange-500 mb-4">Flusize - Prueba de Despliegue 🚀</h1>
-      <p className="text-xl text-gray-400">Si estás viendo esta pantalla, Vercel está compilando correctamente.</p>
-    </div>
-  );
-}
-
-/* --- CODIGO ORIGINAL RECUPERABLE ---
 ﻿'use client';
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
@@ -35,13 +25,13 @@ export default function LandingPage() {
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans overflow-x-hidden text-slate-900">
-      {/* Scroll Progress Bar * /}
+      {/* Scroll Progress Bar */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-600 origin-left z-50 rounded-r-full"
         style={{ scaleX }}
       />
 
-      {/* Background Mesh (Subtle Light Mode) * /}
+      {/* Background Mesh (Subtle Light Mode) */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-cyan-100/50 blur-[120px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-100/40 blur-[150px]" />
@@ -96,7 +86,7 @@ const Navbar = () => {
 const HeroSection = () => {
   return (
     <section className="relative pt-40 pb-32 flex flex-col items-center justify-center min-h-screen overflow-hidden">
-      {/* Cinematic Video Background * /}
+      {/* Cinematic Video Background */}
       <video
         autoPlay
         loop
@@ -107,10 +97,10 @@ const HeroSection = () => {
         <source src="/hero-bg.mp4" type="video/mp4" />
       </video>
 
-      {/* Dark Overlay for Contrast * /}
+      {/* Dark Overlay for Contrast */}
       <div className="absolute inset-0 bg-black/60 z-0 pointer-events-none" />
 
-      {/* Gradient Transition to next section - raised z-index to cover text bottom * /}
+      {/* Gradient Transition to next section - raised z-index to cover text bottom */}
       <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-slate-50 to-transparent z-10 pointer-events-none" />
 
       <div className="max-w-4xl mx-auto px-4 text-center z-10 flex flex-col items-center">
@@ -121,7 +111,7 @@ const HeroSection = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 1 }}
         >
-          {/* Neon Badge & Branding * /}
+          {/* Neon Badge & Branding */}
           <div className="flex flex-col items-center mb-6">
             <div className="mb-8">
               <span className="font-black text-5xl tracking-[0.2em] text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">FLUSIZE</span>
@@ -198,7 +188,7 @@ const SectionB2BMagicLink = () => {
             </ul>
           </motion.div>
 
-          {/* Abstract Visualization * /}
+          {/* Abstract Visualization */}
           <motion.div
             className="relative h-[400px] w-full rounded-[2rem] bg-slate-50 border border-slate-100 shadow-2xl flex items-center justify-center overflow-hidden"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -207,7 +197,7 @@ const SectionB2BMagicLink = () => {
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.1),_transparent_70%)]" />
 
-            {/* Nodes Animation * /}
+            {/* Nodes Animation */}
             <div className="flex flex-col gap-6 items-center relative z-10 w-full px-10">
 
               <motion.div
@@ -224,7 +214,7 @@ const SectionB2BMagicLink = () => {
                 </div>
               </motion.div>
 
-              {/* Connecting Line * /}
+              {/* Connecting Line */}
               <div className="h-10 w-0.5 bg-gradient-to-b from-blue-200 to-cyan-200 relative">
                 <motion.div
                   className="absolute top-0 left-[-3px] w-2 h-2 rounded-full bg-cyan-500"
@@ -268,7 +258,7 @@ const SectionB2BFOMO = () => {
 
   return (
     <section ref={ref} className="py-24 bg-slate-900 border-y border-slate-800 relative overflow-hidden">
-      {/* Background removed as requested by user to keep focus on the map * /}
+      {/* Background removed as requested by user to keep focus on the map */}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-16">
@@ -286,7 +276,7 @@ const SectionB2BFOMO = () => {
           </motion.div>
         </div>
 
-        {/* Floating Map UI Abstraction * /}
+        {/* Floating Map UI Abstraction */}
         <div className="relative h-[500px] w-full max-w-5xl mx-auto mt-10">
           <motion.div
             className="absolute inset-0 rounded-[2rem] bg-slate-800 border border-slate-700 shadow-2xl overflow-hidden flex items-center justify-center p-8"
@@ -294,10 +284,10 @@ const SectionB2BFOMO = () => {
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
-            {/* True Map Background (Southern Chile) * /}
+            {/* True Map Background (Southern Chile) */}
             <FomoMap />
 
-            {/* Floating Pins * /}
+            {/* Floating Pins */}
             {[
               { color: "bg-cyan-500", top: "35%", left: "47%", delay: 0.5, name: "AutoCenter" },
               { color: "bg-emerald-500", top: "45%", left: "48%", delay: 1.1, name: "Mec├ínica Pro" },
@@ -335,14 +325,14 @@ const SectionB2CGarage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center flex-row-reverse">
 
-          {/* Visual: Phone Mockup Abstraction * /}
+          {/* Visual: Phone Mockup Abstraction */}
           <motion.div
             className="relative w-full max-w-[320px] mx-auto h-[600px] bg-slate-900 rounded-[3rem] border-[8px] border-slate-200 shadow-2xl p-6 overflow-hidden flex flex-col"
             initial={{ opacity: 0, rotateY: 30, x: -50 }}
             animate={isInView ? { opacity: 1, rotateY: 0, x: 0 } : { opacity: 0, rotateY: 30, x: -50 }}
             transition={{ duration: 1, type: "spring" }}
           >
-            {/* Status bar mock * /}
+            {/* Status bar mock */}
             <div className="w-full flex justify-between items-center mb-6 px-2">
               <span className="text-white text-xs font-bold">9:41</span>
               <div className="flex gap-1">
@@ -555,5 +545,3 @@ const Footer = () => (
   </footer>
 );
 
-
-*/
