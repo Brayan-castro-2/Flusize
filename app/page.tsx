@@ -72,18 +72,20 @@ const Navbar = () => {
             <span className="font-extrabold text-xl tracking-tight text-slate-800">FLUSIZE</span>
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <EmergencyButton />
-            <Link href="/login">
-              <button className="px-5 py-2.5 rounded-full font-bold text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-                Soy Taller
-              </button>
-            </Link>
-            <Link href="/conductores/mapa">
-              <button className="px-6 py-2.5 rounded-full font-bold text-sm bg-slate-900 text-white shadow-lg shadow-slate-900/20 hover:scale-105 transition-transform">
-                Soy Conductor
-              </button>
-            </Link>
+            <div className="hidden md:flex items-center gap-4">
+              <Link href="/login">
+                <button className="px-5 py-2.5 rounded-full font-bold text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors">
+                  Soy Taller
+                </button>
+              </Link>
+              <Link href="/conductores/mapa">
+                <button className="px-6 py-2.5 rounded-full font-bold text-sm bg-slate-900 text-white shadow-lg shadow-slate-900/20 hover:scale-105 transition-transform">
+                  Soy Conductor
+                </button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
