@@ -148,23 +148,26 @@ const EmergencyButton = () => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'auto'; // Restaurar
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, [isOpen]);
 
   const categories = [
-    { name: 'Neumáticos / Vulca', icon: Disc, color: 'text-orange-500', bg: 'bg-orange-50', filter: 'Neumáticos' },
-    { name: 'Frenos', icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50', filter: 'Frenos' },
-    { name: 'Aceite / Fluidos', icon: Droplets, color: 'text-blue-500', bg: 'bg-blue-50', filter: 'Mantención' },
-    { name: 'Motor / Mecánica', icon: LifeBuoy, color: 'text-purple-500', bg: 'bg-purple-50', filter: 'Motor' },
-    { name: 'Rent a Car', icon: Car, color: 'text-teal-500', bg: 'bg-teal-50', filter: 'Rent a Car' },
-    { name: 'Grúas', icon: Truck, color: 'text-yellow-600', bg: 'bg-yellow-50', filter: 'Grúas' },
-    { name: 'Pintura / Desabolladura', icon: Wrench, color: 'text-pink-500', bg: 'bg-pink-50', filter: 'Desabolladura' },
-    { name: 'Automotoras', icon: Building, color: 'text-indigo-500', bg: 'bg-indigo-50', filter: 'Automotoras' },
+    { name: 'Neumáticos / Vulca', icon: Disc, color: 'text-orange-500', bg: 'bg-orange-50', filter: 'Neumáticos', desc: 'Encuentra un taller cercano' },
+    { name: 'Frenos', icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50', filter: 'Frenos', desc: 'Encuentra un taller cercano' },
+    { name: 'Aceite / Fluidos', icon: Droplets, color: 'text-blue-500', bg: 'bg-blue-50', filter: 'Mantención', desc: 'Encuentra un taller cercano' },
+    { name: 'Motor / Mecánica', icon: LifeBuoy, color: 'text-purple-500', bg: 'bg-purple-50', filter: 'Motor', desc: 'Encuentra un taller cercano' },
+    { name: 'Rent a Car', icon: Car, color: 'text-teal-500', bg: 'bg-teal-50', filter: 'Rent a Car', desc: 'Encuentra un vehículo de reemplazo' },
+    { name: 'Grúas', icon: Truck, color: 'text-yellow-600', bg: 'bg-yellow-50', filter: 'Grúas', desc: 'Solicita una grúa de rescate rápido' },
+    { name: 'Pintura / Desabolladura', icon: Wrench, color: 'text-pink-500', bg: 'bg-pink-50', filter: 'Desabolladura', desc: 'Encuentra expertos en carrocería' },
+    { name: 'Automotoras', icon: Building, color: 'text-indigo-500', bg: 'bg-indigo-50', filter: 'Automotoras', desc: 'Descubre vehículos en venta' },
   ];
 
   return (
@@ -210,7 +213,7 @@ const EmergencyButton = () => {
                   </div>
                   <div className="text-left">
                     <p className="font-extrabold text-slate-900">{cat.name}</p>
-                    <p className="text-xs text-slate-500 font-bold">Buscar taller cercano</p>
+                    <p className="text-xs text-slate-500 font-bold">{cat.desc}</p>
                   </div>
                 </Link>
               ))}
