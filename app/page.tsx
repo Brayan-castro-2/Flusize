@@ -4,12 +4,7 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import Link from 'next/link';
 import FomoMap from '@/components/landing/FomoMap';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { createPortal } from 'react-dom';
 import {
   ArrowRight,
   Search,
@@ -180,6 +175,17 @@ const HeroSection = () => {
 const EmergencyButton = () => {
   const [isOpen, setIsOpen] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto'; // Restaurar
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isOpen]);
+
   const categories = [
     { name: 'Neumáticos / Vulca', icon: Disc, color: 'text-orange-500', bg: 'bg-orange-50', filter: 'Neumáticos' },
     { name: 'Frenos', icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50', filter: 'Frenos' },
@@ -191,47 +197,64 @@ const EmergencyButton = () => {
     { name: 'Automotoras', icon: Building, color: 'text-indigo-500', bg: 'bg-indigo-50', filter: 'Automotoras' },
   ];
 
-  return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <button className="w-auto px-5 py-2.5 bg-red-600 text-white rounded-full font-black shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all flex items-center justify-center gap-2 text-xs md:text-sm animate-pulse hover:scale-105 hover:bg-red-700 active:scale-95 border-2 border-red-400 group relative overflow-hidden">
-          <span className="absolute inset-0 bg-gradient-to-r from-red-400/0 via-red-400/30 to-red-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-          <AlertTriangle className="h-4 w-4 md:h-5 md:w-5" />
-          <span className="whitespace-nowrap">🆘 EMERGENCIA</span>
-        </button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="start" className="w-[300px] md:w-[350px] bg-white border-red-100 shadow-[0_20px_60px_-15px_rgba(220,38,38,0.3)] z-[9999] p-2 rounded-2xl mx-2">
-        <div className="flex items-center justify-between p-3 border-b border-slate-100 mb-2 bg-slate-50/50 rounded-xl">
+  const modalContent = isOpen ? (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200"
+      >
+        <div className="p-8 pb-4 flex justify-between items-center bg-slate-50 border-b border-slate-100">
           <div>
-            <h2 className="text-sm font-black text-slate-900 tracking-tight">CENTRO DE EMERGENCIAS</h2>
-            <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest mt-0.5">Asistencia Flusize inmediata</p>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">CENTRO DE EMERGENCIAS</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Asistencia Flusize inmediata</p>
           </div>
-          <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-slate-200 rounded-lg transition-colors">
-            <X className="w-4 h-4 text-slate-500" />
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-3 bg-white rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors"
+          >
+            <X className="w-6 h-6 text-slate-500" />
           </button>
         </div>
 
-        <div className="max-h-[65vh] overflow-y-auto pr-1 space-y-1 custom-scrollbar">
+        <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
           {categories.map((cat, i) => (
-            <DropdownMenuItem key={i} asChild className="p-0 mb-1 focus:bg-transparent">
-              <Link
-                href={`/conductores/mapa?filter=${encodeURIComponent(cat.filter)}&emergency=true`}
-                className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer border border-transparent hover:border-${cat.color.split('-')[1]}-200 hover:bg-${cat.color.split('-')[1]}-50/50 group w-full`}
-              >
-                <div className={`w-10 h-10 rounded-lg ${cat.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
-                  <cat.icon className={`w-5 h-5 ${cat.color}`} />
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="font-extrabold text-sm text-slate-800 group-hover:text-slate-900 transition-colors uppercase tracking-tight">{cat.name}</span>
-                  <span className="text-[10px] text-slate-400 font-semibold group-hover:text-slate-600 transition-colors">Localizar talleres</span>
-                </div>
-              </Link>
-            </DropdownMenuItem>
+            <Link
+              key={i}
+              href={`/conductores/mapa?filter=${encodeURIComponent(cat.filter)}&emergency=true`}
+              className="flex items-center gap-4 p-6 rounded-3xl bg-white border border-slate-100 hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/10 transition-all group"
+            >
+              <div className={`w-14 h-14 rounded-2xl ${cat.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <cat.icon className={`w-8 h-8 ${cat.color}`} />
+              </div>
+              <div className="text-left">
+                <p className="font-extrabold text-slate-900 leading-tight">{cat.name}</p>
+                <p className="text-xs text-slate-500 font-bold mt-1">Buscar taller cercano</p>
+              </div>
+            </Link>
           ))}
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+
+        <div className="p-8 bg-blue-600 text-white text-center font-sans">
+          <p className="text-sm font-extrabold tracking-tight">ESTÁS RESPALDADO. LOCALIZANDO TALLERES DISPONIBLES EN TU ZONA...</p>
+        </div>
+      </motion.div>
+    </div>
+  ) : null;
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-full font-black shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all flex items-center justify-center gap-2 text-sm animate-pulse hover:scale-105 hover:bg-red-700 active:scale-95 border-2 border-red-400 group relative overflow-hidden"
+      >
+        <span className="absolute inset-0 bg-gradient-to-r from-red-400/0 via-red-400/30 to-red-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+        <AlertTriangle className="h-5 w-5" />
+        🆘 TENGO UNA EMERGENCIA
+      </button>
+
+      {isOpen && typeof document !== 'undefined' && createPortal(modalContent, document.body)}
+    </>
   );
 };
 
