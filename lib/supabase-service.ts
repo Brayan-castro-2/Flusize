@@ -447,15 +447,20 @@ export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promi
     return data.reduce((acc, row) => acc + (Number(row.precio_total) || 0), 0);
 }
 
-// Obtener órdenes optimizadas para Dashboard (Light)
-export async function obtenerOrdenesLight(mecanicoId?: string): Promise<OrdenDB[]> {
+// Obtener órdenes optimizadas para Dashboard (Light) — FILTRADO por taller_id
+export async function obtenerOrdenesLight(mecanicoId?: string, tallerIdOverride?: string): Promise<OrdenDB[]> {
+    // 🔒 SEGURIDAD: Siempre filtrar por taller_id para prevenir data leaks entre talleres
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
+    if (!tallerId) {
+        console.warn('⚠️ [obtenerOrdenesLight] Sin taller_id — retornando vacío');
+        return [];
+    }
+
     let query = supabase
         .from('ordenes')
         .select(`
             id,
             fecha_ingreso,
-
-
             estado,
             precio_total,
             metodo_pago,
@@ -480,6 +485,7 @@ export async function obtenerOrdenesLight(mecanicoId?: string): Promise<OrdenDB[
                 nombre_completo
             )
         `)
+        .eq('taller_id', tallerId)
         .order('fecha_ingreso', { ascending: false });
 
     // Si es mecánico, filtrar solo sus órdenes asignadas
@@ -494,12 +500,18 @@ export async function obtenerOrdenesLight(mecanicoId?: string): Promise<OrdenDB[
         return [];
     }
 
-    // Cast seguro ya que devolvemos un subset compatible
     return (data as any[]) || [];
 }
 
-// Obtener órdenes del día
-export async function obtenerOrdenesHoy(): Promise<OrdenDB[]> {
+// Obtener órdenes del día — FILTRADO por taller_id
+export async function obtenerOrdenesHoy(tallerIdOverride?: string): Promise<OrdenDB[]> {
+    // 🔒 SEGURIDAD: Filtrar por taller_id para prevenir data leaks
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
+    if (!tallerId) {
+        console.warn('⚠️ [obtenerOrdenesHoy] Sin taller_id — retornando vacío');
+        return [];
+    }
+
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
@@ -507,12 +519,12 @@ export async function obtenerOrdenesHoy(): Promise<OrdenDB[]> {
         .from('ordenes')
         .select(`
             *,
-            *,
             vehiculos (
                 *,
                 clientes (*)
             )
         `)
+        .eq('taller_id', tallerId)
         .gte('fecha_ingreso', hoy.toISOString())
         .order('fecha_ingreso', { ascending: false });
 
@@ -857,11 +869,19 @@ export async function eliminarOrden(id: string): Promise<boolean> {
 
 // ============ PERFILES/USUARIOS ============
 
-// Obtener todos los perfiles
-export async function obtenerPerfiles(): Promise<PerfilDB[]> {
+// Obtener perfiles del taller actual — FILTRADO por taller_id
+export async function obtenerPerfiles(tallerIdOverride?: string): Promise<PerfilDB[]> {
+    // 🔒 SEGURIDAD: NUNCA traer todos los perfiles del sistema. Solo los del taller.
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
+    if (!tallerId) {
+        console.warn('⚠️ [obtenerPerfiles] Sin taller_id — retornando vacío');
+        return [];
+    }
+
     const { data, error } = await supabase
         .from('perfiles')
-        .select('*');
+        .select('*')
+        .eq('taller_id', tallerId);
 
     if (error) {
         console.error('Error al obtener perfiles:', error);
