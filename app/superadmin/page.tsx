@@ -645,8 +645,22 @@ function AsistenteRegistroTaller({
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <FField label="Latitud" value={form.latitud} onChange={set('latitud')} placeholder="-33.4569" type="text" readOnly className="bg-slate-900 cursor-not-allowed opacity-70" />
-                            <FField label="Longitud" value={form.longitud} onChange={set('longitud')} placeholder="-70.6483" type="text" readOnly className="bg-slate-900 cursor-not-allowed opacity-70" />
+                            <FField
+                                label="Latitud"
+                                value={form.latitud}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(prev => ({ ...prev, latitud: e.target.value }))}
+                                placeholder="-33.4569"
+                                type="number"
+                                step="any"
+                            />
+                            <FField
+                                label="Longitud"
+                                value={form.longitud}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(prev => ({ ...prev, longitud: e.target.value }))}
+                                placeholder="-70.6483"
+                                type="number"
+                                step="any"
+                            />
                         </div>
 
                         <div className="space-y-2">
@@ -885,9 +899,9 @@ function AsistenteRegistroTaller({
 }
 
 // ── Campo de formulario reutilizable ──────────────────────────────────────────
-function FField({ label, value, onChange, placeholder, type = 'text', required, prefix, readOnly, className }: {
+function FField({ label, value, onChange, placeholder, type = 'text', required, prefix, readOnly, className, step }: {
     label: string; value: string; onChange: any; placeholder?: string;
-    type?: string; required?: boolean; prefix?: string; readOnly?: boolean; className?: string;
+    type?: string; required?: boolean; prefix?: string; readOnly?: boolean; className?: string; step?: string;
 }) {
     return (
         <div>
@@ -896,6 +910,7 @@ function FField({ label, value, onChange, placeholder, type = 'text', required, 
                 {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm font-bold z-10">{prefix}</span>}
                 <input
                     type={type}
+                    step={step}
                     required={required}
                     value={value}
                     onChange={onChange}
