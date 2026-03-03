@@ -7,7 +7,7 @@ export const APPOINTMENTS_QUERY_KEY = ['appointments'];
 export function useAppointments() {
     return useQuery({
         queryKey: APPOINTMENTS_QUERY_KEY,
-        queryFn: obtenerCitas,
+        queryFn: () => obtenerCitas(),
         staleTime: 0,
         gcTime: 2 * 60 * 1000,
         refetchOnWindowFocus: true,
