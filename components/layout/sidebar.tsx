@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
@@ -80,7 +80,6 @@ export function Sidebar() {
     const { user, isLoading } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
-    const [isPending, startTransition] = useTransition();
     const [drawerOpen, setDrawerOpen] = useState(false);
 
     // Listen for toggle events dispatched by the Header hamburger button
@@ -119,23 +118,10 @@ export function Sidebar() {
         return true;
     });
 
-    const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-        e.preventDefault();
-        setDrawerOpen(false);
-        startTransition(() => {
-            router.push(href);
-        });
-    };
-
     return (
         <>
             {/* ── Desktop Sidebar ─────────────────────────────────── */}
             <aside className="hidden md:flex fixed left-0 top-20 bottom-0 w-64 bg-white border-r border-gray-200 flex-col shadow-lg z-40">
-                {isPending && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-blue-100 overflow-hidden">
-                        <div className="h-full bg-blue-600 animate-[loading_1s_ease-in-out_infinite]"></div>
-                    </div>
-                )}
                 <nav className="flex-1 p-4 space-y-1">
                     {isLoading ? (
                         // Skeletons de Carga
@@ -154,13 +140,12 @@ export function Sidebar() {
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    onClick={(e) => handleNavigation(e, item.href)}
+                                    onClick={() => setDrawerOpen(false)}
                                     className={cn(
                                         "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150",
                                         isActive
                                             ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
-                                            : "text-gray-600 hover:bg-blue-50 hover:text-blue-600",
-                                        isPending && "opacity-70 pointer-events-none"
+                                            : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
                                     )}
                                 >
                                     {item.icon}
@@ -239,13 +224,12 @@ export function Sidebar() {
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    onClick={(e) => handleNavigation(e, item.href)}
+                                    onClick={() => setDrawerOpen(false)}
                                     className={cn(
                                         "flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-150",
                                         isActive
                                             ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
-                                            : "text-gray-400 hover:bg-white/10 hover:text-white",
-                                        isPending && "opacity-70 pointer-events-none"
+                                            : "text-gray-400 hover:bg-white/10 hover:text-white"
                                     )}
                                 >
                                     {item.icon}
