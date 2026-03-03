@@ -49,7 +49,6 @@ export default function LandingPage() {
       </div>
 
 
-      <Navbar />
       <main>
         <HeroSection />
         <StorySection />
@@ -63,37 +62,7 @@ export default function LandingPage() {
   );
 }
 
-// --- NAVBAR ---
-const Navbar = () => {
-  return (
-    <nav className="sticky top-0 left-0 right-0 w-full z-[100] bg-white/70 backdrop-blur-xl border-b border-white/50 shadow-sm transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          <div className="flex items-center gap-2 cursor-pointer">
-            <img src="/logo_flusize.png" alt="Flusize" className="h-8 w-8 object-contain" />
-            <span className="font-extrabold text-xl tracking-tight text-slate-800">FLUSIZE</span>
-          </div>
 
-          <div className="flex items-center gap-2 md:gap-4">
-            <EmergencyButton />
-            <div className="hidden md:flex items-center gap-4">
-              <Link href="/login">
-                <button className="px-5 py-2.5 rounded-full font-bold text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors">
-                  Soy Taller
-                </button>
-              </Link>
-              <Link href="/conductores/mapa">
-                <button className="px-6 py-2.5 rounded-full font-bold text-sm bg-slate-900 text-white shadow-lg shadow-slate-900/20 hover:scale-105 transition-transform">
-                  Soy Conductor
-                </button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-};
 
 // --- NEURAL BACKGROUND (Removed in favor of Video Background) ---
 // const NeuralBackground = () => { ... }
@@ -165,7 +134,7 @@ const HeroSection = () => {
                 <Car className="h-5 w-5 text-slate-300 group-hover:text-white transition-colors" /> Soy Conductor
               </button>
             </Link>
-
+            <EmergencyButton />
           </div>
         </motion.div>
       </div>
@@ -176,11 +145,26 @@ const HeroSection = () => {
 const EmergencyButton = () => {
   const [isOpen, setIsOpen] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto'; // Restaurar
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isOpen]);
+
   const categories = [
     { name: 'Neumáticos / Vulca', icon: Disc, color: 'text-orange-500', bg: 'bg-orange-50', filter: 'Neumáticos' },
     { name: 'Frenos', icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50', filter: 'Frenos' },
     { name: 'Aceite / Fluidos', icon: Droplets, color: 'text-blue-500', bg: 'bg-blue-50', filter: 'Mantención' },
     { name: 'Motor / Mecánica', icon: LifeBuoy, color: 'text-purple-500', bg: 'bg-purple-50', filter: 'Motor' },
+    { name: 'Rent a Car', icon: Car, color: 'text-teal-500', bg: 'bg-teal-50', filter: 'Rent a Car' },
+    { name: 'Grúas', icon: Truck, color: 'text-yellow-600', bg: 'bg-yellow-50', filter: 'Grúas' },
+    { name: 'Pintura / Desabolladura', icon: Wrench, color: 'text-pink-500', bg: 'bg-pink-50', filter: 'Desabolladura' },
+    { name: 'Automotoras', icon: Building, color: 'text-indigo-500', bg: 'bg-indigo-50', filter: 'Automotoras' },
   ];
 
   return (
@@ -214,7 +198,7 @@ const EmergencyButton = () => {
               </button>
             </div>
 
-            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {categories.map((cat, i) => (
                 <Link
                   key={i}
