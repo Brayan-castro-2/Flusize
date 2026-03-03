@@ -420,14 +420,7 @@ export default function OrdenesPage() {
         }
     }, [expandedOrderId]);
 
-    // BUST CACHE ON MOUNT
-    // When navigating from Reception, Next.js can sometimes aggressively cache the Page RSC payload.
-    // By invoking router.refresh() on mount, we force Next.js to re-evaluate the Server Component 
-    // and deliver fresh RSC data without losing the current client state.
-    useEffect(() => {
-        // Disparar refetch manual de react-query al montar para máxima consistencia
-        queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY });
-    }, [queryClient]);
+    // AUTO-FILTRAR órdenes para mecánicos
 
     const isAdmin = user?.role === 'taller_admin' || user?.role === 'superadmin';
     const isMecanico = user?.role === 'mecanico';

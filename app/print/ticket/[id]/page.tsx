@@ -4,13 +4,15 @@ import { useRef, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { obtenerOrdenPorId, buscarVehiculoPorPatente, obtenerPerfilPorId, type OrdenDB, type VehiculoDB, type PerfilDB } from '@/lib/storage-adapter';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, MessageCircle, Printer } from 'lucide-react';
 import Image from 'next/image';
 
 export default function TicketPage() {
     const params = useParams();
-    const orderId = Number(params.id);
+    // ✅ FIX CRÍTICO: UUID es string, nunca convertir a Number()
+    const orderId = String(params.id);
 
     const router = useRouter();
     const { user, isLoading: authLoading } = useAuth();
@@ -18,6 +20,7 @@ export default function TicketPage() {
     const [orden, setOrden] = useState<OrdenDB | null>(null);
     const [vehiculo, setVehiculo] = useState<VehiculoDB | null>(null);
     const [mecanico, setMecanico] = useState<PerfilDB | null>(null);
+    const [tallerInfo, setTallerInfo] = useState<{ nombre: string; logo_url?: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     const ticketRef = useRef<HTMLDivElement | null>(null);
@@ -49,6 +52,17 @@ export default function TicketPage() {
                 if (ordenData.asignado_a) {
                     const mec = await obtenerPerfilPorId(ordenData.asignado_a);
                     setMecanico(mec);
+                }
+
+                // ✅ NUEVO: Cargar nombre y logo del taller real desde Supabase
+                const tallerId = (ordenData as any).taller_id;
+                if (tallerId) {
+                    const { data: taller } = await supabase
+                        .from('talleres')
+                        .select('nombre, logo_url')
+                        .eq('id', tallerId)
+                        .single();
+                    if (taller) setTallerInfo(taller);
                 }
             }
             setIsLoading(false);
@@ -144,18 +158,25 @@ export default function TicketPage() {
             <div ref={ticketRef} className="bg-white text-black w-[320px] p-4 shadow-xl print:shadow-none print:w-full print:p-0 font-mono text-sm leading-tight ticket-container">
                 {/* Header with Logo */}
                 <div className="text-center mb-4 border-b border-dashed border-black pb-4">
-                    <div className="flex justify-center mb-3">
-                        <div className="relative w-40 h-40">
-                            <Image
-                                src="/images/logo-taller.png"
-                                alt="Logo Taller"
-                                fill
-                                className="object-contain"
-                                priority
-                            />
+                    {/* ✅ Logo dinámico del taller real */}
+                    {tallerInfo?.logo_url && (
+                        <div className="flex justify-center mb-3">
+                            <div className="relative w-32 h-20">
+                                <Image
+                                    src={tallerInfo.logo_url}
+                                    alt={tallerInfo.nombre || 'Logo Taller'}
+                                    fill
+                                    className="object-contain"
+                                    priority
+                                    unoptimized
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <h1 className="text-base font-bold uppercase mb-1">TALLER MECÁNICO</h1>
+                    )}
+                    {/* ✅ Nombre dinámico del taller real */}
+                    <h1 className="text-base font-bold uppercase mb-1">
+                        {tallerInfo?.nombre || 'TALLER MECÁNICO'}
+                    </h1>
                     <p className="text-xs">Fecha: {new Date().toLocaleString('es-CL')}</p>
                     <p className="text-xs">Ticket #: {orden.id}</p>
                 </div>
@@ -164,10 +185,10 @@ export default function TicketPage() {
                 <div className="mb-4 border-b border-dashed border-black pb-4">
                     <div className="grid grid-cols-[80px_1fr] gap-1">
                         <span className="font-bold">Cliente:</span>
-                        <span className="uppercase truncate">{orden.cliente_nombre || 'S/N'}</span>
+                        <span className="uppercase truncate">{(orden as any).cliente?.nombre_completo || orden.cliente_nombre || 'S/N'}</span>
 
                         <span className="font-bold">Teléfono:</span>
-                        <span>{orden.cliente_telefono || 'S/N'}</span>
+                        <span>{(orden as any).cliente?.telefono || orden.cliente_telefono || 'S/N'}</span>
 
                         <span className="font-bold">Patente:</span>
                         <span className="font-bold uppercase">{orden.patente_vehiculo}</span>

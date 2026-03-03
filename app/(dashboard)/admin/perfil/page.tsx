@@ -14,12 +14,15 @@ import {
     CheckCircle2,
     Loader2,
     AlertCircle,
-    Settings
+    Settings,
+    UserCircle
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { actualizarPerfil } from '@/lib/storage-adapter';
 import { useRouter } from 'next/navigation';
 
 export default function PerfilTallerPage() {
-    const { user } = useAuth();
+    const { user, refetchUser } = useAuth();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -27,7 +30,7 @@ export default function PerfilTallerPage() {
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [workshop, setWorkshop] = useState<any>(null);
-    const [toast, setToast] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+    const [personalInfo, setPersonalInfo] = useState({ nombre: '', email: '' });
 
     useEffect(() => {
         if (user?.tallerId) {
@@ -40,22 +43,21 @@ export default function PerfilTallerPage() {
         const res = await getWorkshopData(user!.tallerId!);
         if (res.success) {
             setWorkshop(res.data);
+            setPersonalInfo({
+                nombre: user?.name || '',
+                email: user?.email || ''
+            });
         } else {
-            showToast('error', 'Error al cargar los datos del taller');
+            toast.error('Error al cargar los datos del taller');
         }
         setLoading(false);
-    };
-
-    const showToast = (type: 'success' | 'error', msg: string) => {
-        setToast({ type, msg });
-        setTimeout(() => setToast(null), 3000);
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
 
-        const updates = {
+        const updatesWorkshop = {
             nombre: workshop.nombre,
             descripcion: workshop.descripcion,
             direccion: workshop.direccion,
@@ -64,20 +66,33 @@ export default function PerfilTallerPage() {
             instagram: workshop.instagram,
             facebook: workshop.facebook,
             ciudad: workshop.ciudad,
-            // Convertir servicios de string (comas) a array si es necesario, 
-            // pero el input lo manejamos como string para el usuario
             servicios: Array.isArray(workshop.servicios)
                 ? workshop.servicios
                 : (workshop.servicios || '').split(',').map((s: string) => s.trim()).filter(Boolean)
         };
 
-        const res = await updateWorkshopAction(user!.tallerId!, updates);
-        if (res.success) {
-            showToast('success', 'Perfil actualizado correctamente');
-        } else {
-            showToast('error', res.error || 'Error al actualizar');
+        try {
+            const [resWorkshop, resPersonal] = await Promise.all([
+                updateWorkshopAction(user!.tallerId!, updatesWorkshop),
+                actualizarPerfil(user!.id, { nombre_completo: personalInfo.nombre })
+            ]);
+
+            if (resWorkshop.success && resPersonal) {
+                // Sincronizar estado global inmediatamente
+                await refetchUser();
+
+                toast.success('Perfil actualizado correctamente');
+                // Forzar actualización suave del contexto/UI
+                router.refresh();
+            } else {
+                toast.error('Error al actualizar algunos datos');
+            }
+        } catch (error: any) {
+            toast.error('Error de conexión al guardar');
+            console.error(error);
+        } finally {
+            setSaving(false);
         }
-        setSaving(false);
     };
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,9 +106,9 @@ export default function PerfilTallerPage() {
         const res = await uploadLogoAction(user!.tallerId!, formData);
         if (res.success) {
             setWorkshop((prev: any) => ({ ...prev, logo_url: res.logoUrl }));
-            showToast('success', 'Logo actualizado');
+            toast.success('Logo actualizado correctamente');
         } else {
-            showToast('error', res.error || 'Error al subir el logo');
+            toast.error(res.error || 'Error al subir el logo');
         }
         setUploading(false);
     };
@@ -132,6 +147,36 @@ export default function PerfilTallerPage() {
             </div>
 
             <form onSubmit={handleSave} className="space-y-8">
+                {/* Información Personal (Nueva Sección) */}
+                <div className="bg-white border border-gray-200 rounded-[32px] p-6 sm:p-8 shadow-sm shadow-gray-200/50 space-y-6">
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <UserCircle className="w-4 h-4 text-blue-500" />
+                        Información Personal
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Mi Nombre Completo</label>
+                            <input
+                                type="text"
+                                value={personalInfo.nombre}
+                                onChange={e => setPersonalInfo({ ...personalInfo, nombre: e.target.value })}
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-semibold"
+                                placeholder="Tu nombre"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Mi Correo Electrónico</label>
+                            <input
+                                type="email"
+                                disabled
+                                value={personalInfo.email}
+                                className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-400 cursor-not-allowed font-medium"
+                                title="El correo no se puede cambiar por seguridad"
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 {/* Logo Section */}
                 <div className="bg-white border border-gray-200 rounded-[32px] p-6 sm:p-8 relative overflow-hidden group shadow-sm shadow-gray-200/50">
                     <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 pointer-events-none transition-opacity">
@@ -311,17 +356,6 @@ export default function PerfilTallerPage() {
                     </button>
                 </div>
             </form>
-
-            {/* Toasts */}
-            {toast && (
-                <div className={`fixed bottom-10 right-10 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl border backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5 duration-300 ${toast.type === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600'
-                    : 'bg-red-500/10 border-red-500/50 text-red-600'
-                    }`}>
-                    {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                    <span className="font-bold text-sm tracking-tight">{toast.msg}</span>
-                </div>
-            )}
         </div>
     );
 }

@@ -62,6 +62,13 @@ function StatsSkeleton() {
     );
 }
 
+const cleanMoney = (val: string | number | undefined | null): number => {
+    if (val === undefined || val === null) return 0;
+    if (typeof val === 'number') return val;
+    const cleaned = String(val).replace(/\D/g, '');
+    return cleaned ? Number(cleaned) : 0;
+};
+
 export default function AdminPage() {
     const { user } = useAuth();
     const router = useRouter();
@@ -82,7 +89,7 @@ export default function AdminPage() {
     }, [user, router]);
 
     const isLoading = isLoadingOrders || isLoadingOther || isLoadingGanancia;
-    const canViewPrices = user?.name?.toLowerCase().includes('juan');
+    const canViewPrices = user?.role === 'superadmin' || user?.role === 'taller_admin' || user?.role === 'flusize_admin';
 
     const todaysOrders = useMemo(() => {
         const hoy = new Date();
@@ -116,13 +123,13 @@ export default function AdminPage() {
     }, [loadData]);
 
     const stats = useMemo(() => {
-        const completedTodaysOrders = todaysOrders.filter(o => o.estado === 'completada');
-        const completedFilteredOrders = filteredOrders.filter(o => o.estado === 'completada');
+        const completedTodaysOrders = todaysOrders.filter(o => o.estado === 'completada' || o.estado === 'entregada');
+        const completedFilteredOrders = filteredOrders.filter(o => o.estado === 'completada' || o.estado === 'entregada');
 
         return {
-            todayRevenue: completedTodaysOrders.reduce((acc, o) => acc + (o.precio_total || 0), 0),
-            pending: filteredOrders.filter(o => o.estado === 'pendiente').length,
-            filteredRevenue: completedFilteredOrders.reduce((acc, o) => acc + (o.precio_total || 0), 0),
+            todayRevenue: completedTodaysOrders.reduce((acc, o) => acc + cleanMoney(o.precio_total), 0),
+            pending: filteredOrders.filter(o => o.estado === 'pendiente' || o.estado === 'en_curso').length,
+            filteredRevenue: completedFilteredOrders.reduce((acc, o) => acc + cleanMoney(o.precio_total), 0),
             completed: completedFilteredOrders.length,
         };
     }, [todaysOrders, filteredOrders]);
@@ -134,7 +141,7 @@ export default function AdminPage() {
         return mechanics.map(mechanic => {
             const assignedOrders = filteredOrders.filter(o => o.asignado_a === mechanic.id);
             const completedOrders = assignedOrders.filter(o => o.estado === 'completada');
-            const totalRevenue = assignedOrders.reduce((acc, o) => acc + (o.precio_total || 0), 0);
+            const totalRevenue = assignedOrders.reduce((acc, o) => acc + cleanMoney(o.precio_total), 0);
 
             return {
                 id: mechanic.id,

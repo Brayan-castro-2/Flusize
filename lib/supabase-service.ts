@@ -471,6 +471,7 @@ export async function obtenerOrdenesLight(mecanicoId?: string, tallerIdOverride?
             vehiculo_global_id,
             descripcion_ingreso,
             fotos_urls,
+            creado_en,
             cliente:clientes (
                 nombre_completo
             ),
@@ -540,11 +541,18 @@ export async function obtenerOrdenesHoy(tallerIdOverride?: string): Promise<Orde
 export async function obtenerOrdenPorId(id: string): Promise<OrdenDB | null> {
     console.log('🔍 [SupabaseService] Obteniendo orden por ID:', id);
 
-    // Query simplificada pero efectiva
+    // Query robusta con todas las relaciones necesarias para detalle e impresión
     const { data, error } = await supabase
         .from('ordenes')
         .select(`
             *,
+            cliente:clientes (
+                id,
+                nombre_completo,
+                telefono,
+                email,
+                rut_dni
+            ),
             vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
                 id,
                 marca,
@@ -570,21 +578,21 @@ export async function obtenerOrdenPorId(id: string): Promise<OrdenDB | null> {
         .single();
 
     if (error) {
-        console.warn('⚠️ Error en consulta principal de orden (400?), intentando fallback simple...');
+        console.warn('⚠️ Error en consulta principal de orden, intentando fallback de emergencia...');
 
-        // Fallback ultra-básico para asegurar que al menos la orden se cargue
+        // Fallback básico: intenta traer orden + cliente directamente
         const { data: fallbackData, error: fallbackError } = await supabase
             .from('ordenes')
-            .select('*')
+            .select('*, cliente:clientes(nombre_completo, telefono)')
             .eq('id', id)
             .single();
 
         if (fallbackError) {
-            console.error('❌ Error fatal al obtener orden (Fallback falló):', fallbackError);
+            console.error('❌ Error fatal al obtener orden:', fallbackError);
             return null;
         }
 
-        console.log('✅ Orden recuperada vía fallback (sin relaciones)');
+        console.log('✅ Orden recuperada vía fallback');
         return fallbackData;
     }
 

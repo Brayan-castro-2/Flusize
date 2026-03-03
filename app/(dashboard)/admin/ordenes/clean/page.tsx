@@ -29,41 +29,23 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth-context';
-import type { OrderDB, VehiculoDB, PerfilDB } from '@/types/database';
+import type { OrdenDB as OrderDB, VehiculoDB, PerfilDB } from '@/lib/storage-adapter';
 import Link from 'next/link';
 import ChecklistForm from '@/components/ordenes/checklist-form';
 import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions';
 
-const obtenerOrdenPorId = async (id: string) => {
-    const { data } = await supabase.from('ordenes').select('*').eq('id', id).single();
-    return data;
-};
-
-const actualizarOrden = async (id: string, payload: any) => {
-    const { data, error } = await supabase.from('ordenes').update(payload).eq('id', id);
-    if (error) throw error;
-    return data;
-};
-
-const buscarVehiculoPorPatente = async (patente: string) => {
-    const { data } = await supabase.from('vehiculos').select('*').eq('patente', patente).single();
-    return data;
-};
-
-const obtenerPerfiles = async () => {
-    const { data } = await supabase.from('perfiles').select('*');
-    return data || [];
-};
-
-const obtenerChecklist = async (id: string) => {
-    const { data } = await supabase.from('listas_chequeo').select('*').eq('orden_id', id).single();
-    return data;
-};
+import {
+    obtenerOrdenPorId,
+    actualizarOrden,
+    buscarVehiculoPorPatente,
+    obtenerPerfiles,
+    obtenerChecklist
+} from '@/lib/storage-adapter';
 
 function OrderEditContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { user, loading: authLoading } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const orderIdParam = searchParams?.get('id');
 
     const [order, setOrder] = useState<OrderDB | null>(null);
@@ -89,8 +71,39 @@ function OrderEditContent() {
     const [kmSalida, setKmSalida] = useState<string>('');
     const [clienteNombre, setClienteNombre] = useState<string>('');
     const [clienteTelefono, setClienteTelefono] = useState<string>('');
+    const [clientesSugeridos, setClientesSugeridos] = useState<PerfilDB[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [metodosPago, setMetodosPago] = useState<Array<{ metodo: string; monto: number }>>([]);
     const [showKm, setShowKm] = useState(true);
+
+    // Búsqueda de clientes filtrada por taller_id
+    useEffect(() => {
+        if (!clienteNombre || clienteNombre.length < 2 || !user?.tallerId) {
+            setClientesSugeridos([]);
+            return;
+        }
+
+        const buscarClientes = async () => {
+            const { data } = await supabase
+                .from('perfiles')
+                .select('*')
+                .eq('taller_id', user.tallerId)
+                .eq('rol', 'cliente')
+                .ilike('nombre_completo', `%${clienteNombre}%`)
+                .limit(5);
+
+            setClientesSugeridos(data || []);
+        };
+
+        const timer = setTimeout(buscarClientes, 300);
+        return () => clearTimeout(timer);
+    }, [clienteNombre, user?.tallerId]);
+
+    const handleSelectCliente = (cli: any) => {
+        setClienteNombre(cli.nombre_completo || '');
+        setClienteTelefono(cli.telefono || cli.email || '');
+        setShowSuggestions(false);
+    };
 
     // Chameleon Quoter State
     const [isAvanzado, setIsAvanzado] = useState(false);
@@ -98,6 +111,19 @@ function OrderEditContent() {
     const [cotizacionItems, setCotizacionItems] = useState<Array<{ descripcion: string; monto: number }>>([{ descripcion: '', monto: 0 }]);
     const [subtotalAvanzado, setSubtotalAvanzado] = useState(0);
     const [ivaAvanzado, setIvaAvanzado] = useState(0);
+
+    const suggestionsRef = useRef<HTMLDivElement>(null);
+
+    // Cierre del dropdown al hacer click fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const parsePrecio = (value: string) => {
         const digits = value.replace(/[^0-9]/g, '');
@@ -144,9 +170,15 @@ function OrderEditContent() {
 
                     setEstado(ordenData.estado || 'pendiente');
                     setAsignadoA(ordenData.asignado_a || '');
+                    setAsignadoA(ordenData.asignado_a || '');
                     setDetalleTrabajos(ordenData.detalle_trabajos || '');
-                    setClienteNombre(ordenData.cliente_nombre || '');
-                    setClienteTelefono(ordenData.cliente_telefono || '');
+
+                    // ✅ FIX: Priorizar datos del objeto cliente (relación Supabase)
+                    const nombreCliente = (ordenData as any).cliente?.nombre_completo || ordenData.cliente_nombre || '';
+                    const telefonoCliente = (ordenData as any).cliente?.telefono || ordenData.cliente_telefono || '';
+
+                    setClienteNombre(nombreCliente);
+                    setClienteTelefono(telefonoCliente);
                     setMetodosPago(ordenData.metodos_pago || []);
 
                     const kmMatch = rawDesc.match(/KM:\s*(\d+\.?\d*)/);
@@ -323,7 +355,7 @@ function OrderEditContent() {
                 updateData.precio_total = subtotalAvanzado + ivaAvanzado;
             }
 
-            setOrder(prev => prev ? { ...prev, ...updateData } : null);
+            setOrder(prev => prev ? { ...prev, ...updateData } as OrderDB : null);
             if (updateData.precio_total !== undefined) {
                 setPrecioFinal(formatPrecio(updateData.precio_total));
             }
@@ -432,9 +464,34 @@ function OrderEditContent() {
                         {isAdmin ? (
                             <>
                                 <div className="grid md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 relative">
                                         <Label className="text-slate-700">Nombre del Cliente</Label>
-                                        <Input value={clienteNombre} onChange={(e) => setClienteNombre(e.target.value)} className="bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="Nombre completo" />
+                                        <div className="relative">
+                                            <Input
+                                                value={clienteNombre}
+                                                onChange={(e) => {
+                                                    setClienteNombre(e.target.value);
+                                                    setShowSuggestions(true);
+                                                }}
+                                                onFocus={() => setShowSuggestions(true)}
+                                                className="bg-white border-slate-300 text-slate-900 rounded-xl"
+                                                placeholder="Buscar o ingresar nombre..."
+                                            />
+                                            {showSuggestions && clientesSugeridos.length > 0 && (
+                                                <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                                    {clientesSugeridos.map((cli) => (
+                                                        <div
+                                                            key={cli.id}
+                                                            onClick={() => handleSelectCliente(cli)}
+                                                            className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 flex flex-col"
+                                                        >
+                                                            <span className="text-sm font-bold text-slate-900">{cli.nombre_completo}</span>
+                                                            <span className="text-xs text-slate-500">{(cli as any).telefono || cli.email || 'Sin contacto'}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-slate-700">Teléfono</Label>

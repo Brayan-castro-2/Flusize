@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { obtenerPerfilPorId, obtenerOrdenesPorUsuario, actualizarPerfil, PerfilDB, OrdenDB } from '@/lib/local-storage-service';
+import { obtenerPerfilPorId, obtenerOrdenesPorUsuario, actualizarPerfil, PerfilDB, OrdenDB } from '@/lib/storage-adapter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

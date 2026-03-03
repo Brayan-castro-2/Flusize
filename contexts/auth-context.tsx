@@ -30,6 +30,7 @@ interface AuthContextType {
     user: AuthUser | null;
     isLoading: boolean;
     logout: () => Promise<void>;
+    refetchUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,9 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const fetchAndSetUser = async (authUser: any) => {
         console.log('[AuthContext Debug] fetchAndSetUser started for id:', authUser.id, 'email:', authUser.email);
         try {
-            // Timeout de 7s para Supabase
+            // Timeout de 15s para Supabase (arranque en frío)
             const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) =>
-                setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 7000)
+                setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 15000)
             );
             const queryPromise = supabase
                 .from('perfiles')
@@ -172,25 +173,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const logout = async () => {
         console.log('Iniciando proceso de logout...');
         try {
-            // Eliminar sesión del servidor
             await fetch('/api/auth/logout', { method: 'POST' }).catch(err => console.error('Fetch error:', err));
-            console.log('API logout llamada');
-
-            // Eliminar sesión del cliente
             await supabase.auth.signOut().catch(err => console.error('Supabase error:', err));
-            console.log('Supabase signOut llamado');
-
         } catch (e) {
             console.error('Error general en logout:', e);
         } finally {
             setUser(null);
-            console.log('Redirigiendo a /...');
             window.location.href = '/';
         }
     };
 
+    const refetchUser = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            await fetchAndSetUser(session.user);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, isLoading, logout }}>
+        <AuthContext.Provider value={{ user, isLoading, logout, refetchUser }}>
             {children}
         </AuthContext.Provider>
     );

@@ -32,12 +32,15 @@ export function ProtectedRoute({ children, allowedRoles, requirePaidPlan }: Prot
                     currentPath !== '/admin/perfil';
 
                 // FASE 75: Bloqueo de Plan Gratis en rutas premium
-                if (user.plan === 'GRATIS' && isPremiumRoute) {
+                const userPlan = (user?.plan || 'GRATIS').toUpperCase();
+
+                if (userPlan === 'GRATIS' && isPremiumRoute) {
                     console.log('🚫 ProtectedRoute FASE 75: Bloqueo Plan Gratis en', currentPath);
-                    if (requirePaidPlan && user?.plan === 'GRATIS') {
+                    if (requirePaidPlan) {
                         router.push('/admin/perfil');
-                        return null;
+                        return;
                     }
+                    // Bloqueo preventivo en FASE 75 para rutas premium si no hay plan
                     return;
                 }
 

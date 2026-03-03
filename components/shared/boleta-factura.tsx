@@ -3,7 +3,8 @@
 import { OrdenDB, VehiculoDB, PerfilDB } from '@/lib/local-storage-service';
 import { Button } from '@/components/ui/button';
 import { Download, MessageCircle, Mail, Printer } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface BoletaFacturaProps {
     orden: OrdenDB;
@@ -13,6 +14,22 @@ interface BoletaFacturaProps {
 
 export function BoletaFactura({ orden, vehiculo, mecanico }: BoletaFacturaProps) {
     const boletaRef = useRef<HTMLDivElement | null>(null);
+    const [tallerInfo, setTallerInfo] = useState<{ nombre: string; logo_url?: string } | null>(null);
+
+    useEffect(() => {
+        const fetchTaller = async () => {
+            const tallerId = (orden as any).taller_id;
+            if (tallerId) {
+                const { data } = await supabase
+                    .from('talleres')
+                    .select('nombre, logo_url')
+                    .eq('id', tallerId)
+                    .single();
+                if (data) setTallerInfo(data);
+            }
+        };
+        fetchTaller();
+    }, [orden]);
 
     const handlePrint = () => {
         window.print();
@@ -30,6 +47,7 @@ export function BoletaFactura({ orden, vehiculo, mecanico }: BoletaFacturaProps)
         const canvas = await html2canvas(el, {
             scale: 2,
             backgroundColor: '#ffffff',
+            useCORS: true
         });
 
         const imgData = canvas.toDataURL('image/png');
@@ -69,15 +87,9 @@ export function BoletaFactura({ orden, vehiculo, mecanico }: BoletaFacturaProps)
         }).format(amount);
     };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('es-CL', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+    const total = orden.precio_total || 0;
+    const neto = Math.round(total / 1.19);
+    const iva = total - neto;
 
     return (
         <div className="space-y-4">
@@ -119,29 +131,43 @@ export function BoletaFactura({ orden, vehiculo, mecanico }: BoletaFacturaProps)
                 <div className="border-b-2 border-black pb-4 mb-6">
                     <div className="flex justify-between items-start">
                         <div className="flex items-center gap-4">
-                            <img
-                                src="/images/logo-taller.png"
-                                alt="Logo Taller"
-                                className="w-48 h-auto object-contain"
-                            />
+                            {tallerInfo?.logo_url ? (
+                                <img
+                                    src={tallerInfo.logo_url}
+                                    alt={tallerInfo.nombre}
+                                    className="w-48 h-auto object-contain"
+                                />
+                            ) : (
+                                <div className="w-48 h-20 bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
+                                    Logo Taller
+                                </div>
+                            )}
                         </div>
-                        <div className="text-center">
-                            <h2 className="text-xl font-bold uppercase tracking-wider">NOMBRE TALLER</h2>
+                        <div className="text-right">
+                            <h2 className="text-xl font-bold uppercase tracking-wider">{tallerInfo?.nombre || 'TALLER MECÁNICO'}</h2>
                             <p className="text-xs text-slate-500 font-medium mt-1">SERVICIO AUTOMOTRIZ INTEGRAL</p>
                         </div>
                     </div>
                 </div>
 
                 <div className="mb-6">
-                    <h3 className="font-bold text-lg mb-2">DATOS DEL CLIENTE</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="flex justify-between items-end mb-4">
                         <div>
-                            <p className="text-sm text-gray-600">Nombre:</p>
-                            <p className="font-semibold">{orden.cliente_nombre || 'No especificado'}</p>
+                            <h3 className="font-bold text-lg">DATOS DEL CLIENTE</h3>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm font-bold">ORDEN DE TRABAJO</p>
+                            <p className="text-lg font-mono">#{orden.id.toString().slice(0, 8).toUpperCase()}</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 border p-4 rounded-lg bg-gray-50/50">
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase font-bold">Nombre Cliente</p>
+                            <p className="font-semibold text-sm">{orden.cliente_nombre || 'No especificado'}</p>
                         </div>
                         <div>
-                            <p className="text-sm text-gray-600">Teléfono:</p>
-                            <p className="font-semibold">{orden.cliente_telefono || 'No especificado'}</p>
+                            <p className="text-xs text-gray-500 uppercase font-bold">Teléfono</p>
+                            <p className="font-semibold text-sm">{orden.cliente_telefono || 'No especificado'}</p>
                         </div>
                     </div>
                 </div>
@@ -149,24 +175,24 @@ export function BoletaFactura({ orden, vehiculo, mecanico }: BoletaFacturaProps)
                 {/* Datos del Vehículo */}
                 <div className="mb-6">
                     <h3 className="font-bold text-lg mb-2">DATOS DEL VEHÍCULO</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-4 gap-4 border p-4 rounded-lg">
                         <div>
-                            <p className="text-sm text-gray-600">Patente:</p>
-                            <p className="font-semibold font-mono">{orden.patente_vehiculo}</p>
+                            <p className="text-xs text-gray-500 uppercase font-bold">Patente</p>
+                            <p className="font-bold font-mono text-sm bg-yellow-100 px-2 rounded inline-block border border-yellow-400">{orden.patente_vehiculo}</p>
                         </div>
                         {vehiculo && (
                             <>
-                                <div>
-                                    <p className="text-sm text-gray-600">Marca/Modelo:</p>
-                                    <p className="font-semibold">{vehiculo.marca} {vehiculo.modelo}</p>
+                                <div className="col-span-1">
+                                    <p className="text-xs text-gray-500 uppercase font-bold">Marca/Modelo</p>
+                                    <p className="font-semibold text-sm uppercase">{vehiculo.marca} {vehiculo.modelo}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-600">Año:</p>
-                                    <p className="font-semibold">{vehiculo.anio}</p>
+                                    <p className="text-xs text-gray-500 uppercase font-bold">Año</p>
+                                    <p className="font-semibold text-sm">{vehiculo.anio}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-600">Color:</p>
-                                    <p className="font-semibold">{vehiculo.color}</p>
+                                    <p className="text-xs text-gray-500 uppercase font-bold">Color</p>
+                                    <p className="font-semibold text-sm uppercase">{vehiculo.color}</p>
                                 </div>
                             </>
                         )}
@@ -176,68 +202,60 @@ export function BoletaFactura({ orden, vehiculo, mecanico }: BoletaFacturaProps)
                 {/* Detalle de Trabajos */}
                 <div className="mb-6">
                     <h3 className="font-bold text-lg mb-2">DETALLE DE TRABAJOS REALIZADOS</h3>
-                    <div className="bg-gray-50 p-4 rounded">
-                        <p className="text-sm mb-2"><strong>Motivo de Ingreso:</strong></p>
-                        <p className="mb-4">{orden.descripcion_ingreso}</p>
-
-                        {orden.detalle_trabajos && (
-                            <>
-                                <p className="text-sm mb-2"><strong>Trabajos Realizados:</strong></p>
-                                <p>{orden.detalle_trabajos}</p>
-                            </>
-                        )}
+                    <div className="border rounded-lg overflow-hidden">
+                        <div className="bg-gray-100 p-3 border-b">
+                            <p className="text-xs font-bold uppercase text-gray-600">Descripción del Servicio</p>
+                        </div>
+                        <div className="p-4 bg-white min-h-[100px] whitespace-pre-wrap text-sm">
+                            {orden.detalle_trabajos || orden.descripcion_ingreso || 'Sin detalles especificados'}
+                        </div>
                     </div>
                 </div>
 
-                {/* Mecánico Responsable */}
-                {mecanico && (
-                    <div className="mb-6">
-                        <p className="text-sm text-gray-600">Mecánico Responsable:</p>
-                        <p className="font-semibold">{mecanico.nombre_completo}</p>
-                    </div>
-                )}
-
-                {/* Métodos de Pago */}
-                {orden.metodos_pago && orden.metodos_pago.length > 0 && (
-                    <div className="mb-6">
-                        <h3 className="font-bold text-lg mb-3 border-b-2 border-gray-300 pb-2">MÉTODOS DE PAGO</h3>
-                        <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                            {orden.metodos_pago.map((mp, idx) => (
-                                <div key={idx} className="flex justify-between items-center py-1">
-                                    <span className="text-gray-700 font-medium">
-                                        {mp.metodo === 'efectivo' && '💵 Efectivo'}
-                                        {mp.metodo === 'debito' && '💳 Débito'}
-                                        {mp.metodo === 'credito' && '💳 Crédito'}
-                                        {mp.metodo === 'transferencia' && '🏦 Transferencia'}
-                                        {mp.metodo === 'debe' && '📝 Debe (Deuda)'}
-                                    </span>
-                                    <span className="font-bold text-gray-900">{formatCurrency(mp.monto)}</span>
-                                </div>
-                            ))}
-                            <div className="border-t-2 border-gray-300 pt-2 mt-2 flex justify-between items-center">
-                                <span className="font-bold text-gray-800">TOTAL PAGADO:</span>
-                                <span className="font-bold text-[#0066FF] text-lg">
-                                    {formatCurrency(orden.metodos_pago.reduce((sum, mp) => sum + mp.monto, 0))}
-                                </span>
+                {/* Totals Section */}
+                <div className="grid grid-cols-2 gap-8">
+                    <div>
+                        {mecanico && (
+                            <div className="mb-4">
+                                <p className="text-xs text-gray-500 uppercase font-bold">Mecánico Responsable</p>
+                                <p className="font-semibold text-sm">{mecanico.nombre_completo}</p>
                             </div>
-                        </div>
+                        )}
+                        {orden.metodos_pago && orden.metodos_pago.length > 0 && (
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase font-bold mb-2">Formas de Pago</p>
+                                <div className="text-xs space-y-1">
+                                    {orden.metodos_pago.map((mp, idx) => (
+                                        <div key={idx} className="flex justify-between border-b border-gray-100 pb-1">
+                                            <span className="capitalize">{mp.metodo}</span>
+                                            <span className="font-bold">{formatCurrency(mp.monto)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
 
-                {/* Total */}
-                <div className="border-t-2 border-black pt-4">
-                    <div className="flex justify-between items-center">
-                        <p className="text-xl font-bold">TOTAL A PAGAR:</p>
-                        <p className="text-3xl font-bold text-[#0066FF]">
-                            {formatCurrency(orden.precio_total || 0)}
-                        </p>
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm py-1 border-b">
+                            <span className="text-gray-600">Valor Neto:</span>
+                            <span className="font-medium">{formatCurrency(neto)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm py-1 border-b">
+                            <span className="text-gray-600">IVA (19%):</span>
+                            <span className="font-medium">{formatCurrency(iva)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2">
+                            <span className="text-lg font-bold">TOTAL:</span>
+                            <span className="text-2xl font-black text-[#0066FF]">{formatCurrency(total)}</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="mt-8 pt-4 border-t border-gray-300 text-center text-sm text-gray-600">
-                    <p>Gracias por confiar en nuestros servicios</p>
-                    <p className="mt-2">Sistema de Gestión de Taller Mecánico</p>
+                <div className="mt-12 pt-6 border-t border-dashed border-gray-300 text-center">
+                    <p className="text-sm font-bold uppercase mb-1">Gracias por su preferencia</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest">Documento generado vía Flusize SaaS</p>
                 </div>
             </div>
         </div>

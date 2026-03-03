@@ -8,9 +8,20 @@ export function useDateFilter(allOrders: any[]) {
         if (!dateFilter || !dateFilter.startDate || !dateFilter.endDate) return allOrders;
 
         return allOrders.filter(order => {
-            // Asegurarse de usar la fecha de ingreso de la base de datos
-            const orderDate = new Date(order.fecha_ingreso || order.created_at);
-            return orderDate >= dateFilter.startDate! && orderDate <= dateFilter.endDate!;
+            // Normalizar fecha de la orden (priorizando fecha_ingreso que es la del negocio)
+            const dateStr = order.fecha_ingreso || order.created_at || order.creado_en;
+            if (!dateStr) return false;
+
+            const orderDate = new Date(dateStr);
+            orderDate.setHours(0, 0, 0, 0);
+
+            const start = new Date(dateFilter.startDate!);
+            start.setHours(0, 0, 0, 0);
+
+            const end = new Date(dateFilter.endDate!);
+            end.setHours(23, 59, 59, 999);
+
+            return orderDate >= start && orderDate <= end;
         });
     }, [allOrders, dateFilter]);
 

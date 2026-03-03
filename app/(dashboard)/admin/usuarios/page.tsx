@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { usePerfiles } from '@/hooks/use-perfiles';
 import { useQueryClient } from '@tanstack/react-query';
 import { crearUsuarioAdminAction } from './actions';
+import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,8 +70,18 @@ export default function UsuariosPage() {
         ];
 
     const handleToggleActive = async (usuario: PerfilDB) => {
-        await actualizarPerfil(usuario.id, { activo: !usuario.activo });
-        await queryClient.invalidateQueries({ queryKey: ['perfiles'] });
+        try {
+            const updated = await actualizarPerfil(usuario.id, { activo: !usuario.activo });
+            if (updated) {
+                toast.success(`Usuario ${usuario.activo ? 'bloqueado' : 'activado'} correctamente`);
+                await queryClient.invalidateQueries({ queryKey: ['perfiles'] });
+            } else {
+                toast.error('No se pudo actualizar el estado del usuario');
+            }
+        } catch (error) {
+            toast.error('Error al actualizar el usuario');
+            console.error(error);
+        }
     };
 
     const handleCreateUser = async () => {
@@ -245,11 +256,12 @@ export default function UsuariosPage() {
                                     <div className="flex-1 min-w-0">
                                         <p className="text-gray-800 font-medium truncate">{usuario.nombre_completo}</p>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <Badge variant="outline" className={`text-xs ${usuario.rol === 'taller_admin'
-                                                ? 'border-[#0066FF]/30 text-[#0066FF]'
-                                                : 'border-gray-600 text-gray-600'
+                                            <Badge variant="outline" className={`text-xs ${usuario.rol === 'superadmin' ? 'border-[#FF4D00]/50 text-[#FF4D00] bg-[#FF4D00]/5' :
+                                                usuario.rol === 'taller_admin' ? 'border-[#0066FF]/30 text-[#0066FF]' :
+                                                    'border-gray-600 text-gray-600'
                                                 }`}>
-                                                {usuario.rol === 'taller_admin' ? 'Administrador' : 'Mecánico'}
+                                                {usuario.rol === 'superadmin' ? 'Dueño (Superadmin)' :
+                                                    usuario.rol === 'taller_admin' ? 'Administrador' : 'Mecánico'}
                                             </Badge>
                                             {usuario.activo ? (
                                                 <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">

@@ -11,7 +11,7 @@ export function useDashboardOrders() {
     const mecanicoId = user?.role === 'mecanico' ? user.id : undefined;
 
     return useQuery<OrdenDB[]>({
-        queryKey: [...DASHBOARD_ORDERS_KEY, mecanicoId ?? 'all'],
+        queryKey: [...DASHBOARD_ORDERS_KEY, user?.tallerId || 'all', mecanicoId ?? 'all'],
         queryFn: () => obtenerOrdenesLight(mecanicoId),
         staleTime: 0,
         gcTime: 2 * 60 * 1000, // 2 minutos en caché

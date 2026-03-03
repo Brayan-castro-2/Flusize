@@ -2,40 +2,45 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { obtenerOrdenPorId, buscarVehiculoPorPatente, obtenerPerfilPorId, type OrdenDB, type VehiculoDB, type PerfilDB } from '@/lib/storage-adapter';
+import { obtenerOrdenPorId, type OrdenDB } from '@/lib/storage-adapter';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Printer, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function PrintOrdenPage() {
     const params = useParams();
-    const orderId = Number(params.id);
+    // ✅ FIX: UUID es string, no convertir a Number
+    const orderId = String(params.id);
 
-    const [orden, setOrden] = useState<OrdenDB | null>(null);
-    const [vehiculo, setVehiculo] = useState<VehiculoDB | null>(null);
-    const [creador, setCreador] = useState<PerfilDB | null>(null);
-    const [asignado, setAsignado] = useState<PerfilDB | null>(null);
+    const [orden, setOrden] = useState<any | null>(null);
+    const [tallerInfo, setTallerInfo] = useState<{ nombre: string; logo_url?: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const loadData = async () => {
-            const ordenData = await obtenerOrdenPorId(orderId);
+            try {
+                const ordenData = await obtenerOrdenPorId(orderId);
 
-            if (ordenData) {
-                setOrden(ordenData);
+                if (ordenData) {
+                    setOrden(ordenData);
 
-                const [veh, crea, asig] = await Promise.all([
-                    buscarVehiculoPorPatente(ordenData.patente_vehiculo),
-                    obtenerPerfilPorId(ordenData.creado_por),
-                    ordenData.asignado_a ? obtenerPerfilPorId(ordenData.asignado_a) : Promise.resolve(null)
-                ]);
-
-                setVehiculo(veh);
-                setCreador(crea);
-                setAsignado(asig);
+                    // Cargar info del taller usando el taller_id de la orden
+                    const tallerId = (ordenData as any).taller_id;
+                    if (tallerId) {
+                        const { data: taller } = await supabase
+                            .from('talleres')
+                            .select('nombre, logo_url')
+                            .eq('id', tallerId)
+                            .single();
+                        if (taller) setTallerInfo(taller);
+                    }
+                }
+            } catch (error) {
+                console.error("Error cargando datos de impresión:", error);
+            } finally {
+                setIsLoading(false);
             }
-
-            setIsLoading(false);
         };
         loadData();
     }, [orderId]);
@@ -87,17 +92,24 @@ export default function PrintOrdenPage() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="relative w-32 h-32">
-                                <Image
-                                    src="/images/logo-taller.png"
-                                    alt="Logo Taller"
-                                    fill
-                                    className="object-contain"
-                                    priority
-                                />
+                                {tallerInfo?.logo_url ? (
+                                    <Image
+                                        src={tallerInfo.logo_url}
+                                        alt={tallerInfo.nombre || "Logo Taller"}
+                                        fill
+                                        className="object-contain"
+                                        priority
+                                        unoptimized
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs text-center border">
+                                        LOGO <br /> TALLER
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="text-right">
-                            <h1 className="text-2xl font-bold text-gray-900">ORDEN DE TRABAJO</h1>
+                            <h1 className="text-xl font-bold text-gray-900 uppercase">{tallerInfo?.nombre || 'ORDEN DE TRABAJO'}</h1>
                             <p className="text-2xl font-mono font-bold text-[#0066FF]">#{orden.id.toString().padStart(5, '0')}</p>
                             <p className="text-sm text-gray-500">
                                 {new Date(orden.fecha_ingreso).toLocaleDateString('es-CL', {
@@ -120,20 +132,43 @@ export default function PrintOrdenPage() {
                         <div className="grid grid-cols-4 gap-4">
                             <div>
                                 <p className="text-xs text-gray-500">Patente</p>
-                                <p className="text-xl font-mono font-bold text-gray-900">{orden.patente_vehiculo}</p>
+                                <p className="text-xl font-mono font-bold text-gray-900 uppercase">{orden.patente_vehiculo}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Marca</p>
-                                <p className="text-lg font-medium text-gray-900">{vehiculo?.marca || '-'}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500">Modelo</p>
-                                <p className="text-lg font-medium text-gray-900">{vehiculo?.modelo || '-'}</p>
+                                <p className="text-xs text-gray-500">Marca / Modelo</p>
+                                <p className="text-lg font-medium text-gray-900">
+                                    {orden.vehiculos?.marca || '-'} {orden.vehiculos?.modelo || ''}
+                                </p>
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500">Año / Color</p>
                                 <p className="text-lg font-medium text-gray-900">
-                                    {vehiculo ? `${vehiculo.anio} / ${vehiculo.color}` : '-'}
+                                    {orden.vehiculos?.ano || '-'} / {orden.vehiculos?.color || '-'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">Motor</p>
+                                <p className="text-md font-mono text-gray-600">{orden.vehiculos?.motor || '-'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Client Info */}
+                <div className="mb-6">
+                    <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                        Datos del Cliente
+                    </h2>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-xs text-gray-500">Nombre</p>
+                                <p className="text-lg font-bold text-gray-900 uppercase">{orden.cliente?.nombre_completo || orden.cliente_nombre || '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">Teléfono / RUT</p>
+                                <p className="text-lg text-gray-900">
+                                    {orden.cliente?.telefono || orden.cliente_telefono || '-'} / {orden.cliente?.rut_dni || '-'}
                                 </p>
                             </div>
                         </div>
@@ -158,11 +193,11 @@ export default function PrintOrdenPage() {
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4">
                         <p className="text-xs text-gray-500 mb-1">Recibido por</p>
-                        <p className="text-lg font-semibold text-gray-900">{creador?.nombre_completo || '-'}</p>
+                        <p className="text-lg font-semibold text-gray-900">{orden.creado?.nombre_completo || '-'}</p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4">
                         <p className="text-xs text-gray-500 mb-1">Asignado a</p>
-                        <p className="text-lg font-semibold text-gray-900">{asignado?.nombre_completo || 'Sin asignar'}</p>
+                        <p className="text-lg font-semibold text-gray-900">{orden.asignado?.nombre_completo || 'Sin asignar'}</p>
                     </div>
                 </div>
 
@@ -211,7 +246,7 @@ export default function PrintOrdenPage() {
                                     TOTAL
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-bold text-gray-900">
-                                    $
+                                    ${orden.precio_total?.toLocaleString('es-CL') || '0'}
                                 </td>
                             </tr>
                         </tfoot>
@@ -229,7 +264,7 @@ export default function PrintOrdenPage() {
                     <div className="text-center">
                         <div className="border-t-2 border-gray-400 pt-2 mx-8">
                             <p className="text-sm text-gray-600">Firma del Técnico</p>
-                            <p className="text-xs text-gray-400 mt-1">Nombre:</p>
+                            <p className="text-xs text-gray-400 mt-1">Nombre: {orden.asignado?.nombre_completo || '-'}</p>
                         </div>
                     </div>
                 </div>

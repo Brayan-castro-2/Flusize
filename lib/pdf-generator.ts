@@ -62,9 +62,9 @@ export const generateOrderPDF = async ({ order, vehicle, checklist, companyInfo 
                 <div style="background-color: #f3f4f6; padding: 20px; border-radius: 12px;">
                     <h3 style="font-size: 14px; font-weight: bold; text-transform: uppercase; color: #4b5563; margin: 0 0 15px 0; border-bottom: 1px solid #d1d5db; padding-bottom: 8px;">Cliente</h3>
                     <div style="font-size: 15px;">
-                        <div style="margin-bottom: 8px;"><strong>Nombre:</strong> ${order.cliente_nombre || (vehicle?.clientes?.nombre_completo) || 'No registrado'}</div>
-                        <div style="margin-bottom: 8px;"><strong>Teléfono:</strong> ${order.cliente_telefono || (vehicle?.clientes?.telefono) || '-'}</div>
-                        <div style="margin-bottom: 8px;"><strong>Email:</strong> ${order.cliente_email || (vehicle?.clientes?.email) || '-'}</div>
+                        <div style="margin-bottom: 8px;"><strong>Nombre:</strong> ${(order as any).cliente?.nombre_completo || order.cliente_nombre || (vehicle?.clientes?.nombre_completo) || 'No registrado'}</div>
+                        <div style="margin-bottom: 8px;"><strong>Teléfono:</strong> ${(order as any).cliente?.telefono || order.cliente_telefono || (vehicle?.clientes?.telefono) || '-'}</div>
+                        <div style="margin-bottom: 8px;"><strong>Email:</strong> ${(order as any).cliente?.email || order.cliente_email || (vehicle?.clientes?.email) || '-'}</div>
                     </div>
                 </div>
 

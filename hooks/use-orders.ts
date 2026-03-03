@@ -22,6 +22,7 @@ export function useInfiniteOrders(tallerId?: string) {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
         staleTime: 5 * 60 * 1000,
         gcTime: 15 * 60 * 1000,
+        placeholderData: (previousData) => previousData, // Mantener datos previos mientras se valida tallerId
     });
 }
 

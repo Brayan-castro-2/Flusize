@@ -90,6 +90,13 @@ function formatCurrency(value: number): string {
     return `$${value.toLocaleString('es-CL')}`;
 }
 
+const cleanMoney = (val: string | number | undefined | null): number => {
+    if (val === undefined || val === null) return 0;
+    if (typeof val === 'number') return val;
+    const cleaned = String(val).replace(/\D/g, '');
+    return cleaned ? Number(cleaned) : 0;
+};
+
 export function RevenueChart({ orders }: RevenueChartProps) {
     const [period, setPeriod] = useState<Period>('days');
     const [offset, setOffset] = useState(0);
@@ -110,7 +117,7 @@ export function RevenueChart({ orders }: RevenueChartProps) {
                     const orderDate = new Date(dateToCheck);
                     return orderDate >= range.start && orderDate <= range.end;
                 })
-                .reduce((sum, order) => sum + (order.precio_total || 0), 0);
+                .reduce((sum, order) => sum + cleanMoney(order.precio_total), 0);
 
             return {
                 label: range.label,
