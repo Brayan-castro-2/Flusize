@@ -131,7 +131,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Cargar modulos_activos y plan del taller (si tiene taller_id)
             let modulos: TallerModulos = { ...DEFAULT_MODULOS };
             let plan = DEFAULT_PLAN;
-            const finalTallerId = perfil?.taller_id || authUser.user_metadata?.taller_id;
+            let finalTallerId = perfil?.taller_id || authUser.user_metadata?.taller_id;
+
+            // OVERRIDE FORZADO PARA STEELMONKEY (Para evitar bloqueos por caché antiguo de metadata)
+            if (authUser.email === 'contacto@steelmonkey.cl') {
+                finalTallerId = 'e55ce6be-7b8c-4a1a-b333-666333666333';
+                role = 'superadmin';
+            }
 
             if (finalTallerId) {
                 const { data: taller } = await supabase
