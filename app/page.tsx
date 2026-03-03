@@ -23,7 +23,9 @@ import {
   Disc,
   LifeBuoy,
   MessageSquare,
-  ChevronRight
+  ChevronRight,
+  Truck,
+  Building
 } from 'lucide-react';
 
 // --- MAIN PAGE COMPONENT ---
@@ -62,7 +64,7 @@ export default function LandingPage() {
 // --- NAVBAR ---
 const Navbar = () => {
   return (
-    <nav className="fixed w-full z-40 bg-white/70 backdrop-blur-xl border-b border-white/50 shadow-sm transition-all duration-300">
+    <nav className="fixed top-0 left-0 right-0 w-full z-50 bg-white/70 backdrop-blur-xl border-b border-white/50 shadow-sm transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center gap-2 cursor-pointer">
@@ -71,6 +73,7 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
+            <EmergencyButton />
             <Link href="/login">
               <button className="px-5 py-2.5 rounded-full font-bold text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors">
                 Soy Taller
@@ -159,7 +162,6 @@ const HeroSection = () => {
               </button>
             </Link>
 
-            <EmergencyButton />
           </div>
         </motion.div>
       </div>
@@ -175,21 +177,24 @@ const EmergencyButton = () => {
     { name: 'Frenos', icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50', filter: 'Frenos' },
     { name: 'Aceite / Fluidos', icon: Droplets, color: 'text-blue-500', bg: 'bg-blue-50', filter: 'Mantención' },
     { name: 'Motor / Mecánica', icon: LifeBuoy, color: 'text-purple-500', bg: 'bg-purple-50', filter: 'Motor' },
+    { name: 'Rent a Car', icon: Car, color: 'text-teal-500', bg: 'bg-teal-50', filter: 'Rent a Car' },
+    { name: 'Grúas', icon: Truck, color: 'text-yellow-600', bg: 'bg-yellow-50', filter: 'Grúas' },
+    { name: 'Automotoras', icon: Building, color: 'text-indigo-500', bg: 'bg-indigo-50', filter: 'Automotoras' },
   ];
 
   return (
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full sm:w-auto px-8 py-4 bg-red-600 text-white rounded-2xl font-black shadow-[0_0_30px_rgba(220,38,38,0.5)] transition-all flex items-center justify-center gap-2 text-lg animate-pulse hover:scale-105 hover:bg-red-700 active:scale-95 border-2 border-red-400 group relative overflow-hidden"
+        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-full font-black shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all flex items-center justify-center gap-2 text-sm animate-pulse hover:scale-105 hover:bg-red-700 active:scale-95 border-2 border-red-400 group relative overflow-hidden"
       >
         <span className="absolute inset-0 bg-gradient-to-r from-red-400/0 via-red-400/30 to-red-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-        <AlertTriangle className="h-6 w-6" />
+        <AlertTriangle className="h-5 w-5" />
         🆘 TENGO UNA EMERGENCIA
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -208,7 +213,7 @@ const EmergencyButton = () => {
               </button>
             </div>
 
-            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-[60vh]">
               {categories.map((cat, i) => (
                 <Link
                   key={i}
