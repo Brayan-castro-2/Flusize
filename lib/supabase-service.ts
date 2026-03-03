@@ -424,6 +424,25 @@ export async function obtenerOrdenesCount(tallerIdOverride?: string): Promise<nu
     return count || 0;
 }
 
+// Obtener ganancia histórica total
+export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promise<number> {
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
+    if (!tallerId) return 0;
+
+    const { data, error } = await supabase
+        .from('ordenes')
+        .select('precio_total')
+        .eq('taller_id', tallerId)
+        .in('estado', ['completada', 'entregada']);
+
+    if (error) {
+        console.error('❌ Error al obtener ganancia histórica:', error);
+        return 0;
+    }
+
+    return data.reduce((acc, row) => acc + (Number(row.precio_total) || 0), 0);
+}
+
 // Obtener órdenes optimizadas para Dashboard (Light)
 export async function obtenerOrdenesLight(mecanicoId?: string): Promise<OrdenDB[]> {
     let query = supabase

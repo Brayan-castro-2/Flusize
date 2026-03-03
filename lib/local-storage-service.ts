@@ -288,6 +288,13 @@ export async function obtenerOrdenesCount(): Promise<number> {
     return ordenes.length;
 }
 
+export async function obtenerGananciaHistorica(): Promise<number> {
+    const ordenes = getFromStorage<OrdenDB[]>(KEYS.ORDENES, []);
+    return ordenes
+        .filter(o => o.estado === 'completada' || o.estado === 'entregada')
+        .reduce((acc, o) => acc + (Number(o.precio_total) || 0), 0);
+}
+
 export async function obtenerOrdenesLight(): Promise<OrdenDB[]> {
     return obtenerOrdenes();
 }

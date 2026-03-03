@@ -58,6 +58,13 @@ export async function obtenerOrdenesCount(tallerIdOverride?: string): Promise<nu
     return localService.obtenerOrdenesCount();
 }
 
+export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promise<number> {
+    if (isSupabase()) {
+        return supabaseService.obtenerGananciaHistorica(tallerIdOverride);
+    }
+    return localService.obtenerGananciaHistorica();
+}
+
 export async function obtenerOrdenesLight(mecanicoId?: string): Promise<OrdenDB[]> {
     if (isSupabase()) {
         return supabaseService.obtenerOrdenesLight(mecanicoId);

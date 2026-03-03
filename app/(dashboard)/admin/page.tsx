@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useDashboardOrders } from '@/hooks/use-dashboard';
+import { useGananciaHistorica } from '@/hooks/use-ganancia';
 import {
     obtenerPerfiles,
     obtenerVehiculos,
@@ -63,6 +64,7 @@ export default function AdminPage() {
     const { user } = useAuth();
     const router = useRouter();
     const { data: allOrders = [], isLoading: isLoadingOrders } = useDashboardOrders();
+    const { data: gananciaHistorica = 0, isLoading: isLoadingGanancia } = useGananciaHistorica();
     const { dateFilter, setDateFilter, filteredOrders } = useDateFilter(allOrders);
     const [perfiles, setPerfiles] = useState<PerfilDB[]>([]);
     // const [vehiculos, setVehiculos] = useState<VehiculoDB[]>([]); // REMOVED
@@ -77,7 +79,7 @@ export default function AdminPage() {
         }
     }, [user, router]);
 
-    const isLoading = isLoadingOrders || isLoadingOther;
+    const isLoading = isLoadingOrders || isLoadingOther || isLoadingGanancia;
     const canViewPrices = user?.name?.toLowerCase().includes('juan');
 
     const todaysOrders = useMemo(() => {
@@ -198,6 +200,33 @@ export default function AdminPage() {
                 <StatsSkeleton />
             ) : (
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    {/* Ganancia Histórica Total (All-Time Revenue) - TITAN THEME */}
+                    {canViewPrices && (
+                        <Card className="col-span-2 bg-[#0F1115] border border-[#FF4D00]/30 shadow-2xl shadow-[#FF4D00]/10 relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#FF4D00]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <CardContent className="p-4 sm:p-6 relative z-10">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-[#FF4D00]/10 flex items-center justify-center border border-[#FF4D00]/20">
+                                            <DollarSign className="w-5 h-5 text-[#FF4D00]" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-400">Taller Steelmonkey</p>
+                                            <p className="text-xs font-bold text-[#FF4D00] uppercase tracking-wider">Ganancia Histórica Total</p>
+                                        </div>
+                                    </div>
+                                    <TrendingUp className="w-5 h-5 text-[#FF4D00]/80" />
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl text-gray-400 font-medium">$</span>
+                                    <p className="text-4xl sm:text-5xl font-black text-white tracking-tight drop-shadow-sm">
+                                        {gananciaHistorica.toLocaleString('es-CL')}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {canViewPrices && (
                         <Card className="bg-[#0066FF] border-0 shadow-xl shadow-[#0066FF]/20">
                             <CardContent className="p-3 sm:p-4">
