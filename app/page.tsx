@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import Link from 'next/link';
 import FomoMap from '@/components/landing/FomoMap';
-import { createPortal } from 'react-dom';
+
 import {
   ArrowRight,
   Search,
@@ -49,6 +49,7 @@ export default function LandingPage() {
       </div>
 
 
+      <Navbar />
       <main>
         <HeroSection />
         <StorySection />
@@ -175,85 +176,68 @@ const HeroSection = () => {
 const EmergencyButton = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto'; // Restaurar
-    }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [isOpen]);
-
   const categories = [
     { name: 'Neumáticos / Vulca', icon: Disc, color: 'text-orange-500', bg: 'bg-orange-50', filter: 'Neumáticos' },
     { name: 'Frenos', icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50', filter: 'Frenos' },
     { name: 'Aceite / Fluidos', icon: Droplets, color: 'text-blue-500', bg: 'bg-blue-50', filter: 'Mantención' },
     { name: 'Motor / Mecánica', icon: LifeBuoy, color: 'text-purple-500', bg: 'bg-purple-50', filter: 'Motor' },
-    { name: 'Rent a Car', icon: Car, color: 'text-teal-500', bg: 'bg-teal-50', filter: 'Rent a Car' },
-    { name: 'Grúas', icon: Truck, color: 'text-yellow-600', bg: 'bg-yellow-50', filter: 'Grúas' },
-    { name: 'Pintura / Desabolladura', icon: Wrench, color: 'text-pink-500', bg: 'bg-pink-50', filter: 'Desabolladura' },
-    { name: 'Automotoras', icon: Building, color: 'text-indigo-500', bg: 'bg-indigo-50', filter: 'Automotoras' },
   ];
-
-  const modalContent = isOpen ? (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200"
-      >
-        <div className="p-8 pb-4 flex justify-between items-center bg-slate-50 border-b border-slate-100">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">CENTRO DE EMERGENCIAS</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Asistencia Flusize inmediata</p>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-3 bg-white rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors"
-          >
-            <X className="w-6 h-6 text-slate-500" />
-          </button>
-        </div>
-
-        <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
-          {categories.map((cat, i) => (
-            <Link
-              key={i}
-              href={`/conductores/mapa?filter=${encodeURIComponent(cat.filter)}&emergency=true`}
-              className="flex items-center gap-4 p-6 rounded-3xl bg-white border border-slate-100 hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/10 transition-all group"
-            >
-              <div className={`w-14 h-14 rounded-2xl ${cat.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <cat.icon className={`w-8 h-8 ${cat.color}`} />
-              </div>
-              <div className="text-left">
-                <p className="font-extrabold text-slate-900 leading-tight">{cat.name}</p>
-                <p className="text-xs text-slate-500 font-bold mt-1">Buscar taller cercano</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div className="p-8 bg-blue-600 text-white text-center font-sans">
-          <p className="text-sm font-extrabold tracking-tight">ESTÁS RESPALDADO. LOCALIZANDO TALLERES DISPONIBLES EN TU ZONA...</p>
-        </div>
-      </motion.div>
-    </div>
-  ) : null;
 
   return (
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-full font-black shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all flex items-center justify-center gap-2 text-sm animate-pulse hover:scale-105 hover:bg-red-700 active:scale-95 border-2 border-red-400 group relative overflow-hidden"
+        className="w-full sm:w-auto px-8 py-4 bg-red-600 text-white rounded-2xl font-black shadow-[0_0_30px_rgba(220,38,38,0.5)] transition-all flex items-center justify-center gap-2 text-lg animate-pulse hover:scale-105 hover:bg-red-700 active:scale-95 border-2 border-red-400 group relative overflow-hidden"
       >
         <span className="absolute inset-0 bg-gradient-to-r from-red-400/0 via-red-400/30 to-red-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-        <AlertTriangle className="h-5 w-5" />
+        <AlertTriangle className="h-6 w-6" />
         🆘 TENGO UNA EMERGENCIA
       </button>
 
-      {isOpen && typeof document !== 'undefined' && createPortal(modalContent, document.body)}
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200"
+          >
+            <div className="p-8 pb-4 flex justify-between items-center bg-slate-50 border-b border-slate-100">
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">CENTRO DE EMERGENCIAS</h2>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Asistencia Flusize inmediata</p>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-3 bg-white rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors"
+              >
+                <X className="w-6 h-6 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categories.map((cat, i) => (
+                <Link
+                  key={i}
+                  href={`/conductores/mapa?filter=${encodeURIComponent(cat.filter)}&emergency=true`}
+                  className="flex items-center gap-4 p-6 rounded-3xl bg-white border border-slate-100 hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/10 transition-all group"
+                >
+                  <div className={`w-14 h-14 rounded-2xl ${cat.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    <cat.icon className={`w-8 h-8 ${cat.color}`} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-extrabold text-slate-900">{cat.name}</p>
+                    <p className="text-xs text-slate-500 font-bold">Buscar taller cercano</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="p-8 bg-blue-600 text-white text-center">
+              <p className="text-sm font-bold tracking-tight">ESTÁS RESPALDADO. LOCALIZANDO TALLERES DISPONIBLES EN TU ZONA...</p>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </>
   );
 };
