@@ -62,6 +62,7 @@ export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promi
     if (isSupabase()) {
         return supabaseService.obtenerGananciaHistorica(tallerIdOverride);
     }
+    console.error('⚠️ ALERTA CRÍTICA: isSupabase() devolvió falso. Vercel está compilando con LocalStorage. ¡VERIFICA QUE NEXT_PUBLIC_STORAGE_MODE="supabase" EXISTA EN LAS VARIABLES DE ENTORNO DE VERCEL!');
     return localService.obtenerGananciaHistorica();
 }
 

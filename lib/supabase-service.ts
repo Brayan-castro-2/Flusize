@@ -426,8 +426,12 @@ export async function obtenerOrdenesCount(tallerIdOverride?: string): Promise<nu
 
 // Obtener ganancia histórica total
 export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promise<number> {
+    // Ya no dependemos ciegamente de getCurrentUserTallerId (Server Action) si ya pasamos el Override (Client ID).
     const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
-    if (!tallerId) return 0;
+    if (!tallerId) {
+        console.error('❌ No se proporcionó TallerID ni se pudo resolver del Server Action.');
+        return 0;
+    }
 
     const { data, error } = await supabase
         .from('ordenes')
@@ -437,7 +441,7 @@ export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promi
 
     if (error) {
         console.error('❌ Error al obtener ganancia histórica:', error);
-        return 0;
+        throw new Error(`Fallo de Supabase RLS/Lectura: ${error.message} (Detalle: ${error.details || 'Ninguno'})`);
     }
 
     return data.reduce((acc, row) => acc + (Number(row.precio_total) || 0), 0);
