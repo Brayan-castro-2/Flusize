@@ -1,0 +1,15 @@
+{
+  "table": "vehiculos",
+  "message": "invalid input syntax for type integer: \"-\"",
+  "code": "22P02",
+  "details": null,
+  "hint": null,
+  "data": {
+    "patente": "FPSH88",
+    "marca": "MINI",
+    "modelo": "JCW",
+    "ano": "-",
+    "cliente_id": "7753fc81-769f-418e-a11e-d95754dac59e",
+    "taller_id": "78a71bd3-c3e3-4cf3-8f62-6b6a420952b5"
+  }
+}

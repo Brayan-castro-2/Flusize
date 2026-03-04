@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -65,6 +66,7 @@ export default function ClientesPage() {
     const [clientes, setClientes] = useState<ClienteWithStats[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState(query);
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -115,8 +117,20 @@ export default function ClientesPage() {
         setSortConfig({ key, direction });
     };
 
+    const filteredClientes = useMemo(() => {
+        if (!debouncedSearchTerm) return clientes;
+        const lowerTerm = debouncedSearchTerm.toLowerCase();
+
+        return clientes.filter(cliente =>
+            cliente.nombre_completo?.toLowerCase().includes(lowerTerm) ||
+            cliente.rut_dni?.toLowerCase().includes(lowerTerm) ||
+            cliente.email?.toLowerCase().includes(lowerTerm) ||
+            cliente.vehiculos?.some(v => v.patente?.toLowerCase().includes(lowerTerm))
+        );
+    }, [clientes, debouncedSearchTerm]);
+
     const sortedClientes = useMemo(() => {
-        let sorted = [...clientes];
+        let sorted = [...filteredClientes];
         if (sortConfig) {
             sorted.sort((a: any, b: any) => {
                 // Handle nested properties if needed, here mostly flat or we check
@@ -149,7 +163,7 @@ export default function ClientesPage() {
     const fetchClientes = async () => {
         setIsLoading(true);
         try {
-            const data = await obtenerClientes(query);
+            const data = await obtenerClientes(); // Fetch ALL once for in-memory processing
             setClientes(data as unknown as ClienteWithStats[]);
         } catch (error) {
             console.error('Error fetching clients:', error);
@@ -159,12 +173,9 @@ export default function ClientesPage() {
     };
 
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            fetchClientes();
-        }, 300);
-        return () => clearTimeout(timeoutId);
+        fetchClientes();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [query]);
+    }, []);
 
     // Calculate KPIs
     const kpis = useMemo(() => {
@@ -306,19 +317,19 @@ export default function ClientesPage() {
                     <div className="flex items-center justify-center p-12">
                         <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                     </div>
-                ) : clientes.length === 0 ? (
+                ) : sortedClientes.length === 0 ? (
                     <div className="text-center p-16 text-slate-500 bg-[#0F172A] rounded-2xl border border-slate-800 shadow-inner">
                         <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Users className="w-10 h-10 opacity-40 text-slate-400" />
                         </div>
-                        <p className="text-xl font-medium text-slate-300">No se encontraron clientes</p>
-                        <p className="text-sm mt-2 text-slate-500">Intenta con otra búsqueda o crea uno nuevo para empezar.</p>
+                        <p className="text-xl font-medium text-slate-300">No se encontraron clientes o vehículos con ese criterio</p>
+                        <p className="text-sm mt-2 text-slate-500">Intenta modificar la búsqueda o crear uno nuevo.</p>
                     </div>
                 ) : (
                     <>
                         {/* MOBILE VIEW (CARDS) */}
                         <div className="grid grid-cols-1 gap-4 md:hidden">
-                            {clientes.map((cliente) => (
+                            {sortedClientes.map((cliente) => (
                                 <Card key={cliente.id} className="bg-[#1E293B] border-slate-700/60 p-5 space-y-4 rounded-2xl shadow-md">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-4">
@@ -491,18 +502,18 @@ export default function ClientesPage() {
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
-                                                                            {cliente.telefono && (
-                                                                                <a
-                                                                                    href={`https://wa.me/${cliente.telefono.replace(/\D/g, "")}`}
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    onClick={(e) => e.stopPropagation()}
-                                                                                    className="h-9 w-9 flex items-center justify-center rounded-full text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-emerald-500/30"
-                                                                                    title="Contactar por WhatsApp"
-                                                                                >
-                                                                                    <MessageCircle className="w-4 h-4" />
-                                                                                </a>
-                                                                            )}
+                                                            {cliente.telefono && (
+                                                                <a
+                                                                    href={`https://wa.me/${cliente.telefono.replace(/\D/g, "")}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className="h-9 w-9 flex items-center justify-center rounded-full text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-emerald-500/30"
+                                                                    title="Contactar por WhatsApp"
+                                                                >
+                                                                    <MessageCircle className="w-4 h-4" />
+                                                                </a>
+                                                            )}
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"

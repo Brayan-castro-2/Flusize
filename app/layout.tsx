@@ -15,6 +15,30 @@ export const metadata: Metadata = {
     default: 'flusize',
   },
   description: 'Gestiona órdenes, fideliza clientes con el Link Mágico y toma el control total de tu taller automotriz con Flusize.',
+  manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/logo-celular-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/logo-celular-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  openGraph: {
+    title: 'Flusize - Control Automotriz',
+    description: 'Gestiona órdenes, fideliza clientes y toma el control total de tu taller automotriz.',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Flusize Logo',
+      },
+    ],
+    type: 'website',
+  },
 };
 
 export const viewport: Viewport = {

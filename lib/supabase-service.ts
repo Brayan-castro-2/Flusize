@@ -247,7 +247,8 @@ export async function obtenerClientes(busqueda?: string, tallerIdOverride?: stri
             )
         `)
         .eq('taller_id', tallerId)
-        .order('nombre_completo', { ascending: true });
+        .order('nombre_completo', { ascending: true })
+        .limit(50000); // 🚀 BYPASS PostgREST default 1000 rows limit
 
     // Se elimina el filtro en base de datos para realizarlo en memoria y poder buscar por patente
 
@@ -447,18 +448,36 @@ export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promi
         return 0;
     }
 
-    const { data, error } = await supabase
-        .from('ordenes')
-        .select('precio_total')
-        .eq('taller_id', tallerId)
-        .in('estado', ['completada', 'entregada']);
+    let allData: any[] = [];
+    let from = 0;
+    const step = 999;
+    let hasMore = true;
 
-    if (error) {
-        console.error('❌ Error al obtener ganancia histórica:', error);
-        throw new Error(`Fallo de Supabase RLS/Lectura: ${error.message} (Detalle: ${error.details || 'Ninguno'})`);
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from('ordenes')
+            .select('precio_total')
+            .eq('taller_id', tallerId)
+            .in('estado', ['completada', 'entregada'])
+            .range(from, from + step);
+
+        if (error) {
+            console.error('❌ Error al obtener ganancia histórica:', error);
+            throw new Error(`Fallo de Supabase RLS/Lectura: ${error.message} (Detalle: ${error.details || 'Ninguno'})`);
+        }
+
+        if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            from += step + 1;
+        } else {
+            hasMore = false;
+        }
+
+        // Failsafe exit in case of massive data to prevent infinite loops / memory crash
+        if (from > 20000) hasMore = false;
     }
 
-    return data.reduce((acc, row) => acc + (Number(row.precio_total) || 0), 0);
+    return allData.reduce((acc, row) => acc + (Number(row.precio_total) || 0), 0);
 }
 
 // Obtener órdenes optimizadas para Dashboard (Light) — FILTRADO por taller_id
@@ -470,52 +489,74 @@ export async function obtenerOrdenesLight(mecanicoId?: string, tallerIdOverride?
         return [];
     }
 
-    let query = supabase
-        .from('ordenes')
-        .select(`
-            id,
-            fecha_ingreso,
-            estado,
-            precio_total,
-            metodo_pago,
-            creado_por,
-            asignado_a,
-            patente_vehiculo,
-            vehiculo_local_id,
-            vehiculo_global_id,
-            descripcion_ingreso,
-            fotos_urls,
-            creado_en,
-            cliente:clientes (
-                nombre_completo
-            ),
-            vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
-                marca,
-                modelo
-            ),
-            creado:perfiles!ordenes_creado_por_fkey (
-                nombre_completo
-            ),
-            asignado:perfiles!ordenes_asignado_a_fkey (
-                nombre_completo
-            )
-        `)
-        .eq('taller_id', tallerId)
-        .order('fecha_ingreso', { ascending: false });
+    let allOrders: any[] = [];
+    let from = 0;
+    const step = 999;
+    let hasMore = true;
 
-    // Si es mecánico, filtrar solo sus órdenes asignadas
-    if (mecanicoId) {
-        query = query.eq('asignado_a', mecanicoId);
+    while (hasMore) {
+        let query = supabase
+            .from('ordenes')
+            .select(`
+                id,
+                fecha_ingreso,
+                estado,
+                precio_total,
+                metodo_pago,
+                creado_por,
+                asignado_a,
+                patente_vehiculo,
+                vehiculo_local_id,
+                vehiculo_global_id,
+                descripcion_ingreso,
+                fotos_urls,
+                creado_en,
+                cliente:clientes (
+                    nombre_completo
+                ),
+                vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
+                    marca,
+                    modelo
+                ),
+                creado:perfiles!ordenes_creado_por_fkey (
+                    nombre_completo
+                ),
+                asignado:perfiles!ordenes_asignado_a_fkey (
+                    nombre_completo
+                )
+            `)
+            .eq('taller_id', tallerId)
+            .order('fecha_ingreso', { ascending: false })
+            .range(from, from + step);
+
+        // Si es mecánico, filtrar solo sus órdenes asignadas
+        if (mecanicoId) {
+            query = query.eq('asignado_a', mecanicoId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('❌ Error al obtener órdenes light en rango:', from, '-', from + step, error);
+            break; // Stop fetching on error to at least return what we have
+        }
+
+        if (data && data.length > 0) {
+            allOrders = [...allOrders, ...data];
+            from += step + 1;
+
+            // If we fetched less than the step, we are at the end
+            if (data.length <= step) {
+                hasMore = false;
+            }
+        } else {
+            hasMore = false;
+        }
+
+        if (from > 20000) hasMore = false; // Failsafe memory limit
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-        console.error('❌ Error al obtener órdenes light:', error);
-        return [];
-    }
-
-    return (data as any[]) || [];
+    return allOrders || [];
 }
 
 // Obtener órdenes del día — FILTRADO por taller_id

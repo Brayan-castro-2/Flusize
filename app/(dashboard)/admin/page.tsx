@@ -38,10 +38,23 @@ import {
     Calendar
 } from 'lucide-react';
 import Link from 'next/link';
-import { RevenueChart } from '@/components/analytics/revenue-chart';
-import { StatusChart } from '@/components/analytics/status-chart';
-import { TopBrandsChart } from '@/components/analytics/top-brands-chart';
+import nextDynamic from 'next/dynamic';
 import { DebtSummaryCard } from '@/components/analytics/debt-summary-card';
+
+// Skeleton UI para los Gráficos Lazy Loaded
+const ChartSkeleton = () => (
+    <div className="w-full h-[400px] bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 rounded-xl p-6 shadow-sm border animate-pulse flex flex-col">
+        <div className="w-48 h-6 bg-slate-200 dark:bg-slate-700 rounded mb-4" />
+        <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded" />
+    </div>
+);
+
+// Dynamic Imports para Deferred JS Parsing de Recharts
+const RevenueChart = nextDynamic(() => import('@/components/analytics/revenue-chart').then(mod => mod.RevenueChart), { ssr: false, loading: () => <ChartSkeleton /> });
+const StatusChart = nextDynamic(() => import('@/components/analytics/status-chart').then(mod => mod.StatusChart), { ssr: false, loading: () => <ChartSkeleton /> });
+const TopBrandsChart = nextDynamic(() => import('@/components/analytics/top-brands-chart').then(mod => mod.TopBrandsChart), { ssr: false, loading: () => <ChartSkeleton /> });
+const TopServicesChart = nextDynamic(() => import('@/components/analytics/top-services-chart').then(mod => mod.TopServicesChart), { ssr: false, loading: () => <ChartSkeleton /> });
+const SeasonalityChart = nextDynamic(() => import('@/components/analytics/seasonality-chart').then(mod => mod.SeasonalityChart), { ssr: false, loading: () => <ChartSkeleton /> });
 import { FEATURE_FLAGS } from '@/config/modules';
 import { NewBadge } from '@/components/ui/new-badge';
 import { UpcomingAppointments } from '@/components/agenda/upcoming-appointments';
@@ -295,9 +308,15 @@ export default function AdminPage() {
                             <StatusChart orders={allOrders} />
                         </div>
 
-                        {/* Full Width Top Brands Chart */}
-                        <div className="w-full">
+                        {/* Market Analysis Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <TopBrandsChart orders={allOrders} />
+                            <TopServicesChart orders={allOrders} />
+                        </div>
+
+                        {/* Seasonality Row */}
+                        <div className="w-full">
+                            <SeasonalityChart orders={allOrders} />
                         </div>
 
                         {/* Debt Summary */}
