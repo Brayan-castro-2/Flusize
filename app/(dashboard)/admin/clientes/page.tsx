@@ -33,8 +33,7 @@ import {
     AlertTriangle,
     MessageCircle
 } from 'lucide-react';
-import { obtenerClientesPaginados } from '@/lib/supabase-service';
-import type { PaginatedResult } from '@/lib/supabase-service';
+import { obtenerClientes } from '@/lib/supabase-service';
 import type { ClienteWithStats, VehiculoDB } from '@/lib/storage-adapter';
 import Link from 'next/link';
 import {
@@ -69,10 +68,9 @@ export default function ClientesPage() {
 
     // Pagination & Search
     const [searchTerm, setSearchTerm] = useState(query);
-    const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms para query server-side
-    const [page, setPage] = useState(1);
+    const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce
+    const [visibleCount, setVisibleCount] = useState(20);
     const [totalCount, setTotalCount] = useState(0);
-    const pageSize = 20;
 
     const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -123,20 +121,20 @@ export default function ClientesPage() {
         setSortConfig({ key, direction });
     };
 
-    // Fetching Logic (Server-Side)
+    // Fetching Logic (Server-Side full fetch for local memory search)
     useEffect(() => {
         let isMounted = true;
 
         async function fetchClientes() {
             setIsLoading(true);
             try {
-                // LLAMADA AL BACKEND: Delegar búsqueda y límites a Supabase
-                const { data, count, error } = await obtenerClientesPaginados(page, pageSize, debouncedSearchTerm);
+                // LLAMADA AL BACKEND: Obtener todos, con filtrado local si hay SearchTerm
+                const data = await obtenerClientes(debouncedSearchTerm);
 
                 if (isMounted) {
                     if (data) {
                         setClientes(data);
-                        setTotalCount(count);
+                        setTotalCount(data.length);
                     }
                 }
             } catch (error) {
@@ -151,18 +149,52 @@ export default function ClientesPage() {
         return () => {
             isMounted = false;
         };
-    }, [page, debouncedSearchTerm]);
-
-    // Cuando el usuario escribe una nueva búsqueda, volver a la página 1
-    useEffect(() => {
-        setPage(1);
     }, [debouncedSearchTerm]);
 
-    // Derived State
-    const totalPages = Math.ceil(totalCount / pageSize);
+    // Reset visible count on filter/search change
+    useEffect(() => {
+        setVisibleCount(20);
+    }, [debouncedSearchTerm, sortConfig]);
 
-    // Como ahora los datos vienen directos del servidor, simplemente pasamos la data
-    const sortedClientes = clientes;
+    // INFINITE SCROLL OBSERVER
+    const observerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    setVisibleCount((prev) => prev + 20);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (observerRef.current) {
+            observer.observe(observerRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [clientes]);
+
+    // Derived State
+    const sortedClientes = useMemo(() => {
+        let sortableItems = [...clientes];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                const key = sortConfig.key as keyof ClienteWithStats;
+                const valA = a[key] ?? '';
+                const valB = b[key] ?? '';
+                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [clientes, sortConfig]);
+
+    const displayClientes = useMemo(() => {
+        return sortedClientes.slice(0, visibleCount);
+    }, [sortedClientes, visibleCount]);
 
     // Fetch clients
     const premiumClientId = useMemo(() => {
@@ -327,7 +359,7 @@ export default function ClientesPage() {
                     <>
                         {/* MOBILE VIEW (CARDS) */}
                         <div className="grid grid-cols-1 gap-4 md:hidden">
-                            {sortedClientes.map((cliente) => (
+                            {displayClientes.map((cliente) => (
                                 <Card key={cliente.id} className="bg-[#1E293B] border-slate-700/60 p-5 space-y-4 rounded-2xl shadow-md">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-4">
@@ -420,7 +452,7 @@ export default function ClientesPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-800">
-                                        {sortedClientes.map((cliente) => (
+                                        {displayClientes.map((cliente) => (
                                             <Fragment key={cliente.id}>
                                                 <tr
                                                     className={`hover:bg-[#1E293B]/60 transition-colors duration-200 group cursor-pointer border-b border-slate-800/80 ${expandedClientId === cliente.id ? 'bg-[#1E293B] shadow-inner' : ''}`}
@@ -666,41 +698,21 @@ export default function ClientesPage() {
                                         ))}
                                     </tbody>
                                 </table>
-                            </div>
 
-                            {/* Paginación UI */}
-                            {totalPages > 1 && (
-                                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700/80 bg-[#0F172A] rounded-b-2xl">
-                                    <div className="text-sm font-medium text-slate-400">
-                                        Mostrando <span className="text-white">{(page - 1) * pageSize + 1}</span> a{' '}
-                                        <span className="text-white">
-                                            {Math.min(page * pageSize, totalCount)}
-                                        </span>{' '}
-                                        de <span className="text-white font-bold">{totalCount}</span> clientes
+                                {/* Intersection Observer Anchor for Desktop */}
+                                {visibleCount < sortedClientes.length && (
+                                    <div ref={observerRef} className="h-20 w-full flex items-center justify-center text-slate-400/50">
+                                        <span className="animate-pulse">Cargando más clientes...</span>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                            disabled={page === 1}
-                                            className="bg-[#1E293B] border-slate-700 text-slate-300 hover:bg-[#2D3748] hover:text-white"
-                                        >
-                                            Anterior
-                                        </Button>
-                                        <div className="flex items-center justify-center px-4 text-sm font-bold text-white bg-blue-600/20 border border-blue-500/30 rounded-md">
-                                            {page} / {totalPages}
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                            disabled={page === totalPages}
-                                            className="bg-[#1E293B] border-slate-700 text-slate-300 hover:bg-[#2D3748] hover:text-white"
-                                        >
-                                            Siguiente
-                                        </Button>
-                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="md:hidden space-y-3 pt-3">
+                            {/* Intersection Observer Anchor for Mobile */}
+                            {visibleCount < sortedClientes.length && (
+                                <div ref={observerRef} className="h-16 w-full flex items-center justify-center text-slate-400/50">
+                                    <span className="animate-pulse">Cargando más clientes...</span>
                                 </div>
                             )}
                         </div>
@@ -776,6 +788,6 @@ export default function ClientesPage() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }

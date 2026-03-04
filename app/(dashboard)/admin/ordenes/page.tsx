@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback, Fragment, useRef, useEffect } from 'react';
 import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita, obtenerChecklist } from '@/lib/storage-adapter';
 import { generateOrderPDF } from '@/lib/pdf-generator';
-import { usePaginatedOrders, useOrdersCount, useDeleteOrder, useUpdateOrder, ORDERS_QUERY_KEY } from '@/hooks/use-orders';
+import { useOrders, useOrdersCount, useDeleteOrder, useUpdateOrder, ORDERS_QUERY_KEY } from '@/hooks/use-orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePerfiles } from '@/hooks/use-perfiles';
@@ -319,7 +319,7 @@ export default function OrdenesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
     const [page, setPage] = useState(1);
-    const pageSize = 20;
+    const [visibleCount, setVisibleCount] = useState(20);
 
     const [viewFilter, setViewFilter] = useState<string>('orders');
     const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -335,19 +335,19 @@ export default function OrdenesPage() {
     }), [statusFilter, mechanicFilter, dateRange, debtFilter]);
 
     const {
-        data: paginatedData,
+        data: allOrders = [],
         isLoading: isLoadingOrders,
-    } = usePaginatedOrders(page, pageSize, debouncedSearchTerm, restFilters, user?.tallerId);
+    } = useOrders();
 
     const { data: totalOrdersCountAll = 0 } = useOrdersCount(user?.tallerId);
 
-    const orders = paginatedData?.data || [];
-    const totalTableCount = paginatedData?.count || 0;
-    const totalPages = Math.ceil(totalTableCount / pageSize);
+    const orders = allOrders || [];
+    const totalTableCount = orders.length;
+    const totalPages = Math.ceil(totalTableCount / 20);
 
-    // Reset page to 1 on filter/search change
+    // Reset visible count on filter/search change
     useEffect(() => {
-        setPage(1);
+        setVisibleCount(20);
     }, [debouncedSearchTerm, restFilters, viewFilter]);
 
     const { data: appointments = [], isLoading: isLoadingAppointments } = useAppointments();
@@ -603,6 +603,13 @@ export default function OrdenesPage() {
 
             return matchesSearch && matchesStatus && matchesMechanic && matchesDebt && matchesDate;
         }).sort((a, b) => {
+            // Lógica NULO al fondo
+            const isNullA = !a.patente_vehiculo || a.patente_vehiculo === 'NULO' || a.patente_vehiculo === 'S/P' || !a.cliente_nombre || a.cliente_nombre === 'Sin Cliente';
+            const isNullB = !b.patente_vehiculo || b.patente_vehiculo === 'NULO' || b.patente_vehiculo === 'S/P' || !b.cliente_nombre || b.cliente_nombre === 'Sin Cliente';
+
+            if (isNullA && !isNullB) return 1;
+            if (!isNullA && isNullB) return -1;
+
             const key = sortConfig.key;
             const direction = sortConfig.direction === 'asc' ? 1 : -1;
 
@@ -620,6 +627,30 @@ export default function OrdenesPage() {
             return 0;
         });
     }, [orders, appointments, viewFilter, debouncedSearchTerm, statusFilter, mechanicFilter, debtFilter, dateRange, sortConfig, vehiculosMap, appointmentToOrderFormat, isAppointmentNearby]);
+
+    // INFINITE SCROLL OBSERVER
+    const observerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    setVisibleCount((prev) => prev + 20);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (observerRef.current) {
+            observer.observe(observerRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [filteredOrders]);
+
+    const displayOrders = useMemo(() => {
+        return filteredOrders.slice(0, visibleCount);
+    }, [filteredOrders, visibleCount]);
 
     const handleSort = (key: keyof OrdenDB | 'precio_total' | 'fecha_ingreso') => {
         setSortConfig(current => ({
@@ -790,7 +821,7 @@ export default function OrdenesPage() {
     };
 
     const handleExportPDF = () => {
-        const printContent = filteredOrders.map(order => {
+        const printContent = displayOrders.map(order => {
             const vehiculo = order.vehiculo;
             return {
                 patente: order.patente_vehiculo,
@@ -1099,7 +1130,7 @@ export default function OrdenesPage() {
                                         ))}
                                     </>
                                 )}
-                                {!isLoadingOrders && filteredOrders.map((order) => {
+                                {!isLoadingOrders && displayOrders.map((order) => {
                                     const isExpanded = expandedOrderId === order.id;
                                     const vehiculo = order.vehiculos;
                                     return (
@@ -1439,7 +1470,7 @@ export default function OrdenesPage() {
                                                                     ) : (
                                                                         <div className="flex flex-col items-center justify-center gap-3">
                                                                             <OrderWorkflowActions
-                                                                                order={order}
+                                                                                order={order as any}
                                                                                 checklist={checklists[order.id]}
                                                                                 onOpenChecklist={handleOpenChecklist}
                                                                                 onUpdateStatus={handleUpdateStatus}
@@ -1457,6 +1488,13 @@ export default function OrdenesPage() {
                                 })}
                             </TableBody>
                         </Table>
+
+                        {/* Intersection Observer Anchor for Desktop */}
+                        {visibleCount < filteredOrders.length && (
+                            <div ref={observerRef} className="h-20 w-full flex items-center justify-center text-slate-400/50">
+                                <span className="animate-pulse">Cargando más registros...</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Mobile List */}
@@ -1468,8 +1506,8 @@ export default function OrdenesPage() {
                                 ))}
                             </>
                         )}
-                        {!isLoadingOrders && filteredOrders.map((order) => {
-                            const vehiculo = order.vehiculos;
+                        {!isLoadingOrders && displayOrders.map((order) => {
+                            const vehiculo = order.vehiculo; s;
                             return (
                                 <MobileOrderCard
                                     key={order.id}
@@ -1495,35 +1533,14 @@ export default function OrdenesPage() {
                         })}
                     </div>
 
-                    {/* Controles de Paginación */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between px-4 py-4 border-t border-slate-700/50 mt-4 rounded-b-xl bg-slate-800/50">
-                            <div className="flex items-center gap-2 text-sm text-slate-400">
-                                <span>Página {page} de {totalPages}</span>
-                                <span className="hidden sm:inline">({totalTableCount} registros)</span>
+                    <div className="md:hidden space-y-3 pt-3">
+                        {/* Intersection Observer Anchor for Mobile */}
+                        {visibleCount < filteredOrders.length && (
+                            <div ref={observerRef} className="h-16 w-full flex items-center justify-center text-slate-400/50">
+                                <span className="animate-pulse">Cargando más registros...</span>
                             </div>
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                                    disabled={page === 1 || isLoadingOrders}
-                                    className="border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300"
-                                >
-                                    Anterior
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={page === totalPages || isLoadingOrders}
-                                    className="border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300"
-                                >
-                                    Siguiente
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
                     {filteredOrders.length === 0 && !isLoadingOrders && (
                         <div className="text-center py-12">
