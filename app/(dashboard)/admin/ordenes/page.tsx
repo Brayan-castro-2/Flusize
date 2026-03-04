@@ -1507,7 +1507,7 @@ export default function OrdenesPage() {
                             </>
                         )}
                         {!isLoadingOrders && displayOrders.map((order) => {
-                            const vehiculo = order.vehiculo; s;
+                            const vehiculo = order.vehiculo;
                             return (
                                 <MobileOrderCard
                                     key={order.id}
