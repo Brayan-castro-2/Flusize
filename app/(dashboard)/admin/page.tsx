@@ -40,6 +40,7 @@ import {
 import Link from 'next/link';
 import { RevenueChart } from '@/components/analytics/revenue-chart';
 import { StatusChart } from '@/components/analytics/status-chart';
+import { TopBrandsChart } from '@/components/analytics/top-brands-chart';
 import { DebtSummaryCard } from '@/components/analytics/debt-summary-card';
 import { FEATURE_FLAGS } from '@/config/modules';
 import { NewBadge } from '@/components/ui/new-badge';
@@ -292,6 +293,11 @@ export default function AdminPage() {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <RevenueChart orders={allOrders} />
                             <StatusChart orders={allOrders} />
+                        </div>
+
+                        {/* Full Width Top Brands Chart */}
+                        <div className="w-full">
+                            <TopBrandsChart orders={allOrders} />
                         </div>
 
                         {/* Debt Summary */}
