@@ -424,7 +424,7 @@ export default function OrdenesPage() {
 
     const isAdmin = user?.role === 'taller_admin' || user?.role === 'superadmin';
     const isMecanico = user?.role === 'mecanico';
-    const canViewPrices = user?.name?.toLowerCase().includes('juan');
+    const canViewPrices = isAdmin || user?.name?.toLowerCase().includes('juan');
     const isLoading = isLoadingOrders;
 
     // Auto-filtrar órdenes para mecánicos: solo ven las asignadas a ellos
