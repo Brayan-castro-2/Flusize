@@ -320,7 +320,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                             value={nombre}
                                             onChange={e => setNombre(e.target.value)}
                                             required
-                                            className="bg-slate-900/70 border-slate-700 focus:border-blue-500 transition-colors"
+                                            className="bg-slate-900/70 border-slate-700 text-white focus:border-blue-500 transition-colors"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -334,7 +334,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                                 value={telefono}
                                                 onChange={e => setTelefono(e.target.value)}
                                                 required
-                                                className="bg-slate-900/70 border-slate-700 focus:border-blue-500 pl-12 font-mono"
+                                                className="bg-slate-900/70 border-slate-700 text-white focus:border-blue-500 pl-12 font-mono"
                                                 placeholder="12345678"
                                                 maxLength={8}
                                             />
@@ -347,7 +347,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                             type="email"
                                             value={email}
                                             onChange={e => setEmail(e.target.value)}
-                                            className="bg-slate-900/70 border-slate-700 focus:border-blue-500"
+                                            className="bg-slate-900/70 border-slate-700 text-white focus:border-blue-500"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -356,7 +356,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                             id="rut"
                                             value={rut}
                                             onChange={e => setRut(e.target.value)}
-                                            className="bg-slate-900/70 border-slate-700 focus:border-blue-500 font-mono"
+                                            className="bg-slate-900/70 border-slate-700 text-white focus:border-blue-500 font-mono"
                                         />
                                     </div>
                                 </div>
@@ -387,7 +387,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                         id="direccion"
                                         value={direccion}
                                         onChange={e => setDireccion(e.target.value)}
-                                        className="bg-slate-900/70 border-slate-700 focus:border-blue-500"
+                                        className="bg-slate-900/70 border-slate-700 text-white focus:border-blue-500"
                                     />
                                 </div>
 
@@ -397,7 +397,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                         id="notas"
                                         value={notas}
                                         onChange={e => setNotas(e.target.value)}
-                                        className="bg-slate-900/70 border-slate-700 focus:border-blue-500 min-h-[80px] resize-none"
+                                        className="bg-slate-900/70 border-slate-700 text-white focus:border-blue-500 min-h-[80px] resize-none"
                                         placeholder="Preferencias, alergias, observaciones..."
                                     />
                                 </div>
@@ -501,7 +501,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                                         onChange={e => setNewVehicle(prev => ({ ...prev, patente: e.target.value.toUpperCase() }))}
                                                         placeholder="AA-BB-11"
                                                         maxLength={6}
-                                                        className="bg-slate-950 border-slate-700 font-mono uppercase focus:border-blue-500"
+                                                        className="bg-slate-950 border-slate-700 text-white font-mono uppercase focus:border-blue-500"
                                                         onBlur={handlePatenteBlur}
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') { e.preventDefault(); handlePatenteBlur(); }
@@ -526,7 +526,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                                     value={newVehicle.marca}
                                                     onChange={e => setNewVehicle(prev => ({ ...prev, marca: e.target.value }))}
                                                     placeholder="Toyota"
-                                                    className="bg-slate-950 border-slate-700 focus:border-blue-500"
+                                                    className="bg-slate-950 border-slate-700 text-white focus:border-blue-500"
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -535,7 +535,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                                     value={newVehicle.modelo}
                                                     onChange={e => setNewVehicle(prev => ({ ...prev, modelo: e.target.value }))}
                                                     placeholder="Yaris"
-                                                    className="bg-slate-950 border-slate-700 focus:border-blue-500"
+                                                    className="bg-slate-950 border-slate-700 text-white focus:border-blue-500"
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -544,7 +544,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                                     value={newVehicle.anio}
                                                     onChange={e => setNewVehicle(prev => ({ ...prev, anio: e.target.value }))}
                                                     placeholder="2020"
-                                                    className="bg-slate-950 border-slate-700 focus:border-blue-500"
+                                                    className="bg-slate-950 border-slate-700 text-white focus:border-blue-500"
                                                 />
                                             </div>
                                             <div className="col-span-2 space-y-2">
@@ -553,7 +553,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                                     value={newVehicle.motor}
                                                     onChange={e => setNewVehicle(prev => ({ ...prev, motor: e.target.value }))}
                                                     placeholder="1.5 L"
-                                                    className="bg-slate-950 border-slate-700 focus:border-blue-500"
+                                                    className="bg-slate-950 border-slate-700 text-white focus:border-blue-500"
                                                 />
                                             </div>
                                         </div>

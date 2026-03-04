@@ -574,11 +574,11 @@ export default function OrdenesPage() {
             const vehiculo = order.vehiculo;
             const cliente = order.cliente;
             const matchesSearch =
+                (order.id?.toString() || '').includes(searchTerm) ||
                 (order.patente_vehiculo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (vehiculo?.marca?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                (vehiculo?.marca?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (vehiculo?.modelo?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                order.descripcion_ingreso.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (order.descripcion_ingreso || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (cliente?.nombre_completo?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (order.cliente_nombre?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (cliente?.telefono?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||

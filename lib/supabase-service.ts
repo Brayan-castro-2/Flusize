@@ -1147,9 +1147,13 @@ export async function obtenerCitasHoy(tallerIdOverride?: string): Promise<CitaDB
 
 // Obtener servicios frecuentes (V3.1)
 export async function obtenerServiciosFrecuentes(): Promise<ServicioDB[]> {
+    const tallerId = await getCurrentUserTallerId();
+    if (!tallerId) return [];
+
     const { data, error } = await supabase
         .from('servicios_frecuentes')
         .select('*')
+        .eq('taller_id', tallerId)
         .eq('activo', true)
         .order('descripcion', { ascending: true });
 
