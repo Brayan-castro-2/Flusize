@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient, useMutation, useInfiniteQuery } from '@tanstack/react-query';
-import { obtenerOrdenes, eliminarOrden, actualizarOrden, obtenerOrdenesCount } from '@/lib/storage-adapter';
+import { obtenerOrdenes, eliminarOrden, actualizarOrden, obtenerOrdenesCount, obtenerOrdenesPaginadas } from '@/lib/storage-adapter';
 import { OrdenDB } from '@/lib/supabase';
+import type { OrderRestFilters } from '@/lib/supabase-service';
 
 export const ORDERS_QUERY_KEY = ['orders'];
 
-// Hook para scroll infinito
+// Hook para scroll infinito (Obsoleto post-refactor Paginado)
 export function useInfiniteOrders(tallerId?: string) {
     return useInfiniteQuery({
         queryKey: ['orders', 'infinite', tallerId],
@@ -16,13 +17,33 @@ export function useInfiniteOrders(tallerId?: string) {
                 nextCursor: orders.length === limit ? pageParam + limit : undefined,
             };
         },
-        // IMPORTANTE: Si no hay tallerId, no ejecutamos la query para evitar el bucle de Server Actions
         enabled: !!tallerId,
         initialPageParam: 0,
         getNextPageParam: (lastPage) => lastPage.nextCursor,
         staleTime: 5 * 60 * 1000,
         gcTime: 15 * 60 * 1000,
-        placeholderData: (previousData) => previousData, // Mantener datos previos mientras se valida tallerId
+        placeholderData: (previousData) => previousData,
+    });
+}
+
+// NUEVO: Hook para Paginación Server-Side y Filtrado
+export function usePaginatedOrders(
+    page: number,
+    pageSize: number,
+    searchTerm: string,
+    filters: OrderRestFilters,
+    tallerId?: string
+) {
+    return useQuery({
+        queryKey: ['orders', 'paginated', page, pageSize, searchTerm, filters, tallerId],
+        queryFn: async () => {
+            return await obtenerOrdenesPaginadas(page, pageSize, searchTerm, filters, tallerId);
+        },
+        enabled: !!tallerId,
+        staleTime: 0, // 0 para forzar obtención fresca siempre (evitamos el bug de 1446)
+        gcTime: 1 * 60 * 1000,
+        refetchOnWindowFocus: true,
+        placeholderData: (previousData) => previousData, // Transición suave Skeleton
     });
 }
 

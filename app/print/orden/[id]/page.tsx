@@ -30,7 +30,7 @@ export default function PrintOrdenPage() {
                     if (tallerId) {
                         const { data: taller } = await supabase
                             .from('talleres')
-                            .select('nombre, logo_url')
+                            .select('nombre, logo_url, direccion, telefono, instagram')
                             .eq('id', tallerId)
                             .single();
                         if (taller) setTallerInfo(taller);
@@ -87,31 +87,33 @@ export default function PrintOrdenPage() {
 
             {/* Print Content */}
             <div className="print-container max-w-3xl mx-auto p-8">
-                {/* Header with Logo */}
+                {/* Header with Logo & Workshop Data */}
                 <div className="border-b-2 border-gray-800 pb-6 mb-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="relative w-32 h-32">
-                                {tallerInfo?.logo_url ? (
-                                    <Image
-                                        src={tallerInfo.logo_url}
-                                        alt={tallerInfo.nombre || "Logo Taller"}
-                                        fill
-                                        className="object-contain"
-                                        priority
-                                        unoptimized
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs text-center border">
-                                        LOGO <br /> TALLER
-                                    </div>
-                                )}
+                    <div className="flex items-start justify-between">
+                        {/* LEFT: Brands & Contacts */}
+                        <div className="flex items-center gap-6">
+                            <div className="relative w-32 h-20">
+                                <Image
+                                    src="/images/logo-taller.png"
+                                    alt="SteelMonkey"
+                                    fill
+                                    className="object-contain object-left"
+                                    priority
+                                    unoptimized
+                                />
+                            </div>
+                            <div className="flex flex-col text-sm text-gray-600 font-medium">
+                                {(tallerInfo as any)?.direccion ? <p>📍 {(tallerInfo as any).direccion}</p> : <p>📍 Av. Las Condes 12345, Stgo</p>}
+                                {(tallerInfo as any)?.telefono ? <p>📞 {(tallerInfo as any).telefono}</p> : <p>📞 +56 9 1234 5678</p>}
+                                {(tallerInfo as any)?.instagram ? <p>📸 @{(tallerInfo as any).instagram}</p> : <p>📸 @steelmonkey</p>}
                             </div>
                         </div>
+
+                        {/* RIGHT: Order Title */}
                         <div className="text-right">
-                            <h1 className="text-xl font-bold text-gray-900 uppercase">{tallerInfo?.nombre || 'ORDEN DE TRABAJO'}</h1>
-                            <p className="text-2xl font-mono font-bold text-[#0066FF]">#{orden.id.toString().padStart(5, '0')}</p>
-                            <p className="text-sm text-gray-500">
+                            <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tight">ORDEN DE TRABAJO</h1>
+                            <p className="text-3xl font-mono font-black text-[#FF4D00]">#{orden.id.toString().padStart(5, '0')}</p>
+                            <p className="text-sm font-semibold text-gray-500 uppercase mt-1">
                                 {new Date(orden.fecha_ingreso).toLocaleDateString('es-CL', {
                                     weekday: 'long',
                                     year: 'numeric',

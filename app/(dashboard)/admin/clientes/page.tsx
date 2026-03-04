@@ -33,7 +33,8 @@ import {
     AlertTriangle,
     MessageCircle
 } from 'lucide-react';
-import { obtenerClientes } from '@/lib/storage-adapter';
+import { obtenerClientesPaginados } from '@/lib/supabase-service';
+import type { PaginatedResult } from '@/lib/supabase-service';
 import type { ClienteWithStats, VehiculoDB } from '@/lib/storage-adapter';
 import Link from 'next/link';
 import {
@@ -65,8 +66,13 @@ export default function ClientesPage() {
     // State
     const [clientes, setClientes] = useState<ClienteWithStats[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Pagination & Search
     const [searchTerm, setSearchTerm] = useState(query);
-    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms para query server-side
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const pageSize = 20;
 
     const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -117,38 +123,51 @@ export default function ClientesPage() {
         setSortConfig({ key, direction });
     };
 
-    const filteredClientes = useMemo(() => {
-        if (!debouncedSearchTerm) return clientes;
-        const lowerTerm = debouncedSearchTerm.toLowerCase();
+    // Fetching Logic (Server-Side)
+    useEffect(() => {
+        let isMounted = true;
 
-        return clientes.filter(cliente =>
-            cliente.nombre_completo?.toLowerCase().includes(lowerTerm) ||
-            cliente.rut_dni?.toLowerCase().includes(lowerTerm) ||
-            cliente.email?.toLowerCase().includes(lowerTerm) ||
-            cliente.vehiculos?.some(v => v.patente?.toLowerCase().includes(lowerTerm))
-        );
-    }, [clientes, debouncedSearchTerm]);
+        async function fetchClientes() {
+            setIsLoading(true);
+            try {
+                // LLAMADA AL BACKEND: Delegar búsqueda y límites a Supabase
+                const { data, count, error } = await obtenerClientesPaginados(page, pageSize, debouncedSearchTerm);
 
-    const sortedClientes = useMemo(() => {
-        let sorted = [...filteredClientes];
-        if (sortConfig) {
-            sorted.sort((a: any, b: any) => {
-                // Handle nested properties if needed, here mostly flat or we check
-                const aValue = a[sortConfig.key] ?? '';
-                const bValue = b[sortConfig.key] ?? '';
-
-                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
+                if (isMounted) {
+                    if (data) {
+                        setClientes(data);
+                        setTotalCount(count);
+                    }
+                }
+            } catch (error) {
+                console.error("Error cargando clientes:", error);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
         }
-        return sorted;
-    }, [clientes, sortConfig]);
 
-    // Premium Client Logic
+        fetchClientes();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [page, debouncedSearchTerm]);
+
+    // Cuando el usuario escribe una nueva búsqueda, volver a la página 1
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearchTerm]);
+
+    // Derived State
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    // Como ahora los datos vienen directos del servidor, simplemente pasamos la data
+    const sortedClientes = clientes;
+
+    // Fetch clients
     const premiumClientId = useMemo(() => {
-        if (clientes.length === 0) return null;
-        const maxOrders = Math.max(...clientes.map(c => c.total_ordenes));
+        if (!clientes || clientes.length === 0) return null;
+        const maxOrders = Math.max(...clientes.map(c => c.total_ordenes || 0));
         if (maxOrders === 0) return null;
         const topClients = clientes.filter(c => c.total_ordenes === maxOrders);
         return topClients.length === 1 ? topClients[0].id : null;
@@ -159,31 +178,12 @@ export default function ClientesPage() {
         setOrderingCliente(null);
     };
 
-    // Fetch clients
-    const fetchClientes = async () => {
-        setIsLoading(true);
-        try {
-            const data = await obtenerClientes(); // Fetch ALL once for in-memory processing
-            setClientes(data as unknown as ClienteWithStats[]);
-        } catch (error) {
-            console.error('Error fetching clients:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchClientes();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
     // Calculate KPIs
     const kpis = useMemo(() => {
-        const total = clientes.length;
+        const total = totalCount; // Usamos la variable de paginación del servidor!
         const active = clientes.filter(c => c.total_ordenes > 0).length;
-        const totalRevenue = clientes.reduce((acc, c) => acc + c.total_gastado, 0);
+        const totalRevenue = clientes.reduce((acc, c) => acc + (c.total_gastado || 0), 0);
 
-        // Calcular deuda total: órdenes donde metodo_pago contiene 'debe'
         let totalDebt = 0;
         clientes.forEach(c => {
             if (c.vehiculos) {
@@ -191,14 +191,12 @@ export default function ClientesPage() {
                     if (v.ordenes) {
                         v.ordenes.forEach((o: any) => {
                             if (o.metodo_pago?.includes('debe')) {
-                                // New logic: try to use the detailed metodos_pago array
                                 if (o.metodos_pago && Array.isArray(o.metodos_pago)) {
                                     const amountDebe = o.metodos_pago
                                         .filter((mp: any) => mp.metodo === 'debe')
                                         .reduce((sum: number, mp: any) => sum + (mp.monto || 0), 0);
                                     totalDebt += amountDebe;
                                 } else {
-                                    // Legacy fallback
                                     totalDebt += (o.precio_total || 0);
                                 }
                             }
@@ -209,7 +207,7 @@ export default function ClientesPage() {
         });
 
         return { total, active, totalRevenue, totalDebt };
-    }, [clientes]);
+    }, [clientes, totalCount]);
 
     // Handle Search
     const handleSearch = (e: React.FormEvent) => {
@@ -669,6 +667,42 @@ export default function ClientesPage() {
                                     </tbody>
                                 </table>
                             </div>
+
+                            {/* Paginación UI */}
+                            {totalPages > 1 && (
+                                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700/80 bg-[#0F172A] rounded-b-2xl">
+                                    <div className="text-sm font-medium text-slate-400">
+                                        Mostrando <span className="text-white">{(page - 1) * pageSize + 1}</span> a{' '}
+                                        <span className="text-white">
+                                            {Math.min(page * pageSize, totalCount)}
+                                        </span>{' '}
+                                        de <span className="text-white font-bold">{totalCount}</span> clientes
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                            disabled={page === 1}
+                                            className="bg-[#1E293B] border-slate-700 text-slate-300 hover:bg-[#2D3748] hover:text-white"
+                                        >
+                                            Anterior
+                                        </Button>
+                                        <div className="flex items-center justify-center px-4 text-sm font-bold text-white bg-blue-600/20 border border-blue-500/30 rounded-md">
+                                            {page} / {totalPages}
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                            disabled={page === totalPages}
+                                            className="bg-[#1E293B] border-slate-700 text-slate-300 hover:bg-[#2D3748] hover:text-white"
+                                        >
+                                            Siguiente
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}

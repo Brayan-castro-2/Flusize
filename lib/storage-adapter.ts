@@ -58,6 +58,22 @@ export async function obtenerOrdenesCount(tallerIdOverride?: string): Promise<nu
     return localService.obtenerOrdenesCount();
 }
 
+export async function obtenerOrdenesPaginadas(
+    page: number = 1,
+    pageSize: number = 20,
+    searchTerm: string = '',
+    filters?: supabaseService.OrderRestFilters,
+    tallerIdOverride?: string
+): Promise<supabaseService.PaginatedResult<OrdenDB>> {
+    if (isSupabase()) {
+        console.log('🔵 Usando Supabase para obtener órdenes paginadas');
+        return supabaseService.obtenerOrdenesPaginadas(page, pageSize, searchTerm, filters, tallerIdOverride);
+    }
+    console.log('🟡 Alerta: Usando localStorage pero solicitando Paginación. Devolviendo array completo mockeado.');
+    const data = await localService.obtenerOrdenes();
+    return { data, count: data.length, error: null };
+}
+
 export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promise<number> {
     if (isSupabase()) {
         return supabaseService.obtenerGananciaHistorica(tallerIdOverride);

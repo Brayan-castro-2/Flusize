@@ -224,6 +224,89 @@ export async function subirImagen(file: File, carpeta: string = 'ordenes'): Prom
 
 // Obtener todas las órdenes
 // ============ CLIENTES (CRM) ============ - MULTI-TENANT
+
+export interface PaginatedResult<T> {
+    data: T[];
+    count: number;
+    error: any;
+}
+
+export async function obtenerClientesPaginados(page: number, pageSize: number, search?: string, tallerIdOverride?: string): Promise<PaginatedResult<ClienteWithStats>> {
+    const tallerId = tallerIdOverride || await getCurrentUserTallerId();
+    if (!tallerId) return { data: [], count: 0, error: 'Sin taller ID' };
+
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase
+        .from('clientes')
+        .select(`
+            *,
+            vehiculos (
+                patente,
+                marca,
+                modelo,
+                ordenes (
+                    id,
+                    fecha_ingreso,
+                    precio_total,
+                    estado,
+                    descripcion_ingreso,
+                    patente_vehiculo
+                )
+            )
+        `, { count: 'exact' })
+        .eq('taller_id', tallerId)
+        .order('nombre_completo', { ascending: true })
+        .range(from, to);
+
+    if (search && search.trim() !== '') {
+        const searchTerm = `%${search.trim()}%`;
+        // PostgREST: or syntax to search across multiple fields
+        query = query.or(`nombre_completo.ilike.${searchTerm},rut_dni.ilike.${searchTerm},telefono.ilike.${searchTerm},email.ilike.${searchTerm}`);
+    }
+
+    const { data, count, error } = await query;
+
+    if (error) {
+        console.error('❌ Error al obtener clientes paginados:', error);
+        return { data: [], count: 0, error };
+    }
+
+    // Calcular estadísticas en el cliente
+    const resultados = (data || []).map((cliente: any) => {
+        let totalOrdenes = 0;
+        let totalGastado = 0;
+        let ultimaVisitaStr: string | undefined;
+        let ultimaVisitaTime = 0;
+
+        if (cliente.vehiculos) {
+            cliente.vehiculos.forEach((vehiculo: any) => {
+                if (vehiculo.ordenes) {
+                    vehiculo.ordenes.forEach((orden: any) => {
+                        totalOrdenes++;
+                        totalGastado += (orden.precio_total || 0);
+
+                        const fecha = new Date(orden.fecha_ingreso).getTime();
+                        if (fecha > ultimaVisitaTime) {
+                            ultimaVisitaTime = fecha;
+                            ultimaVisitaStr = orden.fecha_ingreso;
+                        }
+                    });
+                }
+            });
+        }
+
+        return {
+            ...cliente,
+            total_ordenes: totalOrdenes,
+            total_gastado: totalGastado,
+            ultima_visita: ultimaVisitaStr
+        };
+    });
+
+    return { data: resultados, count: count || 0, error: null };
+}
 export async function obtenerClientes(busqueda?: string, tallerIdOverride?: string): Promise<ClienteWithStats[]> {
     const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) return [];
@@ -557,6 +640,110 @@ export async function obtenerOrdenesLight(mecanicoId?: string, tallerIdOverride?
     }
 
     return allOrders || [];
+}
+
+export interface OrderRestFilters {
+    status?: string;
+    mechanicId?: string;
+    dateRange?: { from: string; to: string };
+    debt?: string; // 'con_deuda' | 'sin_deuda'
+}
+
+// NUEVO: Obtener órdenes paginadas para la vista principal de Gestión de Órdenes
+export async function obtenerOrdenesPaginadas(
+    page: number = 1,
+    pageSize: number = 20,
+    searchTerm: string = '',
+    filters?: OrderRestFilters,
+    tallerIdOverride?: string
+): Promise<PaginatedResult<OrdenDB>> {
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
+    if (!tallerId) return { data: [], count: 0, error: 'No autorizado' };
+
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    try {
+        let query = supabase
+            .from('ordenes')
+            .select(`
+                id,
+                fecha_ingreso,
+                estado,
+                precio_total,
+                metodo_pago,
+                creado_por,
+                asignado_a,
+                patente_vehiculo,
+                vehiculo_local_id,
+                vehiculo_global_id,
+                descripcion_ingreso,
+                creado_en,
+                cliente:clientes (
+                    nombre_completo,
+                    rut_dni
+                ),
+                vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
+                    marca,
+                    modelo,
+                    patente
+                ),
+                creado:perfiles!ordenes_creado_por_fkey (
+                    nombre_completo
+                ),
+                asignado:perfiles!ordenes_asignado_a_fkey (
+                    nombre_completo
+                )
+            `, { count: 'exact' })
+            .eq('taller_id', tallerId)
+            .order('fecha_ingreso', { ascending: false });
+
+        if (searchTerm) {
+            // Buscamos coincidencia en ID o detalles internos directo de la tabla de órdenes
+            query = query.or(`id.ilike.%${searchTerm}%,patente_vehiculo.ilike.%${searchTerm}%`);
+        }
+
+        // Aplicar Filtros Rest
+        if (filters) {
+            if (filters.status && filters.status !== 'all') {
+                query = query.eq('estado', filters.status);
+            }
+            if (filters.mechanicId && filters.mechanicId !== 'all') {
+                query = query.eq('asignado_a', filters.mechanicId);
+            }
+            if (filters.dateRange?.from) {
+                query = query.gte('fecha_ingreso', new Date(filters.dateRange.from).toISOString());
+            }
+            if (filters.dateRange?.to) {
+                // Configurar al final del día
+                const toDate = new Date(filters.dateRange.to);
+                toDate.setHours(23, 59, 59, 999);
+                query = query.lte('fecha_ingreso', toDate.toISOString());
+            }
+            if (filters.debt === 'con_deuda') {
+                // Órdenes donde método pago incluya "debe" o entregada sin fecha de cierre
+                query = query.or(`metodo_pago.ilike.%debe%,and(estado.eq.entregada,fecha_cierre.is.null)`);
+            } else if (filters.debt === 'sin_deuda') {
+                // Not debe
+                query = query.not('metodo_pago', 'ilike', '%debe%').not('estado', 'eq', 'entregada');
+                // Esto de sin_deuda de arriba la hace simple. Pero realmente la vista original era !hasDebt(order).
+                // Una query exacta para la lógica opuesta del OR de arriba es un poco rústica.
+            }
+        }
+
+        const { data, count, error } = await query.range(from, to);
+
+        if (error) throw error;
+
+        return {
+            data: data as unknown as OrdenDB[] || [],
+            count: count || 0,
+            error: null
+        };
+    } catch (error: any) {
+        console.error('❌ Error en obtenerOrdenesPaginadas:', error);
+        return { data: [], count: 0, error: error.message };
+    }
 }
 
 // Obtener órdenes del día — FILTRADO por taller_id

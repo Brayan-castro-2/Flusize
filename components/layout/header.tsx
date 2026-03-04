@@ -89,13 +89,9 @@ export function Header() {
                         </div>
                     )}
 
-                    {/* FLUSIZE Logo */}
+                    {/* SteelMonkey Logo */}
                     <div className="flex items-center gap-2">
-                        <img src="/logo_flusize.png" alt="Flusize" className="w-10 h-10 object-contain bg-white rounded-lg p-1 shadow-sm" />
-                        <div className="flex flex-col leading-none">
-                            <span className="font-extrabold text-2xl tracking-wide text-white hidden sm:block">FLUSIZE</span>
-                            <span className="text-[0.6rem] font-medium text-blue-100 tracking-wider uppercase hidden sm:block">Orden y Control</span>
-                        </div>
+                        <img src="/logo-steelmonkey.png" alt="SteelMonkey" className="h-10 w-auto object-contain" />
                     </div>
                 </div>
 

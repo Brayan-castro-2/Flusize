@@ -186,8 +186,7 @@ export function Sidebar() {
                 {/* Drawer header */}
                 <div className="flex items-center justify-between px-5 py-5 border-b border-[#222]">
                     <div className="flex items-center gap-2">
-                        <img src="/logo_flusize.png" alt="Flusize" className="w-8 h-8 object-contain bg-white rounded-lg p-1" />
-                        <span className="font-extrabold text-xl tracking-wide text-white">FLUSIZE</span>
+                        <img src="/logo_flusize.png" alt="Flusize" className="w-10 h-auto object-contain" />
                     </div>
                     <button
                         onClick={() => setDrawerOpen(false)}

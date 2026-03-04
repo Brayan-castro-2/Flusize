@@ -3,9 +3,9 @@
 import React, { useState, useMemo, useCallback, Fragment, useRef, useEffect } from 'react';
 import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita, obtenerChecklist } from '@/lib/storage-adapter';
 import { generateOrderPDF } from '@/lib/pdf-generator';
-import { useInfiniteOrders, useOrdersCount, useDeleteOrder, useUpdateOrder } from '@/hooks/use-orders';
+import { usePaginatedOrders, useOrdersCount, useDeleteOrder, useUpdateOrder, ORDERS_QUERY_KEY } from '@/hooks/use-orders';
 import { useQueryClient } from '@tanstack/react-query';
-import { ORDERS_QUERY_KEY } from '@/hooks/use-orders';
+import { useDebounce } from '@/hooks/use-debounce';
 import { usePerfiles } from '@/hooks/use-perfiles';
 import { useVehiculos } from '@/hooks/use-vehiculos';
 import { useAuth } from '@/contexts/auth-context';
@@ -316,29 +316,39 @@ export default function OrdenesPage() {
     const { user } = useAuth();
     const router = useRouter();
 
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+    const [page, setPage] = useState(1);
+    const pageSize = 20;
+
+    const [viewFilter, setViewFilter] = useState<string>('orders');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [mechanicFilter, setMechanicFilter] = useState<string>('all');
+    const [debtFilter, setDebtFilter] = useState<string>('all');
+    const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
+
+    const restFilters = useMemo(() => ({
+        status: statusFilter,
+        mechanicId: mechanicFilter,
+        dateRange,
+        debt: debtFilter
+    }), [statusFilter, mechanicFilter, dateRange, debtFilter]);
+
     const {
-        data: infiniteData,
+        data: paginatedData,
         isLoading: isLoadingOrders,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage
-    } = useInfiniteOrders(user?.tallerId);
-    const { data: totalOrdersCount = 0 } = useOrdersCount(user?.tallerId);
+    } = usePaginatedOrders(page, pageSize, debouncedSearchTerm, restFilters, user?.tallerId);
 
-    // Flatten orders from pages
-    const orders = useMemo(() => infiniteData?.pages.flatMap(page => page.orders) || [], [infiniteData]);
+    const { data: totalOrdersCountAll = 0 } = useOrdersCount(user?.tallerId);
 
-    const observer = useRef<IntersectionObserver>();
-    const lastOrderElementRef = useCallback((node: HTMLDivElement | null) => {
-        if (isFetchingNextPage) return;
-        if (observer.current) observer.current.disconnect();
-        observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && hasNextPage) {
-                fetchNextPage();
-            }
-        });
-        if (node) observer.current.observe(node);
-    }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
+    const orders = paginatedData?.data || [];
+    const totalTableCount = paginatedData?.count || 0;
+    const totalPages = Math.ceil(totalTableCount / pageSize);
+
+    // Reset page to 1 on filter/search change
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearchTerm, restFilters, viewFilter]);
 
     const { data: appointments = [], isLoading: isLoadingAppointments } = useAppointments();
     const { data: perfiles = [], isLoading: isLoadingPerfiles } = usePerfiles();
@@ -346,13 +356,7 @@ export default function OrdenesPage() {
     const deleteOrder = useDeleteOrder();
     const updateOrder = useUpdateOrder();
     const queryClient = useQueryClient();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [viewFilter, setViewFilter] = useState<string>('orders'); // NEW: orders, appointments, nearby, all
-    const [statusFilter, setStatusFilter] = useState<string>('all');
-    const [mechanicFilter, setMechanicFilter] = useState<string>('all');
-    const [debtFilter, setDebtFilter] = useState<string>('all');
 
-    const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
     const [sortConfig, setSortConfig] = useState<{ key: keyof OrdenDB | 'precio_total' | 'fecha_ingreso', direction: 'asc' | 'desc' }>({ key: 'fecha_ingreso', direction: 'desc' });
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -570,30 +574,32 @@ export default function OrdenesPage() {
             itemsToFilter = [...orders, ...allAppointments];
         }
 
-        return itemsToFilter.filter(order => {
-            const vehiculo = order.vehiculo;
-            const cliente = order.cliente;
-            const matchesSearch =
-                (order.id?.toString() || '').includes(searchTerm) ||
-                (order.patente_vehiculo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (vehiculo?.marca?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                (vehiculo?.modelo?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                (order.descripcion_ingreso || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (cliente?.nombre_completo?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                (order.cliente_nombre?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                (cliente?.telefono?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                (order.cliente_telefono?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                (order.precio_total?.toString() || '').includes(searchTerm);
+        return itemsToFilter.filter(item => {
+            // Si es una Orden Real, ya viene filtrada desde el backend de Supabase:
+            if (!item.isAppointment) return true;
 
-            const matchesStatus = statusFilter === 'all' || order.estado === statusFilter;
-            const matchesMechanic = mechanicFilter === 'all' || order.asignado_a === mechanicFilter;
-            const matchesDebt = debtFilter === 'all' ||
-                (debtFilter === 'con_deuda' && hasDebt(order)) ||
-                (debtFilter === 'sin_deuda' && !hasDebt(order));
+            // Lógica de filtrado local para las CITAS incrustadas:
+            const vehiculo = item.vehiculo;
+            const cliente = item.cliente;
+            const matchesSearch =
+                (item.id?.toString() || '').includes(debouncedSearchTerm) ||
+                (item.patente_vehiculo || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                (vehiculo?.marca?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
+                (vehiculo?.modelo?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
+                (item.descripcion_ingreso || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                (cliente?.nombre_completo?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
+                (item.cliente_nombre?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
+                (cliente?.telefono?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
+                (item.cliente_telefono?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
+                (item.precio_total?.toString() || '').includes(debouncedSearchTerm);
+
+            const matchesStatus = statusFilter === 'all' || item.estado === statusFilter;
+            const matchesMechanic = mechanicFilter === 'all' || item.asignado_a === mechanicFilter;
+            const matchesDebt = debtFilter === 'all'; // Citas no tienen deuda hasta convertirse
 
             const matchesDate =
-                (!dateRange.from || new Date(order.fecha_ingreso) >= new Date(dateRange.from)) &&
-                (!dateRange.to || new Date(order.fecha_ingreso) <= new Date(new Date(dateRange.to).setHours(23, 59, 59, 999)));
+                (!dateRange.from || new Date(item.fecha_ingreso) >= new Date(dateRange.from)) &&
+                (!dateRange.to || new Date(item.fecha_ingreso) <= new Date(new Date(dateRange.to).setHours(23, 59, 59, 999)));
 
             return matchesSearch && matchesStatus && matchesMechanic && matchesDebt && matchesDate;
         }).sort((a, b) => {
@@ -613,7 +619,7 @@ export default function OrdenesPage() {
             if (valA > valB) return 1 * direction;
             return 0;
         });
-    }, [orders, appointments, viewFilter, searchTerm, statusFilter, mechanicFilter, debtFilter, dateRange, sortConfig, vehiculosMap, hasDebt, appointmentToOrderFormat, isAppointmentNearby]);
+    }, [orders, appointments, viewFilter, debouncedSearchTerm, statusFilter, mechanicFilter, debtFilter, dateRange, sortConfig, vehiculosMap, appointmentToOrderFormat, isAppointmentNearby]);
 
     const handleSort = (key: keyof OrdenDB | 'precio_total' | 'fecha_ingreso') => {
         setSortConfig(current => ({
@@ -1049,7 +1055,7 @@ export default function OrdenesPage() {
                 <CardHeader>
                     <CardTitle className="text-slate-900 flex justify-between items-center">
                         <span>{filteredOrders.length} orden{filteredOrders.length !== 1 ? 'es' : ''} mostradas</span>
-                        <span className="text-sm text-slate-500 font-normal">Total: {totalOrdersCount}</span>
+                        <span className="text-sm text-slate-500 font-normal">Total: {totalTableCount}</span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1078,7 +1084,22 @@ export default function OrdenesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredOrders.map((order) => {
+                                {isLoadingOrders && (
+                                    <>
+                                        {[...Array(6)].map((_, i) => (
+                                            <TableRow key={`skeleton-${i}`} className="border-slate-200">
+                                                <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-24"></div></TableCell>
+                                                <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-32"></div></TableCell>
+                                                <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-48"></div></TableCell>
+                                                <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-20"></div></TableCell>
+                                                {canViewPrices && <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-16"></div></TableCell>}
+                                                <TableCell><div className="h-6 bg-slate-200 rounded-full animate-pulse w-20"></div></TableCell>
+                                                <TableCell></TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </>
+                                )}
+                                {!isLoadingOrders && filteredOrders.map((order) => {
                                     const isExpanded = expandedOrderId === order.id;
                                     const vehiculo = order.vehiculos;
                                     return (
@@ -1440,7 +1461,14 @@ export default function OrdenesPage() {
 
                     {/* Mobile List */}
                     <div className="md:hidden space-y-3">
-                        {filteredOrders.map((order) => {
+                        {isLoadingOrders && (
+                            <>
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={`mob-skeleton-${i}`} className="h-[100px] bg-slate-700/20 border border-slate-600/30 rounded-xl animate-pulse"></div>
+                                ))}
+                            </>
+                        )}
+                        {!isLoadingOrders && filteredOrders.map((order) => {
                             const vehiculo = order.vehiculos;
                             return (
                                 <MobileOrderCard
@@ -1467,27 +1495,35 @@ export default function OrdenesPage() {
                         })}
                     </div>
 
-                    {/* Loading Spinner & Sentinel */}
-                    <div className="py-4 flex justify-center w-full">
-                        {hasNextPage && (
-                            <div
-                                className="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-white transition-colors"
-                                onClick={() => fetchNextPage()}
-                            >
-                                {isFetchingNextPage ? (
-                                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                                ) : (
-                                    <div
-                                        ref={lastOrderElementRef}
-                                        className="h-4 w-full"
-                                    />
-                                )}
+                    {/* Controles de Paginación */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between px-4 py-4 border-t border-slate-700/50 mt-4 rounded-b-xl bg-slate-800/50">
+                            <div className="flex items-center gap-2 text-sm text-slate-400">
+                                <span>Página {page} de {totalPages}</span>
+                                <span className="hidden sm:inline">({totalTableCount} registros)</span>
                             </div>
-                        )}
-                        {!hasNextPage && orders.length > 0 && (
-                            <div className="text-xs text-slate-500 italic">No hay más órdenes para cargar</div>
-                        )}
-                    </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1 || isLoadingOrders}
+                                    className="border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300"
+                                >
+                                    Anterior
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages || isLoadingOrders}
+                                    className="border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300"
+                                >
+                                    Siguiente
+                                </Button>
+                            </div>
+                        </div>
+                    )}
 
                     {filteredOrders.length === 0 && !isLoadingOrders && (
                         <div className="text-center py-12">

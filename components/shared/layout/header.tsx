@@ -24,24 +24,24 @@ export function Header() {
             // Verificar si hay logs de modo offline en la consola
             const originalLog = console.log;
             const originalWarn = console.warn;
-            
-            console.log = function(...args) {
+
+            console.log = function (...args) {
                 if (args[0]?.includes?.('OFFLINE') || args[0]?.includes?.('offline')) {
                     setIsOffline(true);
                 }
                 originalLog.apply(console, args);
             };
-            
-            console.warn = function(...args) {
+
+            console.warn = function (...args) {
                 if (args[0]?.includes?.('OFFLINE') || args[0]?.includes?.('offline')) {
                     setIsOffline(true);
                 }
                 originalWarn.apply(console, args);
             };
         };
-        
+
         checkOfflineMode();
-        
+
         // También verificar periódicamente
         const interval = setInterval(() => {
             // Si hay errores de red, activar modo offline
@@ -49,7 +49,7 @@ export function Header() {
                 setIsOffline(true);
             }
         }, 5000);
-        
+
         return () => clearInterval(interval);
     }, []);
 
@@ -81,8 +81,8 @@ export function Header() {
                     )}
                     <div className="relative h-12 w-12 rounded-xl overflow-hidden border-2 border-[#0066FF] shadow-[0_0_15px_rgba(0,102,255,0.3)]">
                         <Image
-                            src="/images/logo-taller.png"
-                            alt="Logo Taller"
+                            src="/logo_flusize.png"
+                            alt="Logo Flusize"
                             fill
                             className="object-cover"
                             priority
