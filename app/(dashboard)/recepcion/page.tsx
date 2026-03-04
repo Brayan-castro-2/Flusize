@@ -1080,7 +1080,7 @@ function RecepcionContent() {
                         <button
                             type="button"
                             onClick={() => setShowAllServices(!showAllServices)}
-                            className="rounded-full border border-dashed border-slate-600 bg-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-white hover:border-slate-400 transition-colors"
+                            className="rounded-full border border-dashed border-slate-500 bg-slate-800/60 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700 hover:border-slate-400 transition-colors"
                         >
                             {showAllServices ? 'Ver menos' : `+${serviciosFrecuentesDB.length - 5} más`}
                         </button>
