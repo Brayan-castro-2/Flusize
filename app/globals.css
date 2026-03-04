@@ -207,17 +207,18 @@
 input,
 textarea,
 select {
-  border-color: #e2e8f0 !important; /* Lighter border for light mode forms */
-  color: #0f172a !important; /* Force dark text for visibility on light backgrounds */
+  border-color: #e2e8f0;
+  /* Lighter border for light mode forms */
+  color: inherit;
   background-color: #ffffff;
 }
 
 /* Permitir override explicito en dark mode si existe la clase */
-.dark input, 
-.dark textarea, 
+.dark input,
+.dark textarea,
 .dark select {
-  border-color: #333333 !important;
-  color: #f8fafc !important;
+  border-color: #333333;
+  color: #f8fafc;
   background-color: transparent;
 }
 
@@ -225,7 +226,7 @@ input:focus,
 textarea:focus,
 select:focus {
   @apply ring-2 ring-primary/50 ring-offset-2 ring-offset-background outline-none;
-  border-color: #0066FF !important;
+  border-color: #0066FF;
 }
 
 /* Scrollbar industrial */
