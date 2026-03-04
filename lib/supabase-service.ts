@@ -249,9 +249,7 @@ export async function obtenerClientes(busqueda?: string, tallerIdOverride?: stri
         .eq('taller_id', tallerId)
         .order('nombre_completo', { ascending: true });
 
-    if (busqueda) {
-        query = query.or(`nombre_completo.ilike.%${busqueda}%,rut_dni.ilike.%${busqueda}%,telefono.ilike.%${busqueda}%`);
-    }
+    // Se elimina el filtro en base de datos para realizarlo en memoria y poder buscar por patente
 
     const { data, error } = await query;
 
@@ -261,7 +259,7 @@ export async function obtenerClientes(busqueda?: string, tallerIdOverride?: stri
     }
 
     // Calcular estadísticas en el cliente (más eficiente que subqueries complejas en esta etapa)
-    return (data || []).map((cliente: any) => {
+    const resultados = (data || []).map((cliente: any) => {
         let totalOrdenes = 0;
         let totalGastado = 0;
         let ultimaVisitaStr: string | undefined;
@@ -292,6 +290,22 @@ export async function obtenerClientes(busqueda?: string, tallerIdOverride?: stri
             ultima_visita: ultimaVisitaStr
         };
     });
+
+    // Option B: Filtrado en memoria para incluir búsqueda por patente en vehículos anidados
+    if (busqueda) {
+        const term = busqueda.toLowerCase().trim();
+        return resultados.filter((cliente: any) => {
+            const matchNombre = cliente.nombre_completo?.toLowerCase().includes(term);
+            const matchRut = cliente.rut_dni?.toLowerCase().includes(term);
+            const matchTelefono = cliente.telefono?.toLowerCase().includes(term);
+            const matchEmail = cliente.email?.toLowerCase().includes(term);
+            const matchPatente = cliente.vehiculos?.some((v: any) => v.patente?.toLowerCase().includes(term));
+
+            return matchNombre || matchRut || matchTelefono || matchEmail || matchPatente;
+        });
+    }
+
+    return resultados;
 }
 
 // Buscar cliente por Teléfono (Identificador Principal V3.1) - MULTI-TENANT
