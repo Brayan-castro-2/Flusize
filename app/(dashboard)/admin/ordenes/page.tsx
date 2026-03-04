@@ -319,7 +319,9 @@ export default function OrdenesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
     const [page, setPage] = useState(1);
-    const [visibleCount, setVisibleCount] = useState(20);
+    const RENDER_LIMIT = 30;
+    const ROW_HEIGHT = 85; // Altura aproximada por fila
+    const [visibleCount, setVisibleCount] = useState(RENDER_LIMIT);
 
     const [viewFilter, setViewFilter] = useState<string>('orders');
     const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -648,29 +650,49 @@ export default function OrdenesPage() {
         });
     }, [orders, appointments, viewFilter, debouncedSearchTerm, statusFilter, mechanicFilter, debtFilter, dateRange, sortConfig, vehiculosMap, appointmentToOrderFormat, isAppointmentNearby]);
 
-    // INFINITE SCROLL OBSERVER
+    // VIRTUAL SCROLL (BIDIRECTIONAL)
     const observerRef = useRef<HTMLDivElement | null>(null);
+    const topObserverRef = useRef<HTMLDivElement | null>(null);
 
+    // Dynamic Top & Bottom indices
+    const startIndex = Math.max(0, visibleCount - RENDER_LIMIT);
+
+    // Bottom Observer: Load next 30
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting) {
-                    setVisibleCount((prev) => prev + 20);
+                if (entries[0].isIntersecting && visibleCount < filteredOrders.length) {
+                    setVisibleCount((prev) => Math.min(prev + RENDER_LIMIT, filteredOrders.length));
                 }
             },
-            { threshold: 0.1 }
+            { threshold: 0.1, rootMargin: "100px" }
         );
 
-        if (observerRef.current) {
-            observer.observe(observerRef.current);
-        }
-
+        if (observerRef.current) observer.observe(observerRef.current);
         return () => observer.disconnect();
-    }, [filteredOrders]);
+    }, [filteredOrders.length, visibleCount]);
+
+    // Top Observer: Load previous 30
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && startIndex > 0) {
+                    setVisibleCount((prev) => Math.max(RENDER_LIMIT, prev - RENDER_LIMIT));
+                }
+            },
+            { threshold: 0.1, rootMargin: "100px" }
+        );
+
+        if (topObserverRef.current) observer.observe(topObserverRef.current);
+        return () => observer.disconnect();
+    }, [startIndex]);
 
     const displayOrders = useMemo(() => {
-        return filteredOrders.slice(0, visibleCount);
-    }, [filteredOrders, visibleCount]);
+        return filteredOrders.slice(startIndex, visibleCount);
+    }, [filteredOrders, startIndex, visibleCount]);
+
+    const topPadding = startIndex * ROW_HEIGHT;
+    const bottomPadding = Math.max(0, filteredOrders.length - visibleCount) * ROW_HEIGHT;
 
     const handleSort = (key: keyof OrdenDB | 'precio_total' | 'fecha_ingreso') => {
         setSortConfig(current => ({
@@ -1150,6 +1172,12 @@ export default function OrdenesPage() {
                                         ))}
                                     </>
                                 )}
+                                {!isLoadingOrders && startIndex > 0 && (
+                                    <>
+                                        <TableRow><TableCell colSpan={7} className="p-0 border-0 h-0"><div ref={topObserverRef} className="h-1 w-full" /></TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={7} className="p-0 border-0" style={{ height: topPadding }} /></TableRow>
+                                    </>
+                                )}
                                 {!isLoadingOrders && displayOrders.map((order) => {
                                     const isExpanded = expandedOrderId === order.id;
                                     const vehiculo = order.vehiculos;
@@ -1509,11 +1537,18 @@ export default function OrdenesPage() {
                             </TableBody>
                         </Table>
 
-                        {/* Intersection Observer Anchor for Desktop */}
-                        {visibleCount < filteredOrders.length && (
-                            <div ref={observerRef} className="h-20 w-full flex items-center justify-center text-slate-400/50">
-                                <span className="animate-pulse">Cargando más registros...</span>
-                            </div>
+                        {/* Desktop Bottom Padding / Observer */}
+                        {!isLoadingOrders && visibleCount < filteredOrders.length && (
+                            <table className="w-full">
+                                <tbody>
+                                    <tr><td className="p-0 border-0 h-0"><div ref={observerRef} className="h-1 w-full" /></td></tr>
+                                    <tr><td className="p-0 border-0" style={{ height: bottomPadding }}>
+                                        <div className="h-full flex items-center justify-center text-slate-400/50">
+                                            <span className="animate-pulse">Cargando siguientes...</span>
+                                        </div>
+                                    </td></tr>
+                                </tbody>
+                            </table>
                         )}
                     </div>
 
@@ -1526,6 +1561,14 @@ export default function OrdenesPage() {
                                 ))}
                             </>
                         )}
+
+                        {!isLoadingOrders && startIndex > 0 && (
+                            <>
+                                <div ref={topObserverRef} className="h-1 w-full" />
+                                <div style={{ height: topPadding }} />
+                            </>
+                        )}
+
                         {!isLoadingOrders && displayOrders.map((order) => {
                             const vehiculo = order.vehiculo;
                             return (
@@ -1551,14 +1594,14 @@ export default function OrdenesPage() {
                                 />
                             );
                         })}
-                    </div>
 
-                    <div className="md:hidden space-y-3 pt-3">
-                        {/* Intersection Observer Anchor for Mobile */}
-                        {visibleCount < filteredOrders.length && (
-                            <div ref={observerRef} className="h-16 w-full flex items-center justify-center text-slate-400/50">
-                                <span className="animate-pulse">Cargando más registros...</span>
-                            </div>
+                        {!isLoadingOrders && visibleCount < filteredOrders.length && (
+                            <>
+                                <div ref={observerRef} className="h-1 w-full" />
+                                <div style={{ height: bottomPadding }} className="flex items-center justify-center text-slate-400/50">
+                                    <span className="animate-pulse">Cargando siguientes...</span>
+                                </div>
+                            </>
                         )}
                     </div>
 

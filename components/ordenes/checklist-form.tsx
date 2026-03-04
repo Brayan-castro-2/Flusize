@@ -251,10 +251,11 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         };
 
         // 1. Guardar Checklist Ingreso (Normal)
-        const handleGuardarIngreso = async () => {
+        const handleGuardarIngreso = () => {
             setIsSaving(true);
             try {
-                await guardarChecklist({
+                // Optimistic background save
+                guardarChecklist({
                     order_id: orderId,
                     items: {
                         ...items,
@@ -264,11 +265,12 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                     photos: photos,
                     comentarios_generales: comentarios,
                     fotos_extra: fotosExtra
-                });
-                toast.success('Checklist guardado correctamente');
+                }).catch(err => console.error('Error background checklist:', err));
+
+                toast.success('Guardando (Redirigiendo...)');
                 executeFastRouting();
             } catch (error) {
-                console.error('Error saving checklist:', error);
+                console.error('Error instanciando checklist:', error);
                 toast.error('Error al guardar checklist');
             } finally {
                 setIsSaving(false);
@@ -276,7 +278,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         };
 
         // 2. Confirmar Salida (Nuevo Flujo)
-        const handleConfirmarSalida = async () => {
+        const handleConfirmarSalida = () => {
             setIsSaving(true);
             try {
                 // Must have ID
@@ -286,24 +288,21 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                     return;
                 }
 
-                const success = await confirmarRevisionIngreso(checklistId, {
+                confirmarRevisionIngreso(checklistId, {
                     detalles_salida: {
                         ...itemsSalida,
                         comentarios_salida: comentariosSalida
                     },
                     fotos_salida: photosSalida,
                     confirmado_por: user?.id || 'unknown'
-                });
+                }).then((success) => {
+                    if (success) {
+                        actualizarOrden(orderId, { estado: 'entregada' } as any);
+                    }
+                }).catch(err => console.error(err));
 
-                if (success) {
-                    // Actualizar el estado de la orden a 'retirado' para que se refleje visualmente en la tabla principal
-                    await actualizarOrden(orderId, { estado: 'entregada' } as any);
-
-                    toast.success('🚗 Vehículo entregado y salida confirmada');
-                    executeFastRouting();
-                } else {
-                    toast.error('Error al confirmar salida');
-                }
+                toast.success('🚗 Vehículo entregado (Redirigiendo...)');
+                executeFastRouting();
             } catch (err) {
                 console.error(err);
                 toast.error('Error al confirmar');
@@ -316,18 +315,13 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
             handleConfirmarSalida();
         } else if (mode === 'readonly_ingreso') {
             // Confirm entry checklist (mechanic review)
-            const handleConfirmarIngreso = async () => {
+            const handleConfirmarIngreso = () => {
                 setIsSaving(true);
                 try {
                     const checklistId = initialData?.id || orderId;
-                    const success = await confirmarRevisionIngreso(checklistId);
-
-                    if (success) {
-                        toast.success('✅ Revisión confirmada');
-                        executeFastRouting();
-                    } else {
-                        toast.error('Error al confirmar revisión');
-                    }
+                    confirmarRevisionIngreso(checklistId).catch(err => console.error(err));
+                    toast.success('✅ Revisión confirmada (Redirigiendo...)');
+                    executeFastRouting();
                 } catch (err: any) {
                     console.error('Error al confirmar revisión:', err);
                     toast.error(`Error al confirmar: ${err?.message || 'Error desconocido'}`);

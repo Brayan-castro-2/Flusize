@@ -856,9 +856,9 @@ function RecepcionContent() {
     if (step === 'checklist' && createdOrderId) {
         return (
             <div className="mx-auto max-w-2xl px-4 py-8">
-                <div className="mb-6">
+                <div className="mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <h2 className="text-2xl font-black text-slate-900 mb-2">Checklist de Ingreso 📝</h2>
-                    <p className="text-slate-400">Completa la inspección visual del vehículo.</p>
+                    <p className="text-slate-600 font-medium">Completa la inspección visual del vehículo.</p>
                 </div>
 
                 <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-6">
