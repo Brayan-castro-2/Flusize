@@ -1066,6 +1066,11 @@ export default function OrdenesPage() {
                                     <TableHead className="text-slate-700 font-semibold cursor-pointer hover:text-blue-600" onClick={() => handleSort('asignado_a')}>
                                         <div className="flex items-center">Asignado <SortIcon column="asignado_a" /></div>
                                     </TableHead>
+                                    {canViewPrices && (
+                                        <TableHead className="text-slate-700 font-semibold cursor-pointer hover:text-blue-600" onClick={() => handleSort('precio_total')}>
+                                            <div className="flex items-center">Total <SortIcon column="precio_total" /></div>
+                                        </TableHead>
+                                    )}
                                     <TableHead className="text-slate-700 font-semibold cursor-pointer hover:text-blue-600" onClick={() => handleSort('estado')}>
                                         <div className="flex items-center">Estado <SortIcon column="estado" /></div>
                                     </TableHead>
@@ -1110,6 +1115,19 @@ export default function OrdenesPage() {
                                                         {order.asignado ? order.asignado.nombre_completo : 'Sin asignar'}
                                                     </div>
                                                 </TableCell>
+                                                {canViewPrices && (
+                                                    <TableCell className="text-slate-700">
+                                                        <div className="text-sm font-semibold">
+                                                            {order.precio_total ? (
+                                                                <span className="text-emerald-600">
+                                                                    {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(order.precio_total)}
+                                                                </span>
+                                                            ) : (
+                                                                <Badge variant="outline" className="bg-slate-100 text-slate-400 hover:bg-slate-100 font-normal">Sin Valor</Badge>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                )}
                                                 <TableCell>
                                                     <div className="flex items-center gap-1">
                                                         {getStatusBadge(order.estado, order.id, true)}
