@@ -857,7 +857,7 @@ function RecepcionContent() {
         return (
             <div className="mx-auto max-w-2xl px-4 py-8">
                 <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-white mb-2">Checklist de Ingreso 📝</h2>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Checklist de Ingreso 📝</h2>
                     <p className="text-slate-400">Completa la inspección visual del vehículo.</p>
                 </div>
 

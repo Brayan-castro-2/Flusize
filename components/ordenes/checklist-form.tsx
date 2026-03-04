@@ -236,6 +236,20 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
 
     // Optimistic Save
     const handleSave = () => {
+        const executeFastRouting = () => {
+            // Fast Routing bypasses heavy React states
+            setTimeout(() => {
+                window.location.href = '/admin/ordenes';
+            }, 50);
+
+            // Timeout de Seguridad
+            setTimeout(() => {
+                window.location.reload();
+            }, 4000);
+
+            if (onClose) onClose();
+        };
+
         // 1. Guardar Checklist Ingreso (Normal)
         const handleGuardarIngreso = async () => {
             setIsSaving(true);
@@ -252,7 +266,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                     fotos_extra: fotosExtra
                 });
                 toast.success('Checklist guardado correctamente');
-                if (onClose) onClose();
+                executeFastRouting();
             } catch (error) {
                 console.error('Error saving checklist:', error);
                 toast.error('Error al guardar checklist');
@@ -286,8 +300,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                     await actualizarOrden(orderId, { estado: 'entregada' } as any);
 
                     toast.success('🚗 Vehículo entregado y salida confirmada');
-                    // Invalidate queries or reload handled by parent usually
-                    if (onClose) onClose();
+                    executeFastRouting();
                 } else {
                     toast.error('Error al confirmar salida');
                 }
@@ -311,7 +324,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
 
                     if (success) {
                         toast.success('✅ Revisión confirmada');
-                        if (onClose) onClose();
+                        executeFastRouting();
                     } else {
                         toast.error('Error al confirmar revisión');
                     }

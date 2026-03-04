@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, Fragment, useRef, useEffect } from 'react';
-import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita, obtenerChecklist } from '@/lib/storage-adapter';
+import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita, obtenerChecklist, obtenerOrdenPorId } from '@/lib/storage-adapter';
 import { generateOrderPDF } from '@/lib/pdf-generator';
 import { useOrders, useOrdersCount, useDeleteOrder, useUpdateOrder, ORDERS_QUERY_KEY } from '@/hooks/use-orders';
 import { useQueryClient } from '@tanstack/react-query';
@@ -395,14 +395,34 @@ export default function OrdenesPage() {
         fetchChecklist(orderId);
     };
 
-    const handleChecklistClose = () => {
+    const handleChecklistClose = async () => {
         const orderId = checklistDialog.orderId;
         setChecklistDialog({ open: false, orderId: null, mode: 'checklist' });
-        // Refresh checklist data
+
         if (orderId) {
-            // Invalidar queries de órdenes para mostrar el nuevo estado si fue confirmado
-            queryClient.invalidateQueries({ queryKey: ['orders'] });
-            queryClient.invalidateQueries({ queryKey: ['dashboard_orders'] });
+            // Optimización de Memoria (Fast Lane UX): Fetch solo de la orden afectada por ID
+            try {
+                const updatedOrder = await obtenerOrdenPorId(orderId);
+                if (updatedOrder) {
+                    // Actualizar caché reactiva local sin recargar los 1.601 registros
+                    queryClient.setQueryData(ORDERS_QUERY_KEY, (oldOrders: OrdenDB[] | undefined) => {
+                        if (!oldOrders) return oldOrders;
+                        return oldOrders.map(o => String(o.id) === String(orderId) ? { ...o, ...updatedOrder } : o);
+                    });
+
+                    queryClient.setQueryData(['dashboard_orders'], (oldOrders: OrdenDB[] | undefined) => {
+                        if (!oldOrders) return oldOrders;
+                        return oldOrders.map(o => String(o.id) === String(orderId) ? { ...o, ...updatedOrder } : o);
+                    });
+                }
+            } catch (err) {
+                console.error("Error optimizando fetch por ID:", err);
+            }
+
+            // Ya no invalidamos los 1.601 registros de golpe
+            // queryClient.invalidateQueries({ queryKey: ['orders'] });
+            // queryClient.invalidateQueries({ queryKey: ['dashboard_orders'] });
+
             // Forzar actualización de router cache de Next.js
             router.refresh();
 
