@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
@@ -122,34 +122,25 @@ export default function ClientesPage() {
     };
 
     // Fetching Logic (Server-Side full fetch for local memory search)
-    useEffect(() => {
-        let isMounted = true;
-
-        async function fetchClientes() {
-            setIsLoading(true);
-            try {
-                // LLAMADA AL BACKEND: Obtener todos, con filtrado local si hay SearchTerm
-                const data = await obtenerClientes(debouncedSearchTerm);
-
-                if (isMounted) {
-                    if (data) {
-                        setClientes(data);
-                        setTotalCount(data.length);
-                    }
-                }
-            } catch (error) {
-                console.error("Error cargando clientes:", error);
-            } finally {
-                if (isMounted) setIsLoading(false);
+    const fetchClientes = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            // LLAMADA AL BACKEND: Obtener todos, con filtrado local si hay SearchTerm
+            const data = await obtenerClientes(debouncedSearchTerm);
+            if (data) {
+                setClientes(data);
+                setTotalCount(data.length);
             }
+        } catch (error) {
+            console.error("Error cargando clientes:", error);
+        } finally {
+            setIsLoading(false);
         }
-
-        fetchClientes();
-
-        return () => {
-            isMounted = false;
-        };
     }, [debouncedSearchTerm]);
+
+    useEffect(() => {
+        fetchClientes();
+    }, [fetchClientes]);
 
     // Reset visible count on filter/search change
     useEffect(() => {
