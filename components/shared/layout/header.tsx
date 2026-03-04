@@ -81,8 +81,8 @@ export function Header() {
                     )}
                     <div className="relative h-12 w-12 rounded-xl overflow-hidden border-2 border-[#0066FF] shadow-[0_0_15px_rgba(0,102,255,0.3)]">
                         <Image
-                            src="/logo_flusize.png"
-                            alt="Logo Flusize"
+                            src="/logo-celular.png"
+                            alt="Brand Logo Flusize"
                             fill
                             className="object-cover"
                             priority

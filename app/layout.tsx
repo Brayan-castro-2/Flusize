@@ -31,14 +31,20 @@ export const metadata: Metadata = {
     description: 'Gestiona órdenes, fideliza clientes y toma el control total de tu taller automotriz.',
     images: [
       {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
+        url: '/logo-celular.png',
+        width: 400,
+        height: 400,
         alt: 'Flusize Logo',
       },
     ],
     type: 'website',
   },
+  twitter: {
+    card: 'summary',
+    title: 'Flusize - Control Automotriz',
+    description: 'Gestiona órdenes, fideliza clientes y toma el control total de tu taller automotriz.',
+    images: ['/logo-celular.png'],
+  }
 };
 
 export const viewport: Viewport = {
@@ -62,6 +68,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Flusize" />
+        {/* SEO Googlebot Directives */}
+        <link rel="icon" href="/logo-celular.png" sizes="any" />
+        <link rel="apple-touch-icon" href="/logo-celular.png" />
+        <meta property="og:image" content="/logo-celular.png" />
+        <meta name="twitter:image" content="/logo-celular.png" />
       </head>
       <body className={inter.className}>
         <ClientProviders>
