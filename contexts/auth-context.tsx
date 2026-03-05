@@ -38,6 +38,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const isInitialized = { current: false }; // bandera para evitar re-fetch en navegación
     const router = useRouter();
 
     useEffect(() => {
@@ -61,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (error) {
                 console.error('[AuthContext Debug] Error init session:', error);
                 if (mounted) setIsLoading(false);
+            } finally {
+                isInitialized.current = true;
             }
         };
 
@@ -68,13 +71,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' && session?.user) {
-                await fetchAndSetUser(session.user);
+                // Solo re-fetch si aún no está inicializado (primer login)
+                // En navegación entre páginas Next.js puede re-disparar SIGNED_IN — lo ignoramos
+                if (!isInitialized.current) {
+                    await fetchAndSetUser(session.user);
+                }
                 if (window.location.pathname === '/login' || window.location.pathname === '/') {
                     router.push('/admin/ordenes');
                 }
             } else if (event === 'SIGNED_OUT') {
+                isInitialized.current = false;
                 setUser(null);
                 router.push('/login');
+            } else if (event === 'TOKEN_REFRESHED' && session?.user && isInitialized.current) {
+                // Actualización silenciosa del token — solo actualizar el user sin loading
+                fetchAndSetUser(session.user);
             }
         });
 
