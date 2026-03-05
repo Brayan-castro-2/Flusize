@@ -774,8 +774,9 @@ export async function obtenerOrdenesPaginadas(
 
 
         if (searchTerm) {
-            // Buscamos coincidencia en ID o detalles internos directo de la tabla de órdenes
-            query = query.or(`id.ilike.%${searchTerm}%,patente_vehiculo.ilike.%${searchTerm}%`);
+            const cleanSearch = searchTerm.trim();
+            // Búsqueda inteligente en múltiples campos gracias a la nueva vista ampliada
+            query = query.or(`id.ilike.%${cleanSearch}%,patente_vehiculo.ilike.%${cleanSearch}%,vehiculo_marca.ilike.%${cleanSearch}%,vehiculo_modelo.ilike.%${cleanSearch}%,cliente_nombre.ilike.%${cleanSearch}%,cliente_rut.ilike.%${cleanSearch}%`);
         }
 
         // Aplicar Filtros Rest
