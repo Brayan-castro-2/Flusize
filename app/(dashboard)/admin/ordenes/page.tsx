@@ -1132,8 +1132,8 @@ export default function OrdenesPage() {
                                         <div className="flex items-center">Patente <SortIcon column="patente_vehiculo" /></div>
                                     </TableHead>
                                     <TableHead className="text-slate-700 font-semibold">Vehículo</TableHead>
-                                    <TableHead className="text-slate-700 font-semibold">Motivo</TableHead>
-                                    <TableHead className="text-slate-700 font-semibold cursor-pointer hover:text-blue-600" onClick={() => handleSort('asignado_a')}>
+                                    <TableHead className="text-slate-700 font-semibold hidden xl:table-cell">Motivo</TableHead>
+                                    <TableHead className="text-slate-700 font-semibold cursor-pointer hover:text-blue-600 hidden lg:table-cell" onClick={() => handleSort('asignado_a')}>
                                         <div className="flex items-center">Asignado <SortIcon column="asignado_a" /></div>
                                     </TableHead>
                                     {canViewPrices && (
@@ -1152,10 +1152,10 @@ export default function OrdenesPage() {
                                     <>
                                         {[...Array(6)].map((_, i) => (
                                             <TableRow key={`skeleton-${i}`} className="border-slate-200">
+                                                <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-16"></div></TableCell>
                                                 <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-24"></div></TableCell>
-                                                <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-32"></div></TableCell>
-                                                <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-48"></div></TableCell>
-                                                <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-20"></div></TableCell>
+                                                <TableCell className="hidden xl:table-cell"><div className="h-4 bg-slate-200 rounded animate-pulse w-32"></div></TableCell>
+                                                <TableCell className="hidden lg:table-cell"><div className="h-4 bg-slate-200 rounded animate-pulse w-20"></div></TableCell>
                                                 {canViewPrices && <TableCell><div className="h-4 bg-slate-200 rounded animate-pulse w-16"></div></TableCell>}
                                                 <TableCell><div className="h-6 bg-slate-200 rounded-full animate-pulse w-20"></div></TableCell>
                                                 <TableCell></TableCell>
@@ -1190,25 +1190,22 @@ export default function OrdenesPage() {
                                                         {hasDebt(order) && <span className="text-red-500 text-xs">💳</span>}
                                                     </div>
 
-                                                    <div className="text-xs text-slate-700 font-medium truncate max-w-[100px]">
+                                                    <div className="text-xs text-slate-700 font-medium truncate max-w-[80px]">
                                                         {order.cliente?.nombre_completo || order.cliente_nombre || 'Cliente S/R'}
-                                                    </div>
-                                                    <div className="text-xs text-slate-600 truncate max-w-[100px]">
-                                                        {order.cliente?.telefono || order.cliente_telefono}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-slate-700">
-                                                    <div className="text-sm truncate max-w-[140px]">
-                                                        {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-'}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-slate-700" title={getCleanMotivo(order.descripcion_ingreso)}>
-                                                    <div className="text-sm truncate max-w-[180px]">
-                                                        {getCleanMotivo(order.descripcion_ingreso)}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-slate-700">
                                                     <div className="text-sm truncate max-w-[100px]">
+                                                        {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-'}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-slate-700 hidden xl:table-cell" title={getCleanMotivo(order.descripcion_ingreso)}>
+                                                    <div className="text-sm truncate max-w-[150px]">
+                                                        {getCleanMotivo(order.descripcion_ingreso)}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-slate-700 hidden lg:table-cell">
+                                                    <div className="text-sm truncate max-w-[90px]">
                                                         {order.asignado ? order.asignado.nombre_completo : 'Sin asignar'}
                                                     </div>
                                                 </TableCell>
@@ -1312,7 +1309,7 @@ export default function OrdenesPage() {
                                             {
                                                 isExpanded && (
                                                     <TableRow key={`${order.id}-expanded`} className="border-slate-700">
-                                                        <TableCell colSpan={6} className="bg-slate-800/80 p-0">
+                                                        <TableCell colSpan={canViewPrices ? 7 : 6} className="bg-slate-800/80 p-0">
                                                             <div className="p-6 space-y-4">
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                     {/* Información del Vehículo */}
