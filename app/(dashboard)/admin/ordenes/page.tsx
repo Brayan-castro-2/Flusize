@@ -2,9 +2,21 @@
 
 import React, { useState, useMemo, useCallback, Fragment, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
+
+// Importaciones dinámicas para reducir el JS inicial (PageSpeed Optimization)
+const ChecklistForm = dynamic(() => import('@/components/ordenes/checklist-form'), {
+    ssr: false,
+    loading: () => <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>
+});
+
+const OrderWorkflowActions = dynamic(() => import('@/components/ordenes/order-workflow-actions').then(mod => mod.OrderWorkflowActions), {
+    ssr: false
+});
+
 import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita, obtenerChecklist, obtenerOrdenPorId } from '@/lib/storage-adapter';
 import { generateOrderPDF } from '@/lib/pdf-generator';
-import { useOrders, useOrdersCount, useDeleteOrder, useUpdateOrder, usePaginatedOrders, ORDERS_QUERY_KEY } from '@/hooks/use-orders';
+import { useOrders, useOrdersCount, useDeleteOrder, useUpdateOrder, useInfiniteOrders, ORDERS_QUERY_KEY } from '@/hooks/use-orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePerfiles } from '@/hooks/use-perfiles';
@@ -47,10 +59,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-const ChecklistForm = dynamic(() => import('@/components/ordenes/checklist-form'), {
-    ssr: false,
-    loading: () => <div className="flex items-center justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>
-});
+// La definición dinámica ya está al principio del archivo
 import {
     Plus,
     Search,
@@ -74,13 +83,13 @@ import {
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
-    Loader2,
+    // Loader2 ya importado arriba
     ChevronRight,
 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 
 import Link from 'next/link';
-import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions';
+// import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions'; // Eliminada para usar versión dinámica
 
 
 // ─── Mobile Order Card (Accordion + Long Press) ─────────────────────────────
@@ -322,11 +331,6 @@ export default function OrdenesPage() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 200);
-    const [page, setPage] = useState(1);
-    const RENDER_LIMIT = 30;
-    const ROW_HEIGHT = 85; // Altura aproximada por fila
-    const [visibleCount, setVisibleCount] = useState(RENDER_LIMIT);
-
     const [viewFilter, setViewFilter] = useState<string>('orders');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [mechanicFilter, setMechanicFilter] = useState<string>('all');
@@ -340,25 +344,40 @@ export default function OrdenesPage() {
         debt: debtFilter
     }), [statusFilter, mechanicFilter, dateRange, debtFilter]);
 
-    // ─── PAGINACIÓN SERVER-SIDE (reemplaza descarga masiva de 1.3MB con 18KB)
-    // La búsqueda ILIKE, filtros de estado/fecha y paginación ocurren en PostgreSQL
+    // ─── PAGINACIÓN INFINITA (reemplaza descarga masiva)
     const {
-        data: paginatedResult,
+        data: infiniteData,
         isLoading: isLoadingOrders,
-        isFetching: isFetchingOrders,
-    } = usePaginatedOrders(page, 30, debouncedSearchTerm, restFilters, user?.tallerId);
+        isFetchingNextPage,
+        fetchNextPage,
+        hasNextPage,
+    } = useInfiniteOrders(30, debouncedSearchTerm, restFilters, user?.tallerId);
 
-    const orders = paginatedResult?.data || [];
-    const totalTableCount = paginatedResult?.count || 0;
-    const totalPages = Math.ceil(totalTableCount / 30);
+    const orders = useMemo(() => {
+        return infiniteData?.pages.flatMap(page => page.orders) || [];
+    }, [infiniteData]);
 
-    // Para búsqueda de registro completo cuando sea necesario (fallback local con el array de la pàgina actual)
-    const allOrders = orders;
+    const totalTableCount = infiniteData?.pages[0]?.count || 0;
 
-    // Reset visible count on filter/search change
+    // Elemento observador para Infinite Scroll
+    const observerTarget = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
-        setVisibleCount(20);
-    }, [debouncedSearchTerm, restFilters, viewFilter]);
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (observerTarget.current) {
+            observer.observe(observerTarget.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     const { data: appointments = [], isLoading: isLoadingAppointments } = useAppointments();
     const { data: perfiles = [], isLoading: isLoadingPerfiles } = usePerfiles();
@@ -656,33 +675,13 @@ export default function OrdenesPage() {
     }, [orders, appointments, viewFilter, statusFilter, mechanicFilter, sortConfig, appointmentToOrderFormat, isAppointmentNearby]);
 
 
-    // SIMPLE INFINITE SCROLL (ON WINDOW SCROLL)
-    useEffect(() => {
-        const handleScroll = () => {
-            const scrollTop = window.scrollY || document.documentElement.scrollTop;
-            const scrollHeight = document.documentElement.scrollHeight;
-            const clientHeight = document.documentElement.clientHeight;
-
-            // Load more when reaching bottom (150px threshold)
-            if (scrollHeight - scrollTop <= clientHeight + 150) {
-                setVisibleCount((prev) => {
-                    if (prev < filteredOrders.length) {
-                        return Math.min(prev + RENDER_LIMIT, filteredOrders.length);
-                    }
-                    return prev;
-                });
-            }
-        };
-
-        window.addEventListener('scroll', handleScroll);
-        // Execute once to fill screen if needed
-        handleScroll();
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [filteredOrders.length]);
-
     const displayOrders = useMemo(() => {
-        return filteredOrders.slice(0, visibleCount);
-    }, [filteredOrders, visibleCount]);
+        // En modo 'orders', usamos directamente los datos del infinite scroll
+        if (viewFilter === 'orders') return orders;
+
+        // En otros modos (combinados con citas), usamos el filteredOrders general
+        return filteredOrders;
+    }, [viewFilter, orders, filteredOrders]);
 
     const handleSort = (key: keyof OrdenDB | 'precio_total' | 'fecha_ingreso') => {
         setSortConfig(current => ({
@@ -831,7 +830,7 @@ export default function OrdenesPage() {
         }
     };
 
-    const handlePrintOrder = async (order: any) => {
+    const handlePrintOrder = async (order: OrdenDB | any) => {
         try {
             // Fetch checklist on demand
             const checklist = await obtenerChecklist(String(order.id));
@@ -1531,12 +1530,19 @@ export default function OrdenesPage() {
                             </TableBody>
                         </Table>
 
-                        {/* Scroll Loading Indicator Desktop */}
-                        {!isLoadingOrders && visibleCount < filteredOrders.length && (
-                            <div className="h-20 w-full flex items-center justify-center text-slate-400/50">
-                                <span className="animate-pulse">Cargando siguientes...</span>
-                            </div>
-                        )}
+                        {/* Scroll Loading Indicator Desktop / Observer Target */}
+                        <div ref={observerTarget} className="h-20 w-full flex items-center justify-center text-slate-400">
+                            {(isFetchingNextPage || isLoadingOrders) ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                    <span className="text-sm font-medium">Cargando órdenes...</span>
+                                </div>
+                            ) : hasNextPage ? (
+                                <span className="text-xs opacity-30 italic">Desliza para cargar más</span>
+                            ) : orders.length > 0 ? (
+                                <span className="text-xs opacity-30 italic">Has llegado al final de las {totalTableCount} órdenes</span>
+                            ) : null}
+                        </div>
                     </div>
 
                     {/* Mobile List */}
@@ -1575,10 +1581,15 @@ export default function OrdenesPage() {
                             );
                         })}
 
-                        {/* Scroll Loading Indicator Mobile */}
-                        {!isLoadingOrders && visibleCount < filteredOrders.length && (
-                            <div className="h-16 w-full flex items-center justify-center text-slate-400/50">
-                                <span className="animate-pulse">Cargando siguientes...</span>
+                        {/* Feedback de Carga Mobile */}
+                        {isFetchingNextPage && (
+                            <div className="flex flex-col gap-3 py-4">
+                                {[...Array(2)].map((_, i) => (
+                                    <div key={`mob-next-skeleton-${i}`} className="h-[100px] bg-slate-700/10 border border-slate-600/20 rounded-xl animate-pulse"></div>
+                                ))}
+                                <div className="flex justify-center">
+                                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                </div>
                             </div>
                         )}
                     </div>

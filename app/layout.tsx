@@ -7,7 +7,10 @@ import { Toaster } from 'sileo'
 import { ClientProviders } from '@/components/client-providers'
 import { Analytics } from "@vercel/analytics/next"
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: {

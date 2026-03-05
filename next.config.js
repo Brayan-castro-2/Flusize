@@ -6,8 +6,10 @@ const nextConfig = {
   poweredByHeader: false,
 
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'date-fns', 'clsx', 'tailwind-merge'],
   },
+  // Forzar targets modernos para evitar polyfills innecesarios (ES2020+)
+  transpilePackages: ['lucide-react'],
 
   images: {
     formats: ['image/avif', 'image/webp'],

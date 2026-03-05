@@ -5,23 +5,27 @@ import type { OrderRestFilters } from '@/lib/supabase-service';
 
 export const ORDERS_QUERY_KEY = ['orders'];
 
-// Hook para scroll infinito (Obsoleto post-refactor Paginado)
-export function useInfiniteOrders(tallerId?: string) {
+// Hook para scroll infinito real integrado con filtros y búsqueda
+export function useInfiniteOrders(
+    pageSize: number,
+    searchTerm: string,
+    filters: OrderRestFilters,
+    tallerId?: string
+) {
     return useInfiniteQuery({
-        queryKey: ['orders', 'infinite', tallerId],
-        queryFn: async ({ pageParam = 0 }) => {
-            const limit = 20;
-            const orders = await obtenerOrdenes(limit, pageParam, tallerId);
+        queryKey: ['orders', 'infinite', pageSize, searchTerm, filters, tallerId],
+        queryFn: async ({ pageParam = 1 }) => {
+            const result = await obtenerOrdenesPaginadas(pageParam, pageSize, searchTerm, filters, tallerId);
             return {
-                orders,
-                nextCursor: orders.length === limit ? pageParam + limit : undefined,
+                orders: result.data || [],
+                count: result.count || 0,
+                nextPage: (result.data?.length || 0) === pageSize ? pageParam + 1 : undefined,
             };
         },
         enabled: !!tallerId,
-        initialPageParam: 0,
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-        staleTime: 5 * 60 * 1000,
-        gcTime: 15 * 60 * 1000,
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) => lastPage.nextPage,
+        staleTime: 30 * 1000,
         placeholderData: (previousData) => previousData,
     });
 }
