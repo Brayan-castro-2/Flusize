@@ -51,6 +51,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { ClienteModal } from '@/components/clientes/cliente-modal';
+import { useInfiniteClientes } from '@/hooks/use-clientes';
 
 // Helper for formatting currency
 const formatCurrency = (amount: number) => {
@@ -109,15 +110,24 @@ export default function ClientesPage() {
     const searchParams = useSearchParams();
     const query = searchParams.get('q') || '';
 
-    // State
-    const [clientes, setClientes] = useState<ClienteWithStats[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    // Pagination & Search
+    // React Query Infinite Scroll
     const [searchTerm, setSearchTerm] = useState(query);
-    const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce
-    const [visibleCount, setVisibleCount] = useState(20);
-    const [totalCount, setTotalCount] = useState(0);
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: isLoadingInitial,
+        refetch
+    } = useInfiniteClientes(debouncedSearchTerm, 20);
+
+    const allClientes = useMemo(() => {
+        return data?.pages.flatMap(page => page.data) || [];
+    }, [data]);
+
+    const totalCount = data?.pages[0]?.count || 0;
 
     const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -168,57 +178,11 @@ export default function ClientesPage() {
         setSortConfig({ key, direction });
     };
 
-    // Fetching Logic (Server-Side full fetch for local memory search)
-    const fetchClientes = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            // LLAMADA AL BACKEND: Obtener todos, con filtrado local si hay SearchTerm
-            const data = await obtenerClientes(debouncedSearchTerm);
-            if (data) {
-                setClientes(data);
-                setTotalCount(data.length);
-            }
-        } catch (error) {
-            console.error("Error cargando clientes:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [debouncedSearchTerm]);
-
-    useEffect(() => {
-        fetchClientes();
-    }, [fetchClientes]);
-
-    // Reset visible count on filter/search change
-    useEffect(() => {
-        setVisibleCount(20);
-    }, [debouncedSearchTerm, sortConfig]);
-
-    // INFINITE SCROLL OBSERVER
-    const observerRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting) {
-                    setVisibleCount((prev) => prev + 20);
-                }
-            },
-            { threshold: 0.1 }
-        );
-
-        if (observerRef.current) {
-            observer.observe(observerRef.current);
-        }
-
-        return () => observer.disconnect();
-    }, [clientes]);
-
-    // Derived State
-    const sortedClientes = useMemo(() => {
-        let sortableItems = [...clientes];
+    // Sorting Logic (Local sorting for current displayed items)
+    const displayClientes = useMemo(() => {
+        let sortableItems = [...allClientes];
         if (sortConfig !== null) {
-            sortableItems.sort((a, b) => {
+            sortableItems.sort((a, b: any) => {
                 const key = sortConfig.key as keyof ClienteWithStats;
                 const valA = a[key] ?? '';
                 const valB = b[key] ?? '';
@@ -228,20 +192,43 @@ export default function ClientesPage() {
             });
         }
         return sortableItems;
-    }, [clientes, sortConfig]);
+    }, [allClientes, sortConfig]);
 
-    const displayClientes = useMemo(() => {
-        return sortedClientes.slice(0, visibleCount);
-    }, [sortedClientes, visibleCount]);
+    // INFINITE SCROLL OBSERVER
+    const observerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!hasNextPage || isFetchingNextPage) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentTarget = observerRef.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [fetchNextPage, hasNextPage, isFetchingNextPage, allClientes]);
 
     // Fetch clients
     const premiumClientId = useMemo(() => {
-        if (!clientes || clientes.length === 0) return null;
-        const maxOrders = Math.max(...clientes.map(c => c.total_ordenes || 0));
+        if (!allClientes || allClientes.length === 0) return null;
+        const maxOrders = Math.max(...allClientes.map(c => c.total_ordenes || 0));
         if (maxOrders === 0) return null;
-        const topClients = clientes.filter(c => c.total_ordenes === maxOrders);
+        const topClients = allClientes.filter(c => c.total_ordenes === maxOrders);
         return topClients.length === 1 ? topClients[0].id : null;
-    }, [clientes]);
+    }, [allClientes]);
 
     const confirmOrderVehicle = (patente: string) => {
         router.push(`/recepcion?patente=${patente}`);
@@ -251,11 +238,11 @@ export default function ClientesPage() {
     // Calculate KPIs
     const kpis = useMemo(() => {
         const total = totalCount; // Usamos la variable de paginación del servidor!
-        const active = clientes.filter(c => c.total_ordenes > 0).length;
-        const totalRevenue = clientes.reduce((acc, c) => acc + (c.total_gastado || 0), 0);
+        const active = allClientes.filter(c => c.total_ordenes > 0).length;
+        const totalRevenue = allClientes.reduce((acc, c) => acc + (c.total_gastado || 0), 0);
 
         let totalDebt = 0;
-        clientes.forEach(c => {
+        allClientes.forEach(c => {
             if (c.vehiculos) {
                 c.vehiculos.forEach((v: any) => {
                     if (v.ordenes) {
@@ -277,7 +264,7 @@ export default function ClientesPage() {
         });
 
         return { total, active, totalRevenue, totalDebt };
-    }, [clientes, totalCount]);
+    }, [allClientes, totalCount]);
 
     // Handle Search
     const handleSearch = (e: React.FormEvent) => {
@@ -381,9 +368,9 @@ export default function ClientesPage() {
 
             {/* CONTENT AREA */}
             <div className="space-y-4">
-                {isLoading ? (
+                {isLoadingInitial ? (
                     <ClientesSkeleton />
-                ) : sortedClientes.length === 0 ? (
+                ) : allClientes.length === 0 ? (
                     <div className="text-center p-16 text-slate-500 bg-[#0F172A] rounded-2xl border border-slate-800 shadow-inner">
                         <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Users className="w-10 h-10 opacity-40 text-slate-400" />
@@ -735,22 +722,20 @@ export default function ClientesPage() {
                                     </tbody>
                                 </table>
 
-                                {/* Intersection Observer Anchor for Desktop */}
-                                {visibleCount < sortedClientes.length && (
-                                    <div ref={observerRef} className="h-20 w-full flex items-center justify-center text-slate-400/50">
-                                        <span className="animate-pulse">Cargando más clientes...</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="md:hidden space-y-3 pt-3">
-                            {/* Intersection Observer Anchor for Mobile */}
-                            {visibleCount < sortedClientes.length && (
-                                <div ref={observerRef} className="h-16 w-full flex items-center justify-center text-slate-400/50">
-                                    <span className="animate-pulse">Cargando más clientes...</span>
+                                {/* Intersection Observer Anchor */}
+                                <div ref={observerRef} className="h-20 w-full flex items-center justify-center text-slate-400 gap-3 py-10">
+                                    {isFetchingNextPage ? (
+                                        <>
+                                            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                                            <span>Cargando más clientes...</span>
+                                        </>
+                                    ) : hasNextPage ? (
+                                        <span className="text-slate-500/50">Desliza para cargar más</span>
+                                    ) : (
+                                        <span className="text-slate-500/30 font-medium tracking-wider">FIN DEL DIRECTORIO</span>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </>
                 )}
@@ -762,7 +747,7 @@ export default function ClientesPage() {
                     setIsModalOpen(false);
                     setSelectedCliente(undefined);
                 }}
-                onSave={fetchClientes}
+                onSave={refetch}
                 cliente={selectedCliente}
                 defaultTab={modalTab}
             />
