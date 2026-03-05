@@ -946,7 +946,14 @@ function RecepcionContent() {
                     </button>
                 </div>
 
-                {estadoBusqueda ? <div className="mt-3 text-sm text-slate-300">{estadoBusqueda}</div> : null}
+                {estadoBusqueda ? (
+                    <div className={`mt-3 p-3 rounded-xl border text-sm font-medium ${estadoBusqueda.includes('❌') ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                            estadoBusqueda.includes('✅') ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                                'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                        }`}>
+                        {estadoBusqueda}
+                    </div>
+                ) : null}
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                     <div>
@@ -1304,7 +1311,7 @@ function RecepcionContent() {
             </div>
 
             {/* Floating Action Button (FAB) (Top-level z-index) */}
-            <div className={`fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-900/95 p-4 backdrop-blur-md md:hidden ${successMsg ? 'hidden' : ''}`}>
+            <div className={`fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-900/95 p-4 backdrop-blur-md lg:hidden ${successMsg || step === 'checklist' ? 'hidden' : ''}`}>
                 <div className="mx-auto max-w-2xl">
                     <button
                         onClick={handleNextStep}
@@ -1325,9 +1332,6 @@ function RecepcionContent() {
                             </>
                         )}
                     </button>
-                    <div className="w-full mt-2 text-center text-xs text-slate-500">
-                        Paso 1 de 2: Recepción
-                    </div>
                 </div>
             </div>
 

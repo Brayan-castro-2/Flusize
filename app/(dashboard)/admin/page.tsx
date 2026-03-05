@@ -107,11 +107,17 @@ export default function AdminPage() {
 
     const todaysOrders = useMemo(() => {
         const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
+        const hoyStr = hoy.toISOString().split('T')[0]; // "YYYY-MM-DD" en UTC
+        // Pero queremos el hoy LOCAL
+        const localHoy = new Date(hoy.getTime() - (hoy.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
         return allOrders.filter(o => {
-            const fechaOrden = new Date(o.fecha_ingreso);
-            fechaOrden.setHours(0, 0, 0, 0);
-            return fechaOrden.getTime() === hoy.getTime();
+            const fechaIngreso = o.fecha_ingreso || (o as any).creado_en || (o as any).created_at;
+            if (!fechaIngreso) return false;
+
+            // Extraer solo la parte de la fecha YYYY-MM-DD
+            const fechaOrdenStr = new Date(fechaIngreso).toISOString().split('T')[0];
+            return fechaOrdenStr === localHoy;
         });
     }, [allOrders]);
 

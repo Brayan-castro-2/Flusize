@@ -57,6 +57,53 @@ const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
 };
 
+// Skeleton loader para la tabla de clientes
+function ClientesSkeleton() {
+    return (
+        <div className="space-y-4 animate-pulse">
+            {/* Desktop Skeleton */}
+            <div className="hidden md:block bg-[#0F172A] border border-slate-700/80 rounded-2xl overflow-hidden">
+                <div className="bg-[#1E293B] h-14 border-b border-slate-700/80" />
+                {[...Array(8)].map((_, i) => (
+                    <div key={i} className="flex items-center px-6 py-4 gap-4 border-b border-slate-800/80">
+                        <div className="w-11 h-11 bg-slate-800 rounded-xl" />
+                        <div className="flex-1 space-y-2">
+                            <div className="h-4 w-32 bg-slate-800 rounded" />
+                            <div className="h-3 w-20 bg-slate-800 rounded" />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                            <div className="h-4 w-24 bg-slate-800 rounded" />
+                            <div className="h-3 w-32 bg-slate-800 rounded" />
+                        </div>
+                        <div className="w-24 h-4 bg-slate-800 rounded" />
+                        <div className="w-24 h-6 bg-slate-800/50 rounded-lg" />
+                        <div className="w-10 h-10 bg-slate-800 rounded-full" />
+                    </div>
+                ))}
+            </div>
+
+            {/* Mobile Skeleton */}
+            <div className="md:hidden space-y-4">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-[#1E293B] border border-slate-700/60 p-5 rounded-2xl space-y-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-slate-800 rounded-xl" />
+                            <div className="space-y-2">
+                                <div className="h-4 w-32 bg-slate-800 rounded" />
+                                <div className="h-3 w-16 bg-slate-800 rounded" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 pb-2">
+                            <div className="h-12 bg-slate-800/30 rounded-lg" />
+                            <div className="h-12 bg-slate-800/30 rounded-lg" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function ClientesPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -335,9 +382,7 @@ export default function ClientesPage() {
             {/* CONTENT AREA */}
             <div className="space-y-4">
                 {isLoading ? (
-                    <div className="flex items-center justify-center p-12">
-                        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                    </div>
+                    <ClientesSkeleton />
                 ) : sortedClientes.length === 0 ? (
                     <div className="text-center p-16 text-slate-500 bg-[#0F172A] rounded-2xl border border-slate-800 shadow-inner">
                         <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">

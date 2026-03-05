@@ -242,13 +242,21 @@ export default function UsuariosPage() {
                         <Card key={usuario.id} className="bg-white border-gray-200">
                             <CardContent className="p-4">
                                 <div className="flex items-center gap-4">
-                                    {/* Avatar */}
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${usuario.rol === 'taller_admin' ? 'bg-[#0066FF]/20' : 'bg-gray-700/50'
+                                    {/* Avatar con Iniciales */}
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white shadow-sm relative shrink-0 ${usuario.rol === 'superadmin' ? 'bg-gradient-to-br from-orange-500 to-red-600' :
+                                        usuario.rol === 'taller_admin' ? 'bg-gradient-to-br from-blue-500 to-blue-700' :
+                                            'bg-gradient-to-br from-slate-600 to-slate-800'
                                         }`}>
-                                        {usuario.rol === 'taller_admin' ? (
-                                            <Shield className="w-6 h-6 text-[#0066FF]" />
-                                        ) : (
-                                            <Wrench className="w-6 h-6 text-gray-600" />
+                                        {(usuario.nombre_completo || 'U').charAt(0).toUpperCase()}
+                                        {usuario.rol === 'taller_admin' && (
+                                            <div className="absolute -top-1 -right-1 bg-white rounded-full p-1 shadow-sm border border-blue-100">
+                                                <Shield className="w-2.5 h-2.5 text-blue-600" />
+                                            </div>
+                                        )}
+                                        {usuario.rol === 'superadmin' && (
+                                            <div className="absolute -top-1 -right-1 bg-white rounded-full p-1 shadow-sm border border-orange-100">
+                                                <Shield className="w-2.5 h-2.5 text-orange-600" />
+                                            </div>
                                         )}
                                     </div>
 

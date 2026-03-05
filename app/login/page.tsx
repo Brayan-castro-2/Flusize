@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { ArrowLeft, Mail, Loader2, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
+import { ArrowLeft, Mail, Loader2, CheckCircle2, AlertCircle, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [errorMsg, setErrorMsg] = useState('');
 
@@ -209,13 +210,20 @@ export default function LoginPage() {
                                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                                     <Input
                                                         id="password"
-                                                        type="password"
+                                                        type={showPassword ? 'text' : 'password'}
                                                         value={password}
                                                         onChange={(e) => setPassword(e.target.value)}
                                                         placeholder="Contraseña secreta"
-                                                        className="h-14 pl-12 bg-slate-50 border-slate-200 text-slate-800 rounded-2xl focus-visible:ring-blue-500 focus-visible:ring-offset-0 text-base shadow-sm"
+                                                        className="h-14 pl-12 pr-12 bg-slate-50 border-slate-200 text-slate-800 rounded-2xl focus-visible:ring-blue-500 focus-visible:ring-offset-0 text-base shadow-sm"
                                                         required
                                                     />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                                    >
+                                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                                    </button>
                                                 </div>
                                             </div>
 

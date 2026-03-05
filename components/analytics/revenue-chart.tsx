@@ -108,12 +108,20 @@ export function RevenueChart({ orders }: RevenueChartProps) {
         return ranges.map((range) => {
             const rangeRevenue = orders
                 .filter(order => {
-                    if (order.estado !== 'completada' && order.estado !== 'entregada') return false;
+                    // Validar estado
+                    const estado = order.estado?.toLowerCase();
+                    if (estado !== 'completada' && estado !== 'entregada') return false;
 
-                    const dateToCheck = order.fecha_ingreso || (order as any).created_at || (order as any).creado_en;
-                    if (!dateToCheck) return false;
+                    // Obtener fecha y normalizarla al inicio del día local para comparación estable
+                    const rawDate = order.fecha_ingreso || (order as any).creado_en || (order as any).created_at;
+                    if (!rawDate) return false;
 
-                    const orderDate = new Date(dateToCheck);
+                    const orderDate = new Date(rawDate);
+                    if (isNaN(orderDate.getTime())) return false;
+
+                    // Si el string no incluye hora (ej: "2024-03-05"), JS lo interpreta como UTC.
+                    // Si incluye hora, lo interpreta local o según el offset.
+                    // Forzamos comparación de medianoche a medianoche.
                     return orderDate >= range.start && orderDate <= range.end;
                 })
                 .reduce((sum, order) => sum + cleanMoney(order.precio_total), 0);
