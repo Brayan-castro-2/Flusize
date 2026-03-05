@@ -68,11 +68,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Flusize" />
-        {/* SEO Googlebot Directives */}
-        <link rel="icon" href="/logo-celular.png" sizes="any" />
-        <link rel="apple-touch-icon" href="/logo-celular.png" />
-        <meta property="og:image" content="/logo-celular.png" />
-        <meta name="twitter:image" content="/logo-celular.png" />
+        {/* SEO Googlebot Directives (Rutas Absolutas para evitar 404 en el bot) */}
+        <link rel="icon" href="https://app.flusize.com/logo-celular.png" sizes="any" />
+        <link rel="apple-touch-icon" href="https://app.flusize.com/logo-celular.png" />
+        <meta property="og:image" content="https://app.flusize.com/logo-celular.png" />
+        <meta name="twitter:image" content="https://app.flusize.com/logo-celular.png" />
       </head>
       <body className={inter.className}>
         <ClientProviders>

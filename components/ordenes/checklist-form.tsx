@@ -237,17 +237,8 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
     // Optimistic Save
     const handleSave = () => {
         const executeFastRouting = () => {
-            // Fast Routing bypasses heavy React states
-            setTimeout(() => {
-                window.location.href = '/admin/ordenes';
-            }, 50);
-
-            // Timeout de Seguridad
-            setTimeout(() => {
-                window.location.reload();
-            }, 4000);
-
-            if (onClose) onClose();
+            // Instant redirect, bypass heavy React states
+            window.location.href = '/admin/ordenes';
         };
 
         // 1. Guardar Checklist Ingreso (Normal)
@@ -272,7 +263,6 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
             } catch (error) {
                 console.error('Error instanciando checklist:', error);
                 toast.error('Error al guardar checklist');
-            } finally {
                 setIsSaving(false);
             }
         };
@@ -285,6 +275,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                 const checklistId = initialData?.id;
                 if (!checklistId) {
                     toast.error('Error: No se encontró ID del checklist base');
+                    setIsSaving(false);
                     return;
                 }
 
@@ -306,7 +297,6 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
             } catch (err) {
                 console.error(err);
                 toast.error('Error al confirmar');
-            } finally {
                 setIsSaving(false);
             }
         };
@@ -325,7 +315,6 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                 } catch (err: any) {
                     console.error('Error al confirmar revisión:', err);
                     toast.error(`Error al confirmar: ${err?.message || 'Error desconocido'}`);
-                } finally {
                     setIsSaving(false);
                 }
             };

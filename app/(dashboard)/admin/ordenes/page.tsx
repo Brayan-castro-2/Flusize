@@ -650,49 +650,33 @@ export default function OrdenesPage() {
         });
     }, [orders, appointments, viewFilter, debouncedSearchTerm, statusFilter, mechanicFilter, debtFilter, dateRange, sortConfig, vehiculosMap, appointmentToOrderFormat, isAppointmentNearby]);
 
-    // VIRTUAL SCROLL (BIDIRECTIONAL)
-    const observerRef = useRef<HTMLDivElement | null>(null);
-    const topObserverRef = useRef<HTMLDivElement | null>(null);
-
-    // Dynamic Top & Bottom indices
-    const startIndex = Math.max(0, visibleCount - RENDER_LIMIT);
-
-    // Bottom Observer: Load next 30
+    // SIMPLE INFINITE SCROLL (ON WINDOW SCROLL)
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && visibleCount < filteredOrders.length) {
-                    setVisibleCount((prev) => Math.min(prev + RENDER_LIMIT, filteredOrders.length));
-                }
-            },
-            { threshold: 0.1, rootMargin: "100px" }
-        );
+        const handleScroll = () => {
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = document.documentElement.clientHeight;
 
-        if (observerRef.current) observer.observe(observerRef.current);
-        return () => observer.disconnect();
-    }, [filteredOrders.length, visibleCount]);
+            // Load more when reaching bottom (150px threshold)
+            if (scrollHeight - scrollTop <= clientHeight + 150) {
+                setVisibleCount((prev) => {
+                    if (prev < filteredOrders.length) {
+                        return Math.min(prev + RENDER_LIMIT, filteredOrders.length);
+                    }
+                    return prev;
+                });
+            }
+        };
 
-    // Top Observer: Load previous 30
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && startIndex > 0) {
-                    setVisibleCount((prev) => Math.max(RENDER_LIMIT, prev - RENDER_LIMIT));
-                }
-            },
-            { threshold: 0.1, rootMargin: "100px" }
-        );
-
-        if (topObserverRef.current) observer.observe(topObserverRef.current);
-        return () => observer.disconnect();
-    }, [startIndex]);
+        window.addEventListener('scroll', handleScroll);
+        // Execute once to fill screen if needed
+        handleScroll();
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [filteredOrders.length]);
 
     const displayOrders = useMemo(() => {
-        return filteredOrders.slice(startIndex, visibleCount);
-    }, [filteredOrders, startIndex, visibleCount]);
-
-    const topPadding = startIndex * ROW_HEIGHT;
-    const bottomPadding = Math.max(0, filteredOrders.length - visibleCount) * ROW_HEIGHT;
+        return filteredOrders.slice(0, visibleCount);
+    }, [filteredOrders, visibleCount]);
 
     const handleSort = (key: keyof OrdenDB | 'precio_total' | 'fecha_ingreso') => {
         setSortConfig(current => ({
@@ -1172,12 +1156,6 @@ export default function OrdenesPage() {
                                         ))}
                                     </>
                                 )}
-                                {!isLoadingOrders && startIndex > 0 && (
-                                    <>
-                                        <TableRow><TableCell colSpan={7} className="p-0 border-0 h-0"><div ref={topObserverRef} className="h-1 w-full" /></TableCell></TableRow>
-                                        <TableRow><TableCell colSpan={7} className="p-0 border-0" style={{ height: topPadding }} /></TableRow>
-                                    </>
-                                )}
                                 {!isLoadingOrders && displayOrders.map((order) => {
                                     const isExpanded = expandedOrderId === order.id;
                                     const vehiculo = order.vehiculos;
@@ -1537,18 +1515,11 @@ export default function OrdenesPage() {
                             </TableBody>
                         </Table>
 
-                        {/* Desktop Bottom Padding / Observer */}
+                        {/* Scroll Loading Indicator Desktop */}
                         {!isLoadingOrders && visibleCount < filteredOrders.length && (
-                            <table className="w-full">
-                                <tbody>
-                                    <tr><td className="p-0 border-0 h-0"><div ref={observerRef} className="h-1 w-full" /></td></tr>
-                                    <tr><td className="p-0 border-0" style={{ height: bottomPadding }}>
-                                        <div className="h-full flex items-center justify-center text-slate-400/50">
-                                            <span className="animate-pulse">Cargando siguientes...</span>
-                                        </div>
-                                    </td></tr>
-                                </tbody>
-                            </table>
+                            <div className="h-20 w-full flex items-center justify-center text-slate-400/50">
+                                <span className="animate-pulse">Cargando siguientes...</span>
+                            </div>
                         )}
                     </div>
 
@@ -1559,13 +1530,6 @@ export default function OrdenesPage() {
                                 {[...Array(5)].map((_, i) => (
                                     <div key={`mob-skeleton-${i}`} className="h-[100px] bg-slate-700/20 border border-slate-600/30 rounded-xl animate-pulse"></div>
                                 ))}
-                            </>
-                        )}
-
-                        {!isLoadingOrders && startIndex > 0 && (
-                            <>
-                                <div ref={topObserverRef} className="h-1 w-full" />
-                                <div style={{ height: topPadding }} />
                             </>
                         )}
 
@@ -1595,13 +1559,11 @@ export default function OrdenesPage() {
                             );
                         })}
 
+                        {/* Scroll Loading Indicator Mobile */}
                         {!isLoadingOrders && visibleCount < filteredOrders.length && (
-                            <>
-                                <div ref={observerRef} className="h-1 w-full" />
-                                <div style={{ height: bottomPadding }} className="flex items-center justify-center text-slate-400/50">
-                                    <span className="animate-pulse">Cargando siguientes...</span>
-                                </div>
-                            </>
+                            <div className="h-16 w-full flex items-center justify-center text-slate-400/50">
+                                <span className="animate-pulse">Cargando siguientes...</span>
+                            </div>
                         )}
                     </div>
 
@@ -1618,14 +1580,14 @@ export default function OrdenesPage() {
             <Dialog open={checklistDialog.open} onOpenChange={(open) => !open && handleChecklistClose()}>
                 <DialogContent className="max-w-4xl bg-slate-950 border-slate-800 text-white p-0 overflow-hidden max-h-[90vh] flex flex-col">
                     <div className="p-6 overflow-y-auto flex-1">
-                        <div className="mb-6">
-                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <div className="mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 mb-2">
                                 <ClipboardCheck className="w-6 h-6 text-blue-500" />
                                 {checklistDialog.mode === 'salida' ? '🚗 Checklist de Salida' :
                                     checklistDialog.mode === 'readonly_ingreso' ? '👁️ Revisión de Ingreso' :
                                         '📋 Checklist de Vehículo'}
                             </h2>
-                            <p className="text-slate-400 text-sm">
+                            <p className="text-slate-600 font-medium text-sm">
                                 {checklistDialog.mode === 'salida'
                                     ? 'Completa el checklist de salida antes de entregar el vehículo al cliente.'
                                     : checklistDialog.mode === 'readonly_ingreso'

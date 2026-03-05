@@ -451,8 +451,8 @@ export async function crearCliente(cliente: Omit<ClienteDB, 'id' | 'fecha_creaci
 // ============ ÓRDENES ============
 
 // Obtener todas las órdenes
-// Obtener todas las órdenes (con paginación opcional) - MULTI-TENANT: Obtener órdenes filtradas por taller
-export async function obtenerOrdenes(limit: number = 20, offset: number = 0, tallerIdOverride?: string): Promise<OrdenDB[]> {
+// Obtener todas las órdenes (ahora descarga masiva para filtrado local sin pérdida)
+export async function obtenerOrdenes(limit?: number, offset?: number, tallerIdOverride?: string): Promise<OrdenDB[]> {
     const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
     if (!tallerId) {
         console.warn('⚠️ Intentando obtener órdenes sin taller_id');
@@ -487,11 +487,14 @@ export async function obtenerOrdenes(limit: number = 20, offset: number = 0, tal
             )
         `)
         .eq('taller_id', tallerId)
-        .order('creado_en', { ascending: false });
+        .order('fecha_ingreso', { ascending: false });
 
-    // Aplicar paginación si se proporciona
+    // Aplicar paginación si se proporciona MÁS UN LÍMITE ALTO EXPLICITO PARA NO CORTAR ARRAY
     if (limit !== undefined && offset !== undefined) {
         query = query.range(offset, offset + limit - 1);
+    } else {
+        // PostgREST por defecto limita a 1000 filas. Forzamos un número mayor para que bajen las 1601
+        query = query.limit(10000);
     }
 
     const { data, error } = await query;
