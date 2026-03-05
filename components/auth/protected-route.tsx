@@ -1,64 +1,76 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { UserRole } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    allowedRoles?: ('mecanico' | 'taller_admin' | 'admin' | 'superadmin')[];
+    allowedRoles?: ('mecanico' | 'taller_admin' | 'admin' | 'superadmin' | 'flusize_admin')[];
     requirePaidPlan?: boolean;
 }
 
 export function ProtectedRoute({ children, allowedRoles, requirePaidPlan }: ProtectedRouteProps) {
     const { user, isLoading } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
     const [showContent, setShowContent] = useState(false);
 
     useEffect(() => {
         const checkAuth = async () => {
-            if (!isLoading) {
-                if (!user) {
-                    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => { });
-                    router.push('/login');
-                    return;
-                }
+            // Mientras esté cargando el auth, mantenemos showContent en false
+            if (isLoading) return;
 
-                const currentPath = window.location.pathname;
-                const isPremiumRoute = currentPath.startsWith('/admin') &&
-                    !currentPath.startsWith('/admin/perfil') &&
-                    currentPath !== '/admin/perfil';
+            // Logs de depuración silenciosos para diagnosticar en producción
+            console.log(`[ProtectedRoute] Check: ${pathname}, Role: ${user?.role}, Plan: ${user?.plan}`);
 
-                // FASE 75: Bloqueo de Plan Gratis en rutas premium
-                const userPlan = (user?.plan || 'GRATIS').toUpperCase();
-
-                if (userPlan === 'GRATIS' && isPremiumRoute) {
-                    console.log('🚫 ProtectedRoute FASE 75: Bloqueo Plan Gratis en', currentPath);
-                    if (requirePaidPlan) {
-                        router.push('/admin/perfil');
-                        return;
-                    }
-                    // Bloqueo preventivo en FASE 75 para rutas premium si no hay plan
-                    return;
-                }
-
-                if (allowedRoles && !allowedRoles.includes(user.role as any)) {
-                    if (user.role === 'mecanico') {
-                        router.push('/recepcion');
-                    } else {
-                        router.push('/admin');
-                    }
-                } else {
-                    setShowContent(true);
-                }
+            if (!user) {
+                console.log('[ProtectedRoute] Sesión no encontrada, redirigiendo...');
+                setShowContent(false);
+                router.push('/login');
+                return;
             }
-        };
-        checkAuth();
-    }, [user, isLoading, allowedRoles, router]);
 
-    // Mostrar loading mientras se verifica la sesión
+            const currentPath = pathname;
+            const isPremiumRoute = currentPath.startsWith('/admin') &&
+                !currentPath.startsWith('/admin/perfil') &&
+                currentPath !== '/admin/perfil';
+
+            // FASE 75: Bloqueo de Plan Gratis en rutas premium
+            const userPlan = (user?.plan || 'GRATIS').toUpperCase();
+
+            // Permitir que admins globales y superadmins omitan este bloqueo para mantenimiento
+            const isAdminRole = ['superadmin', 'admin', 'flusize_admin'].includes(user.role);
+
+            if (userPlan === 'GRATIS' && isPremiumRoute && !isAdminRole) {
+                console.log('🚫 ProtectedRoute: Bloqueo Plan Gratis en', currentPath);
+                setShowContent(false);
+                // Si la ruta requiere plan o es el dashboard general, redirigir a perfil
+                router.push('/admin/perfil');
+                return;
+            }
+
+            // Verificación de Roles
+            if (allowedRoles && !allowedRoles.includes(user.role as any)) {
+                console.log(`🚫 ProtectedRoute: Rol ${user.role} no autorizado para ${currentPath}`);
+                setShowContent(false);
+                if (user.role === 'mecanico') {
+                    router.push('/recepcion');
+                } else {
+                    router.push('/admin');
+                }
+                return;
+            }
+
+            // Si llegamos aquí, el usuario está autorizado
+            setShowContent(true);
+        };
+
+        checkAuth();
+    }, [user, isLoading, allowedRoles, pathname, router, requirePaidPlan]);
+
+    // Mostrar loading mientras se verifica la sesión o si se decidió ocultar contenido para redirigir
     if (isLoading || !showContent) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#121212]">
