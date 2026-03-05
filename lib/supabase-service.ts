@@ -777,7 +777,8 @@ export async function obtenerOrdenesPaginadas(
         if (searchTerm) {
             const cleanSearch = searchTerm.trim();
             // Búsqueda inteligente en múltiples campos gracias a la nueva vista ampliada
-            query = query.or(`id.ilike.%${cleanSearch}%,patente_vehiculo.ilike.%${cleanSearch}%,vehiculo_marca.ilike.%${cleanSearch}%,vehiculo_modelo.ilike.%${cleanSearch}%,cliente_nombre.ilike.%${cleanSearch}%,cliente_rut.ilike.%${cleanSearch}%`);
+            // NOTA: Usamos id_texto (cast de UUID a texto en la vista) para evitar error de operador
+            query = query.or(`id_texto.ilike.%${cleanSearch}%,numero_orden.ilike.%${cleanSearch}%,patente_vehiculo.ilike.%${cleanSearch}%,vehiculo_marca.ilike.%${cleanSearch}%,vehiculo_modelo.ilike.%${cleanSearch}%,cliente_nombre.ilike.%${cleanSearch}%,cliente_rut.ilike.%${cleanSearch}%`);
         }
 
         // Aplicar Filtros Rest
