@@ -311,36 +311,53 @@ export async function obtenerClientes(busqueda?: string, tallerIdOverride?: stri
     const tallerId = tallerIdOverride || await getCurrentUserTallerId();
     if (!tallerId) return [];
 
-    let query = supabase
-        .from('clientes')
-        .select(`
-            *,
-            vehiculos (
-                patente,
-                marca,
-                modelo,
-                ordenes (
-                    id,
-                    fecha_ingreso,
-                    precio_total,
-                    estado,
-                    descripcion_ingreso,
-                    patente_vehiculo
+    // ⚠️ PostgREST limita a 1000 filas por request incluso con .limit(). 
+    // Usamos chunking de 999 en 999 para traer todos los registros reales.
+    let allClientes: any[] = [];
+    let from = 0;
+    const step = 999;
+    let hasMore = true;
+
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from('clientes')
+            .select(`
+                *,
+                vehiculos (
+                    patente,
+                    marca,
+                    modelo,
+                    ordenes (
+                        id,
+                        fecha_ingreso,
+                        precio_total,
+                        estado,
+                        descripcion_ingreso,
+                        patente_vehiculo
+                    )
                 )
-            )
-        `)
-        .eq('taller_id', tallerId)
-        .order('nombre_completo', { ascending: true })
-        .limit(50000); // 🚀 BYPASS PostgREST default 1000 rows limit
+            `)
+            .eq('taller_id', tallerId)
+            .order('nombre_completo', { ascending: true })
+            .range(from, from + step);
 
-    // Se elimina el filtro en base de datos para realizarlo en memoria y poder buscar por patente
+        if (error) {
+            console.error('❌ Error al obtener clientes:', error);
+            break;
+        }
 
-    const { data, error } = await query;
+        if (data && data.length > 0) {
+            allClientes = [...allClientes, ...data];
+            from += step + 1;
+            if (data.length <= step) hasMore = false;
+        } else {
+            hasMore = false;
+        }
 
-    if (error) {
-        console.error('❌ Error al obtener clientes:', error);
-        return [];
+        if (from > 50000) hasMore = false; // Failsafe
     }
+
+    const data = allClientes;
 
     // Calcular estadísticas en el cliente (más eficiente que subqueries complejas en esta etapa)
     const resultados = (data || []).map((cliente: any) => {
@@ -375,7 +392,7 @@ export async function obtenerClientes(busqueda?: string, tallerIdOverride?: stri
         };
     });
 
-    // Option B: Filtrado en memoria para incluir búsqueda por patente en vehículos anidados
+    // Filtrado en memoria para incluir búsqueda por patente en vehículos anidados
     if (busqueda) {
         const term = busqueda.toLowerCase().trim();
         return resultados.filter((cliente: any) => {
@@ -751,7 +768,8 @@ export async function obtenerOrdenesPaginadas(
                 )
             `, { count: 'exact' })
             .eq('taller_id', tallerId)
-            .order('fecha_ingreso', { ascending: false, nullsFirst: false });
+            .order('fecha_ingreso', { ascending: false, nullsFirst: false })
+            .order('creado_en', { ascending: false, nullsFirst: false });
 
         if (searchTerm) {
             // Buscamos coincidencia en ID o detalles internos directo de la tabla de órdenes
