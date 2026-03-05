@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { TallerModulos } from '@/config/modules';
@@ -38,7 +38,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const isInitialized = { current: false }; // bandera para evitar re-fetch en navegación
+    const isInitialized = useRef(false); // bandera persistente para evitar re-fetch en navegación
     const router = useRouter();
 
     useEffect(() => {
@@ -59,11 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         setIsLoading(false);
                     }
                 }
-            } catch (error) {
-                console.error('[AuthContext Debug] Error init session:', error);
-                if (mounted) setIsLoading(false);
             } finally {
-                isInitialized.current = true;
+                if (mounted) {
+                    isInitialized.current = true;
+                    setIsLoading(false);
+                    console.log('[AuthContext Debug] initSession finally: isLoading set to false');
+                }
             }
         };
 
@@ -151,11 +152,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             if (finalTallerId) {
-                const { data: taller } = await supabase
+                // Timeout de 10s para la consulta de talleres
+                const tallerTimeout = new Promise<{ data: null; error: Error }>((resolve) =>
+                    setTimeout(() => resolve({ data: null, error: new Error('timeout') }), 10000)
+                );
+                const tallerQuery = supabase
                     .from('talleres')
                     .select('modulos_activos, plan_suscripcion')
                     .eq('id', finalTallerId)
                     .maybeSingle();
+
+                const { data: taller, error: tallerError } = await Promise.race([tallerQuery, tallerTimeout]) as any;
+
+                if (tallerError?.message === 'timeout') {
+                    console.warn('[AuthContext Debug] taller query timed out, using defaults');
+                }
 
                 if (taller) {
                     if (taller.modulos_activos) {

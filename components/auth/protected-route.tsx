@@ -70,13 +70,50 @@ export function ProtectedRoute({ children, allowedRoles, requirePaidPlan }: Prot
         checkAuth();
     }, [user, isLoading, allowedRoles, pathname, router, requirePaidPlan]);
 
+    const [showRecoveryButton, setShowRecoveryButton] = useState(false);
+
+    useEffect(() => {
+        // Temporizador de seguridad: si después de 15s sigue cargando, ofrecer reintento
+        const timer = setTimeout(() => {
+            if (isLoading || !showContent) {
+                setShowRecoveryButton(true);
+            }
+        }, 15000);
+
+        return () => clearTimeout(timer);
+    }, [isLoading, showContent]);
+
     // Mostrar loading mientras se verifica la sesión o si se decidió ocultar contenido para redirigir
     if (isLoading || !showContent) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#121212]">
-                <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-[#0066FF]" />
-                    <span className="text-gray-400 text-sm">Cargando...</span>
+                <div className="flex flex-col items-center gap-6 px-6 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="w-8 h-8 animate-spin text-[#0066FF]" />
+                        <span className="text-gray-400 text-sm">Cargando aplicación...</span>
+                    </div>
+
+                    {showRecoveryButton && (
+                        <div className="flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <p className="text-sm text-gray-500 max-w-xs">
+                                La conexión está tomando más tiempo de lo habitual.
+                            </p>
+                            <div className="flex flex-col gap-2 w-full">
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="px-6 py-2 bg-[#0066FF] hover:bg-[#0052cc] text-white rounded-xl text-sm font-medium transition-all"
+                                >
+                                    Reintentar Carga
+                                </button>
+                                <button
+                                    onClick={() => router.push('/login')}
+                                    className="px-6 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl text-sm font-medium transition-all"
+                                >
+                                    Ir al Login
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         );
