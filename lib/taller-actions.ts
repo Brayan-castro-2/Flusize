@@ -172,7 +172,7 @@ export async function getOrdenesActivasByPatente(patente: string) {
         .eq('patente_vehiculo', patenteNormalizada)
         .eq('taller_id', tallerId)
         .in('estado', ['pendiente', 'en_progreso'])
-        .order('fecha_ingreso', { ascending: false })
+        .order('fecha_ingreso', { ascending: false, nullsFirst: false })
 
     if (error) {
         console.error('❌ Error al obtener órdenes activas:', error)

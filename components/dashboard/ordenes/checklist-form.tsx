@@ -342,8 +342,8 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         <div className={`space-y-8 ${isReadOnly ? 'opacity-80 pointer-events-none' : ''}`}>
             {/* -- RECEPCIÓN Y PERTENENCIAS -- */}
             <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    <Wrench className="w-4 h-4" /> Recepción y Pertenencias ({context})
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-slate-700" /> Recepción y Pertenencias ({context})
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <CustomSwitch
@@ -375,8 +375,8 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
 
             {/* -- COMBUSTIBLE -- */}
             <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    <Fuel className="w-4 h-4" /> Nivel de Combustible ({context})
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <Fuel className="w-4 h-4 text-slate-700" /> Nivel de Combustible ({context})
                 </h3>
 
                 <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-6">
@@ -425,10 +425,64 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                 </div>
             </section>
 
+            {/* -- DAÑOS FÍSICOS -- */}
+            <section className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-slate-700" /> Evidencia de Daños Físicos ({context})
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                    <CheckboxCard
+                        label="Rayones"
+                        checked={currentItems.danos_rayones}
+                        onChange={(v: boolean) => updater('danos_rayones', v)}
+                    />
+                    <CheckboxCard
+                        label="Abolladuras"
+                        checked={currentItems.danos_abolladuras}
+                        onChange={(v: boolean) => updater('danos_abolladuras', v)}
+                    />
+                    <CheckboxCard
+                        label="Parabrisas/Ventanas"
+                        checked={currentItems.danos_parabrisas}
+                        onChange={(v: boolean) => updater('danos_parabrisas', v)}
+                    />
+                    <CheckboxCard
+                        label="Espejos"
+                        checked={currentItems.danos_espejos}
+                        onChange={(v: boolean) => updater('danos_espejos', v)}
+                    />
+                </div>
+                <div className="pt-2">
+                    <Label className="text-slate-400 mb-2 block">Fotos de Daños (Opcional)</Label>
+                    <label className={`block w-full p-8 border-2 border-dashed rounded-xl cursor-pointer transition-colors group flex flex-col items-center justify-center gap-2 text-center ${currentPhotos.danos_url ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-700 hover:border-blue-500/50 hover:bg-slate-800'
+                        }`}>
+                        {uploadingState['danos_url'] ? (
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                        ) : currentPhotos.danos_url ? (
+                            <>
+                                <div className="w-full h-32 relative rounded-lg overflow-hidden mb-2">
+                                    <img src={currentPhotos.danos_url} alt="Daños" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex items-center gap-2 text-emerald-400">
+                                    <CheckCircle2 className="w-5 h-5" />
+                                    <span className="font-medium">Imagen guardada</span>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <Camera className="w-8 h-8 text-slate-500 group-hover:text-blue-400" />
+                                <span className="text-slate-400 group-hover:text-blue-200">Toca para tomar foto de daños</span>
+                            </>
+                        )}
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => uploader(e, 'danos_url')} />
+                    </label>
+                </div>
+            </section>
+
             {/* -- LUCES Y TABLERO -- */}
             <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    <Lightbulb className="w-4 h-4" /> Luces y Tablero ({context})
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-slate-700" /> Luces y Tablero ({context})
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                     <CheckboxCard

@@ -16,6 +16,7 @@ import {
     CheckCircle2,
     ArrowRight
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import ChecklistForm from '@/components/ordenes/checklist-form';
 
 const MOCK_DB: Record<string, { marca: string; modelo: string; anio: string; motor: string }> = {

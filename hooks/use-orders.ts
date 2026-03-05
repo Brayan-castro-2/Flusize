@@ -58,18 +58,16 @@ export function useOrdersCount(tallerId?: string) {
 }
 
 export function useOrders() {
-    // Mantener compatibilidad con uso anterior, pero ahora trae todo (sin limit)
-    // O podríamos hacer que use useInfiniteOrders internamente si quisiéramos migrar todo
+    // Hook legacy: solo usar en componentes que necesiten la lista completa (ej: exports, dashboard stats)
+    // La vista principal de órdenes debe usar usePaginatedOrders
     return useQuery({
         queryKey: ORDERS_QUERY_KEY,
-        queryFn: () => obtenerOrdenes(), // Explicitly call with no args to get all (or default)
-        staleTime: 5 * 60 * 1000,
-        gcTime: 15 * 60 * 1000,
-        refetchOnWindowFocus: true,
+        queryFn: () => obtenerOrdenes(),
+        staleTime: 2 * 60 * 1000, // 2 minutos de caché — evita descargas masivas repetidas
+        gcTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: false, // No re-descargar 1.3MB al cambiar de pestaña
         refetchOnReconnect: true,
-        refetchOnMount: false,
-        refetchInterval: 30000, // Reduced aggressive background fetching
-        refetchIntervalInBackground: true,
+        refetchOnMount: false, // Usar caché si existe
     });
 }
 

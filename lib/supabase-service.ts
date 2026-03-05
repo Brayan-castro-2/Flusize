@@ -450,8 +450,7 @@ export async function crearCliente(cliente: Omit<ClienteDB, 'id' | 'fecha_creaci
 
 // ============ ÓRDENES ============
 
-// Obtener todas las órdenes
-// Obtener todas las órdenes (ahora descarga masiva para filtrado local sin pérdida)
+// Obtener todas las órdenes (ahora descarga masiva por chunks reales para evitar limit de 1000)
 export async function obtenerOrdenes(limit?: number, offset?: number, tallerIdOverride?: string): Promise<OrdenDB[]> {
     const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
     if (!tallerId) {
@@ -459,52 +458,105 @@ export async function obtenerOrdenes(limit?: number, offset?: number, tallerIdOv
         return [];
     }
 
-    let query = supabase
-        .from('ordenes')
-        .select(`
-            *,
-            cliente:clientes (
-                id,
-                nombre_completo,
-                telefono
-            ),
-            vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
-                id,
-                patente,
-                marca,
-                modelo,
-                ano,
-                color
-            ),
-            asignado:perfiles!ordenes_asignado_a_fkey (
-                id,
-                nombre_completo,
-                email
-            ),
-            creado_por_perfil:perfiles!ordenes_creado_por_fkey (
-                id,
-                nombre_completo
-            )
-        `)
-        .eq('taller_id', tallerId)
-        .order('fecha_ingreso', { ascending: false });
-
-    // Aplicar paginación si se proporciona MÁS UN LÍMITE ALTO EXPLICITO PARA NO CORTAR ARRAY
     if (limit !== undefined && offset !== undefined) {
-        query = query.range(offset, offset + limit - 1);
-    } else {
-        // PostgREST por defecto limita a 1000 filas. Forzamos un número mayor para que bajen las 1601
-        query = query.limit(10000);
+        // En caso de que se haya solicitado paginación explícita desde fuera
+        const { data, error } = await supabase
+            .from('ordenes')
+            .select(`
+                *,
+                cliente:clientes (
+                    id,
+                    nombre_completo,
+                    telefono
+                ),
+                vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
+                    id,
+                    patente,
+                    marca,
+                    modelo,
+                    ano,
+                    color
+                ),
+                asignado:perfiles!ordenes_asignado_a_fkey (
+                    id,
+                    nombre_completo,
+                    email
+                ),
+                creado_por_perfil:perfiles!ordenes_creado_por_fkey (
+                    id,
+                    nombre_completo
+                )
+            `)
+            .eq('taller_id', tallerId)
+            .order('fecha_ingreso', { ascending: false, nullsFirst: false })
+            .range(offset, offset + limit - 1);
+
+        if (error) {
+            console.error('❌ Error al obtener órdenes paginadas explícitamente:', error);
+            return [];
+        }
+        return data || [];
     }
 
-    const { data, error } = await query;
+    // Si NO se pidió paginación explícita (como en Gestión de Órdenes principal / Buscar todas):
+    // El max-rows típico de Supabase es de 1000, así que iteramos de a 999.
+    let allOrders: any[] = [];
+    let from = 0;
+    const step = 999;
+    let hasMore = true;
 
-    if (error) {
-        console.error('❌ Error al obtener órdenes:', error);
-        return [];
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from('ordenes')
+            .select(`
+                *,
+                cliente:clientes (
+                    id,
+                    nombre_completo,
+                    telefono
+                ),
+                vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
+                    id,
+                    patente,
+                    marca,
+                    modelo,
+                    ano,
+                    color
+                ),
+                asignado:perfiles!ordenes_asignado_a_fkey (
+                    id,
+                    nombre_completo,
+                    email
+                ),
+                creado_por_perfil:perfiles!ordenes_creado_por_fkey (
+                    id,
+                    nombre_completo
+                )
+            `)
+            .eq('taller_id', tallerId)
+            .order('fecha_ingreso', { ascending: false, nullsFirst: false })
+            .range(from, from + step);
+
+        if (error) {
+            console.error('❌ Error al obtener bulk de órdenes:', error);
+            break;
+        }
+
+        if (data && data.length > 0) {
+            allOrders = [...allOrders, ...data];
+            from += step + 1;
+
+            if (data.length <= step) {
+                hasMore = false;
+            }
+        } else {
+            hasMore = false;
+        }
+
+        if (from > 20000) hasMore = false; // Failsafe memory limit
     }
 
-    return data || [];
+    return allOrders || [];
 }
 
 // Para el contador del dashboard
@@ -612,7 +664,7 @@ export async function obtenerOrdenesLight(mecanicoId?: string, tallerIdOverride?
                 )
             `)
             .eq('taller_id', tallerId)
-            .order('fecha_ingreso', { ascending: false })
+            .order('fecha_ingreso', { ascending: false, nullsFirst: false })
             .range(from, from + step);
 
         // Si es mecánico, filtrar solo sus órdenes asignadas
@@ -699,7 +751,7 @@ export async function obtenerOrdenesPaginadas(
                 )
             `, { count: 'exact' })
             .eq('taller_id', tallerId)
-            .order('fecha_ingreso', { ascending: false });
+            .order('fecha_ingreso', { ascending: false, nullsFirst: false });
 
         if (searchTerm) {
             // Buscamos coincidencia en ID o detalles internos directo de la tabla de órdenes
@@ -772,7 +824,7 @@ export async function obtenerOrdenesHoy(tallerIdOverride?: string): Promise<Orde
         `)
         .eq('taller_id', tallerId)
         .gte('fecha_ingreso', hoy.toISOString())
-        .order('fecha_ingreso', { ascending: false });
+        .order('fecha_ingreso', { ascending: false, nullsFirst: false });
 
     if (error) {
         console.error('Error al obtener órdenes de hoy:', error);

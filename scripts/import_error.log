@@ -1,0 +1,419 @@
+🚀 Iniciando Carga Incremental: Steel Monkey 2026
+✅ Taller encontrado: RentMontt (78a71bd3-c3e3-4cf3-8f62-6b6a420952b5)
+📄 Leyendo archivo Excel: C:\Users\FLUSIZE\Documents\GitHub\Flusize\VENTAS STEEL MONKEY 2026.xlsx
+📊 Total filas encontradas: 76
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'NOMBRE',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT 3389] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'BENJAMIN MORALES',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'SEBASTIAN TOUMA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'BLAS VARGAS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'AUTOMECANICA RVAL',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT 3422] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'CRISTOBAL CABALLERO',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'PÍETRO LOBOS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MATIAS URZUA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT 3425] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'ABRAHAM MUÑOZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MARIO LARA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MATIAS VALENCIA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+... evaluadas 10 filas ... (Ingresadas: 0)
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'BORIS QUIROZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'JAVIER LUNA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'TRANSPORTES LS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MATIAS VALENCIA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'VICENTE CONTRERAS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'GONZALO QUIROZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MATIAS URZUA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'AQUILES CASTRO',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'DIESEL TUNING',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'DIEGO ORDENES',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+... evaluadas 20 filas ... (Ingresadas: 0)
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'BERNARDO FERNANDEZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MARTIN MOYA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'JOAQUIN RENDIC',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'KAUFMANN',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'KAUFMANN',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'TRANSPORTES LS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'LUIS FERREIRA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'DASSEN',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'JUAN ARAYA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'SEBASTIAN SALINAS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+... evaluadas 30 filas ... (Ingresadas: 0)
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'NIBALDO ARANCIBIA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'JUAN MUÑOZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'TOMAS MONROY',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'GABRIEL PONCE',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'FRANCISCO BOBADILLA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'SEBASTIAN AGUIRRE',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MATIAS CARVAJAL',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'SIMON ALVAREZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'RENATO RIVERA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'IVAN ARIS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+... evaluadas 40 filas ... (Ingresadas: 0)
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'YORDANO CID',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MATIAS ORELLANA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'ALFONSO GAMBOA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MARCELO SAN MARTIN',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MAX WOLFF',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MANUEL IGUALT',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'IVAN MARTINEZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'GEOVANNI ANDREOTTI',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'ORIOL SANCHO',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'GONZALO',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+... evaluadas 50 filas ... (Ingresadas: 0)
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MAVERICK GOMEZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'LUIS HIGUERAS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'BLAS VARGAS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'MAXI MUÑOZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'SEBASTIAN URRA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'VICTOR QUINTEOS',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'FERNANDO CHAPARRO',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'LUIS MIRANDA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'BRYAN PEÑA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'JAVIER SANDOVAL',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+... evaluadas 60 filas ... (Ingresadas: 0)
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'CRISTIAN VAZQUES',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'JAVIER CASADO',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'KAUFFMAN',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'CHRISTOPHER PALTA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'KAUFFMAN',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'NICOLAS SEPULVEDA',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+Error inserting into clientes: Could not find the 'nombre' column of 'clientes' in the schema cache {
+  nombre: 'EDUARDO MUÑOZ',
+  rut: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+[Error OT ] Could not find the 'vehiculo_id' column of 'ordenes' in the schema cache
+🎉 Importación 2026 finalizada! Nuevas ingresadas: 0, Omitidas/Ya Existentes: 8

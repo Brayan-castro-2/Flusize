@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, Fragment, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { type OrdenDB, type PerfilDB, type VehiculoDB, actualizarOrden, eliminarCita, obtenerChecklist, obtenerOrdenPorId } from '@/lib/storage-adapter';
 import { generateOrderPDF } from '@/lib/pdf-generator';
-import { useOrders, useOrdersCount, useDeleteOrder, useUpdateOrder, ORDERS_QUERY_KEY } from '@/hooks/use-orders';
+import { useOrders, useOrdersCount, useDeleteOrder, useUpdateOrder, usePaginatedOrders, ORDERS_QUERY_KEY } from '@/hooks/use-orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePerfiles } from '@/hooks/use-perfiles';
@@ -46,7 +47,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import ChecklistForm from '@/components/ordenes/checklist-form';
+const ChecklistForm = dynamic(() => import('@/components/ordenes/checklist-form'), {
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>
+});
 import {
     Plus,
     Search,
@@ -317,7 +321,7 @@ export default function OrdenesPage() {
     const router = useRouter();
 
     const [searchTerm, setSearchTerm] = useState('');
-    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+    const debouncedSearchTerm = useDebounce(searchTerm, 200);
     const [page, setPage] = useState(1);
     const RENDER_LIMIT = 30;
     const ROW_HEIGHT = 85; // Altura aproximada por fila
@@ -336,16 +340,20 @@ export default function OrdenesPage() {
         debt: debtFilter
     }), [statusFilter, mechanicFilter, dateRange, debtFilter]);
 
+    // ─── PAGINACIÓN SERVER-SIDE (reemplaza descarga masiva de 1.3MB con 18KB)
+    // La búsqueda ILIKE, filtros de estado/fecha y paginación ocurren en PostgreSQL
     const {
-        data: allOrders = [],
+        data: paginatedResult,
         isLoading: isLoadingOrders,
-    } = useOrders();
+        isFetching: isFetchingOrders,
+    } = usePaginatedOrders(page, 30, debouncedSearchTerm, restFilters, user?.tallerId);
 
-    const { data: totalOrdersCountAll = 0 } = useOrdersCount(user?.tallerId);
+    const orders = paginatedResult?.data || [];
+    const totalTableCount = paginatedResult?.count || 0;
+    const totalPages = Math.ceil(totalTableCount / 30);
 
-    const orders = allOrders || [];
-    const totalTableCount = orders.length;
-    const totalPages = Math.ceil(totalTableCount / 20);
+    // Para búsqueda de registro completo cuando sea necesario (fallback local con el array de la pàgina actual)
+    const allOrders = orders;
 
     // Reset visible count on filter/search change
     useEffect(() => {
@@ -577,11 +585,11 @@ export default function OrdenesPage() {
         } as any;
     }, []);
 
-    // Memoizar filtrado con soporte para citas
+    // Con server-side pagination, el servidor ya filtró y ordenó por fecha.
+    // Aquí solo mezclamos citas (si el usuario lo pide) y aplicamos sort de UI local sobre los ~30 registros.
     const filteredOrders = useMemo(() => {
         let itemsToFilter: (OrdenDB | (OrdenDB & { isAppointment: true }))[] = [];
 
-        // Decidir qué incluir según viewFilter
         if (viewFilter === 'orders') {
             itemsToFilter = orders;
         } else if (viewFilter === 'appointments') {
@@ -592,63 +600,61 @@ export default function OrdenesPage() {
                 .map(appointmentToOrderFormat);
             itemsToFilter = [...orders, ...nearbyAppointments];
         } else if (viewFilter === 'all') {
-            const allAppointments = appointments.map(appointmentToOrderFormat);
-            itemsToFilter = [...orders, ...allAppointments];
+            itemsToFilter = [...orders, ...appointments.map(appointmentToOrderFormat)];
         }
 
+        // Filtrado ligero local: solo para citas y registros basura sin OT
+        // Las órdenes reales ya vienen filtradas por el servidor (ILIKE)
         return itemsToFilter.filter(item => {
-            // Si es una Orden Real, ya viene filtrada desde el backend de Supabase:
-            if (!item.isAppointment) return true;
+            if (!(item as any).isAppointment) {
+                const clienteNombre = item.cliente?.nombre_completo || item.cliente_nombre;
+                const isEmptyRecord =
+                    (!item.patente_vehiculo || item.patente_vehiculo === 'S/P' || item.patente_vehiculo === 'NULO') &&
+                    (!clienteNombre || clienteNombre === 'Sin Cliente' || clienteNombre === 'Desconocido');
+                if (isEmptyRecord && !(item as any).numero_orden) return false;
+                // Filtros adicionales de UI para citas integradas en modo !orders: estado, mecánico
+                if (viewFilter === 'orders') return true;
+            }
 
-            // Lógica de filtrado local para las CITAS incrustadas:
-            const vehiculo = item.vehiculo;
-            const cliente = item.cliente;
-            const matchesSearch =
-                (item.id?.toString() || '').includes(debouncedSearchTerm) ||
-                (item.patente_vehiculo || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-                (vehiculo?.marca?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
-                (vehiculo?.modelo?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
-                (item.descripcion_ingreso || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-                (cliente?.nombre_completo?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
-                (item.cliente_nombre?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
-                (cliente?.telefono?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
-                (item.cliente_telefono?.toLowerCase() || '').includes(debouncedSearchTerm.toLowerCase()) ||
-                (item.precio_total?.toString() || '').includes(debouncedSearchTerm);
-
+            // Citas: filtrar por estado, mecánico
             const matchesStatus = statusFilter === 'all' || item.estado === statusFilter;
             const matchesMechanic = mechanicFilter === 'all' || item.asignado_a === mechanicFilter;
-            const matchesDebt = debtFilter === 'all'; // Citas no tienen deuda hasta convertirse
-
-            const matchesDate =
-                (!dateRange.from || new Date(item.fecha_ingreso) >= new Date(dateRange.from)) &&
-                (!dateRange.to || new Date(item.fecha_ingreso) <= new Date(new Date(dateRange.to).setHours(23, 59, 59, 999)));
-
-            return matchesSearch && matchesStatus && matchesMechanic && matchesDebt && matchesDate;
+            return matchesStatus && matchesMechanic;
         }).sort((a, b) => {
-            // Lógica NULO al fondo
-            const isNullA = !a.patente_vehiculo || a.patente_vehiculo === 'NULO' || a.patente_vehiculo === 'S/P' || !a.cliente_nombre || a.cliente_nombre === 'Sin Cliente';
-            const isNullB = !b.patente_vehiculo || b.patente_vehiculo === 'NULO' || b.patente_vehiculo === 'S/P' || !b.cliente_nombre || b.cliente_nombre === 'Sin Cliente';
+            // NULLS LAST: si le falta fecha o patente va al fondo
+            const clienteA = a.cliente?.nombre_completo || a.cliente_nombre || '';
+            const clienteB = b.cliente?.nombre_completo || b.cliente_nombre || '';
+            const isNullA = (!a.fecha_ingreso) ||
+                (!a.patente_vehiculo || a.patente_vehiculo === 'NULO' || a.patente_vehiculo === 'S/P') ||
+                (!clienteA || clienteA === 'Sin Cliente' || clienteA === 'Desconocido');
+            const isNullB = (!b.fecha_ingreso) ||
+                (!b.patente_vehiculo || b.patente_vehiculo === 'NULO' || b.patente_vehiculo === 'S/P') ||
+                (!clienteB || clienteB === 'Sin Cliente' || clienteB === 'Desconocido');
 
             if (isNullA && !isNullB) return 1;
             if (!isNullA && isNullB) return -1;
 
             const key = sortConfig.key;
             const direction = sortConfig.direction === 'asc' ? 1 : -1;
-
-            // Handle specific complex sort keys or default
             let valA: any = (a as any)[key];
             let valB: any = (b as any)[key];
 
             if (key === 'fecha_ingreso') {
-                valA = new Date(a.fecha_ingreso).getTime();
-                valB = new Date(b.fecha_ingreso).getTime();
+                valA = new Date(a.fecha_ingreso || 0).getTime();
+                valB = new Date(b.fecha_ingreso || 0).getTime();
+                if (valA === valB) {
+                    const otA = parseInt(String((a as any).numero_orden).replace(/[^0-9]/g, '')) || 0;
+                    const otB = parseInt(String((b as any).numero_orden).replace(/[^0-9]/g, '')) || 0;
+                    return (otB - otA) * direction;
+                }
             }
 
             if (valA < valB) return -1 * direction;
             if (valA > valB) return 1 * direction;
             return 0;
         });
-    }, [orders, appointments, viewFilter, debouncedSearchTerm, statusFilter, mechanicFilter, debtFilter, dateRange, sortConfig, vehiculosMap, appointmentToOrderFormat, isAppointmentNearby]);
+    }, [orders, appointments, viewFilter, statusFilter, mechanicFilter, sortConfig, appointmentToOrderFormat, isAppointmentNearby]);
+
 
     // SIMPLE INFINITE SCROLL (ON WINDOW SCROLL)
     useEffect(() => {
@@ -957,10 +963,11 @@ export default function OrdenesPage() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <Input
-                                placeholder="Buscar..."
+                                placeholder="Buscar OT, patente, cliente o marca..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10 bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 rounded-xl text-sm"
+                                autoComplete="off"
                             />
                         </div>
                         {/* View Type Filter */}
@@ -1156,7 +1163,19 @@ export default function OrdenesPage() {
                                         ))}
                                     </>
                                 )}
+                                {!isLoadingOrders && filteredOrders.length === 0 && debouncedSearchTerm && (
+                                    <TableRow>
+                                        <TableCell colSpan={canViewPrices ? 7 : 6} className="py-16 text-center">
+                                            <div className="flex flex-col items-center gap-3 text-slate-500">
+                                                <Search className="w-10 h-10 text-slate-300" />
+                                                <p className="font-semibold text-slate-700">No se encontraron coincidencias</p>
+                                                <p className="text-sm">No hay resultados para <strong className="text-slate-900">"{debouncedSearchTerm}"</strong> en {totalTableCount.toLocaleString('es-CL')} órdenes totales</p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                                 {!isLoadingOrders && displayOrders.map((order) => {
+
                                     const isExpanded = expandedOrderId === order.id;
                                     const vehiculo = order.vehiculos;
                                     return (

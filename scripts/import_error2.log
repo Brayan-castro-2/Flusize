@@ -1,0 +1,286 @@
+🚀 Iniciando Carga Incremental: Steel Monkey 2026
+✅ Taller encontrado: RentMontt (78a71bd3-c3e3-4cf3-8f62-6b6a420952b5)
+📄 Leyendo archivo Excel: C:\Users\FLUSIZE\Documents\GitHub\Flusize\VENTAS STEEL MONKEY 2026.xlsx
+📊 Total filas encontradas: 76
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'BENJAMIN MORALES',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'SEBASTIAN TOUMA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'BLAS VARGAS',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'CRISTOBAL CABALLERO',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'PÍETRO LOBOS',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'ABRAHAM MUÑOZ',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MARIO LARA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MATIAS VALENCIA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+... evaluadas 10 filas ... (Ingresadas: 8)
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'BORIS QUIROZ',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'JAVIER LUNA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'TRANSPORTES LS',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MATIAS VALENCIA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'VICENTE CONTRERAS',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MATIAS URZUA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+... evaluadas 20 filas ... (Ingresadas: 18)
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'BERNARDO FERNANDEZ',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MARTIN MOYA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'JOAQUIN RENDIC',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'TRANSPORTES LS',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'LUIS FERREIRA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'DASSEN',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'JUAN ARAYA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+... evaluadas 30 filas ... (Ingresadas: 28)
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'NIBALDO ARANCIBIA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'JUAN MUÑOZ',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'TOMAS MONROY',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'GABRIEL PONCE',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'FRANCISCO BOBADILLA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'SEBASTIAN AGUIRRE',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MATIAS CARVAJAL',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'SIMON ALVAREZ',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'RENATO RIVERA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'IVAN ARIS',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+... evaluadas 40 filas ... (Ingresadas: 38)
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'YORDANO CID',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MATIAS ORELLANA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'ALFONSO GAMBOA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MAX WOLFF',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MANUEL IGUALT',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'GEOVANNI ANDREOTTI',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'ORIOL SANCHO',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'GONZALO',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+... evaluadas 50 filas ... (Ingresadas: 48)
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MAVERICK GOMEZ',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'LUIS HIGUERAS',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'BLAS VARGAS',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'MAXI MUÑOZ',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'SEBASTIAN URRA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'VICTOR QUINTEOS',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'LUIS MIRANDA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'BRYAN PEÑA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'JAVIER SANDOVAL',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+... evaluadas 60 filas ... (Ingresadas: 58)
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'CRISTIAN VAZQUES',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'JAVIER CASADO',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'KAUFFMAN',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'CHRISTOPHER PALTA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'KAUFFMAN',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'NICOLAS SEPULVEDA',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+Error inserting into clientes: null value in column "tipo" of relation "clientes" violates not-null constraint {
+  nombre_completo: 'EDUARDO MUÑOZ',
+  rut_dni: null,
+  taller_id: '78a71bd3-c3e3-4cf3-8f62-6b6a420952b5'
+}
+🎉 Importación 2026 finalizada! Nuevas ingresadas: 65, Omitidas/Ya Existentes: 11

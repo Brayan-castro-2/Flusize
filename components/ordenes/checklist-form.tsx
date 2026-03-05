@@ -352,8 +352,8 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         <div className={`space-y-8 ${isReadOnly ? 'opacity-80 pointer-events-none' : ''}`}>
             {/* -- RECEPCIÓN Y PERTENENCIAS -- */}
             <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    <Wrench className="w-4 h-4" /> Recepción y Pertenencias ({context})
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-slate-700" /> Recepción y Pertenencias ({context})
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <CustomSwitch
@@ -385,8 +385,8 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
 
             {/* -- COMBUSTIBLE -- */}
             <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    <Fuel className="w-4 h-4" /> Nivel de Combustible ({context})
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <Fuel className="w-4 h-4 text-slate-700" /> Nivel de Combustible ({context})
                 </h3>
 
                 <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-6">
@@ -450,8 +450,38 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
 
             {/* -- LUCES Y TABLERO -- */}
             <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    <Lightbulb className="w-4 h-4" /> Luces y Tablero ({context})
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-slate-700" /> Luces y Tablero ({context})
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                    <CheckboxCard
+                        label="Testigos"
+                        sublabel="Encendidos en tablero"
+                        checked={currentItems.testigos_encendidos}
+                        onChange={(v: boolean) => updater('testigos_encendidos', v)}
+                    />
+                    <CheckboxCard
+                        label="Luces Altas"
+                        checked={currentItems.luces_altas}
+                        onChange={(v: boolean) => updater('luces_altas', v)}
+                    />
+                    <CheckboxCard
+                        label="Luces Bajas"
+                        checked={currentItems.luces_bajas}
+                        onChange={(v: boolean) => updater('luces_bajas', v)}
+                    />
+                    <CheckboxCard
+                        label="Luces Freno"
+                        checked={currentItems.luces_freno}
+                        onChange={(v: boolean) => updater('luces_freno', v)}
+                    />
+                </div>
+            </section>
+
+            {/* -- DAÑOS FÍSICOS -- */}
+            <section className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-slate-700" /> Evidencia de Daños Físicos ({context})
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                     <CheckboxCard

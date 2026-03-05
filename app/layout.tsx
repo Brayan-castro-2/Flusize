@@ -18,12 +18,13 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/logo-celular.png', sizes: 'any', type: 'image/png' },
       { url: '/logo-celular-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/logo-celular-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
+    shortcut: '/logo-celular.png',
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/logo-celular.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   openGraph: {
