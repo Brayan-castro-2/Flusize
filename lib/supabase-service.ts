@@ -239,7 +239,7 @@ export async function obtenerClientesPaginados(page: number, pageSize: number, s
     const to = from + pageSize - 1;
 
     let query = supabase
-        .from('clientes')
+        .from('clientes_search_view')
         .select(`
             *,
             vehiculos (
@@ -261,9 +261,10 @@ export async function obtenerClientesPaginados(page: number, pageSize: number, s
         .range(from, to);
 
     if (search && search.trim() !== '') {
-        const searchTerm = `%${search.trim()}%`;
-        // PostgREST: or syntax to search across multiple fields
-        query = query.or(`nombre_completo.ilike.${searchTerm},rut_dni.ilike.${searchTerm},telefono.ilike.${searchTerm},email.ilike.${searchTerm}`);
+        const cleanSearch = search.trim();
+        const searchTerm = `%${cleanSearch}%`;
+        // Búsqueda robusta en campos de cliente Y campos de vehículos (vía vista)
+        query = query.or(`nombre_completo.ilike.${searchTerm},rut_dni.ilike.${searchTerm},telefono.ilike.${searchTerm},email.ilike.${searchTerm},patentes_asociadas.ilike.${searchTerm},vehiculos_marcas.ilike.${searchTerm},vehiculos_modelos.ilike.${searchTerm}`);
     }
 
     const { data, count, error } = await query;
