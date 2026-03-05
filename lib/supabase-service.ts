@@ -737,7 +737,7 @@ export async function obtenerOrdenesPaginadas(
 
     try {
         let query = supabase
-            .from('ordenes')
+            .from('ordenes_con_prioridad')
             .select(`
                 id,
                 fecha_ingreso,
@@ -768,8 +768,10 @@ export async function obtenerOrdenesPaginadas(
                 )
             `, { count: 'exact' })
             .eq('taller_id', tallerId)
-            .order('fecha_ingreso', { ascending: false, nullsFirst: false })
+            .order('es_registro_vacio', { ascending: true })      // ← 0=válidos primero, 1=S/P al fondo
+            .order('fecha_ingreso', { ascending: false, nullsFirst: false })  // ← más recientes primero
             .order('creado_en', { ascending: false, nullsFirst: false });
+
 
         if (searchTerm) {
             // Buscamos coincidencia en ID o detalles internos directo de la tabla de órdenes
