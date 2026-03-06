@@ -78,7 +78,7 @@ export default async function OrdenPublicaPage({ params }: PageProps) {
                                 <h2 className="text-3xl font-bold">{estadoTexto[orden.estado as keyof typeof estadoTexto]}</h2>
                             </div>
                             <div className="text-right">
-                                <p className="text-sm opacity-90">Orden #{orden.id}</p>
+                                <p className="text-sm opacity-90">OT #{(orden as any).numero_orden || orden.id.toString().slice(-4).toUpperCase()}</p>
                                 <p className="text-lg font-semibold">{vehiculo?.marca} {vehiculo?.modelo}</p>
                             </div>
                         </div>

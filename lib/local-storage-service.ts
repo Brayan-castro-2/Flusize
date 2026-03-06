@@ -51,6 +51,7 @@ export interface VehiculoDB {
 export interface OrdenDB {
     id: string; // Updated to string for consistency with Supabase V3
     patente_vehiculo: string;
+    numero_orden?: string | null;
     descripcion_ingreso: string;
     estado: 'pendiente' | 'en_proceso' | 'completada' | 'cancelada' | 'entregada' | 'debe';
 

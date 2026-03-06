@@ -59,6 +59,7 @@ function OrderEditContent() {
     const [checklistMode, setChecklistMode] = useState<'checklist' | 'salida' | 'readonly_ingreso'>('checklist');
     const [checklistData, setChecklistData] = useState<any>(null);
     const [isLoadingChecklist, setIsLoadingChecklist] = useState(false);
+    const [selectedClienteId, setSelectedClienteId] = useState<string | null>(null);
 
     const checklistRef = useRef<HTMLDivElement>(null);
 
@@ -102,6 +103,7 @@ function OrderEditContent() {
     const handleSelectCliente = (cli: any) => {
         setClienteNombre(cli.nombre_completo || '');
         setClienteTelefono(cli.telefono || cli.email || '');
+        setSelectedClienteId(cli.id);
         setShowSuggestions(false);
     };
 
@@ -179,6 +181,7 @@ function OrderEditContent() {
 
                     setClienteNombre(nombreCliente);
                     setClienteTelefono(telefonoCliente);
+                    setSelectedClienteId(ordenData.cliente_id || (ordenData as any).cliente?.id || null);
                     setMetodosPago(ordenData.metodos_pago || []);
 
                     const kmMatch = rawDesc.match(/KM:\s*(\d+\.?\d*)/);
@@ -334,8 +337,39 @@ function OrderEditContent() {
             detalle_trabajos: detalleTrabajos || null,
             cotizacion_items: isAvanzado ? cotizacionItems.filter(item => item.descripcion.trim() !== '') : null,
             subtotal: isAvanzado ? subtotalAvanzado : null,
-            iva: isAvanzado ? ivaAvanzado : null
+            iva: isAvanzado ? ivaAvanzado : null,
+            cliente_nombre: clienteNombre,
+            cliente_telefono: clienteTelefono,
+            cliente_id: selectedClienteId
         };
+
+        // 🟢 LÓGICA DE PERSISTENCIA CRM (V3.1)
+        try {
+            // 1. Si hay un ID de cliente, asegurar que el nombre esté actualizado en la tabla 'clientes'
+            if (selectedClienteId) {
+                const { actualizarCliente } = await import('@/lib/storage-adapter');
+                await actualizarCliente(selectedClienteId, {
+                    nombre_completo: clienteNombre,
+                    telefono: clienteTelefono
+                });
+
+                // 2. Si el cliente de la orden CAMBIÓ (reasignación), actualizar también la tabla 'vehiculos'
+                // Usamos order.cliente_id (o fallback) para comparar
+                const originalClienteId = order.cliente_id || (order as any).cliente?.id;
+                if (selectedClienteId !== originalClienteId && order.patente_vehiculo) {
+                    const { supabase } = await import('@/lib/supabase');
+                    await supabase
+                        .from('vehiculos')
+                        .update({ cliente_id: selectedClienteId })
+                        .eq('patente', order.patente_vehiculo)
+                        .eq('taller_id', user?.tallerId);
+
+                    console.log('🔗 Patente reasignada al nuevo cliente ID:', selectedClienteId);
+                }
+            }
+        } catch (crmErr) {
+            console.error('⚠️ Error CRM:', crmErr);
+        }
 
         if (estado === 'completada' && order.estado !== 'completada') {
             const now = new Date().toISOString();
@@ -425,7 +459,7 @@ function OrderEditContent() {
 
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-slate-900 border-b-0">Orden #{order.id}</h1>
+                        <h1 className="text-xl md:text-2xl font-bold text-slate-900 border-b-0">OT #{order.numero_orden || order.id.toString().slice(-4).toUpperCase()}</h1>
                         <p className="text-sm text-slate-500">{new Date(order.fecha_ingreso || new Date()).toLocaleString('es-CL')}</p>
                     </div>
                     <div className="flex flex-wrap gap-2 w-full md:w-auto">

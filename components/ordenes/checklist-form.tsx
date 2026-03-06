@@ -22,8 +22,23 @@ import {
     Lightbulb,
     Shield,
     Unlock,
-    Lock
+    Lock,
+    AlertCircle
 } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from '@/components/ui/dialog';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { guardarChecklist, subirImagenChecklist, obtenerChecklist, confirmarRevisionIngreso, actualizarOrden } from '@/lib/storage-adapter';
 import { supabase } from '@/lib/supabase'; // Direct import for auth check if needed
 import { useAuth } from '@/contexts/auth-context';
@@ -104,7 +119,8 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         luces_bajas: false,
         luces_freno: false,
         neumaticos: '',
-        bypass_checklist: false, // New Field
+        kilometraje: '', // Nuevo campo manual
+        bypass_checklist: false,
     });
 
     // -- INGRESO STATE (Photos, Comments, Extras) --
@@ -203,6 +219,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         luces_bajas: false,
         luces_freno: false,
         neumaticos: '',
+        kilometraje: '', // Nuevo campo manual
         bypass_checklist: false
     });
     const [photosSalida, setPhotosSalida] = useState<Record<string, string>>({});
@@ -324,9 +341,9 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         }
     };
 
-    // Validation
-    const isIngresoValid = isBypassVerified || (!!photos.combustible_url && !!photos.kilometraje_url);
-    const isSalidaValid = isBypassVerified || (!!photosSalida.combustible_url && !!photosSalida.kilometraje_url);
+    // Validation (Ahora valida kilometraje manual en lugar de foto)
+    const isIngresoValid = isBypassVerified || (!!photos.combustible_url && !!items.kilometraje);
+    const isSalidaValid = isBypassVerified || (!!photosSalida.combustible_url && !!itemsSalida.kilometraje);
 
     const isFormValid = mode === 'readonly_ingreso' ? true
         : mode === 'salida' ? isSalidaValid
@@ -352,8 +369,26 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         <div className={`space-y-8 ${isReadOnly ? 'opacity-80 pointer-events-none' : ''}`}>
             {/* -- RECEPCIÓN Y PERTENENCIAS -- */}
             <section className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-slate-700" /> Recepción y Pertenencias ({context})
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2">
+                        <Wrench className="w-4 h-4 text-slate-700" /> Recepción y Pertenencias ({context})
+                    </div>
+
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button type="button" className="p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-blue-600 transition-colors">
+                                    <AlertCircle className="w-4 h-4" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[280px] p-3 bg-slate-900 border-slate-700 text-white shadow-xl rounded-xl">
+                                <p className="text-xs leading-relaxed">
+                                    <span className="font-bold text-blue-400 block mb-1">¿Por qué pedimos checklist?</span>
+                                    El checklist transmite transparencia al cliente y protege al taller de reclamos por daños previos. Recomendamos usarlo siempre.
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <CustomSwitch
@@ -448,7 +483,8 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                 </div>
             </section>
 
-            {/* -- LUCES Y TABLERO -- */}
+            {/* -- LUCES Y TABLERO (Oculto por solicitud) -- */}
+            {/* 
             <section className="space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <Lightbulb className="w-4 h-4 text-slate-700" /> Luces y Tablero ({context})
@@ -477,6 +513,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                     />
                 </div>
             </section>
+            */}
 
             {/* -- DAÑOS FÍSICOS -- */}
             <section className="space-y-4">
@@ -509,19 +546,46 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
             </section>
 
             {/* -- KILOMETRAJE Y LLANTAS -- */}
-            <section className={`bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-4`}>
-                <div className="space-y-2">
-                    <Label className="text-slate-400">Estado de Neumáticos (Visual)</Label>
-                    <Input
-                        placeholder="Ej: Desgaste parejo, presión ok..."
-                        value={currentItems.neumaticos}
-                        onChange={(e) => updater('neumaticos', e.target.value)}
-                        className="bg-slate-800 border-slate-700 text-white"
-                    />
+            <section className={`bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-6`}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Kilometraje Actual ({context})</Label>
+                        <div className="relative">
+                            <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                            <Input
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="Ej: 125.000"
+                                value={currentItems.kilometraje}
+                                onChange={(e) => {
+                                    // Formatear con puntos mientras escribe
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    const formatted = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                                    updater('kilometraje', formatted);
+                                }}
+                                className="bg-slate-800 border-slate-700 text-white pl-10 h-12 text-lg font-mono focus:ring-blue-500/20"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Estado de Neumáticos (Visual)</Label>
+                        <div className="relative">
+                            <Disc className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                            <Input
+                                placeholder="Ej: Desgaste parejo..."
+                                value={currentItems.neumaticos}
+                                onChange={(e) => updater('neumaticos', e.target.value)}
+                                className="bg-slate-800 border-slate-700 text-white pl-10 h-12"
+                            />
+                        </div>
+                    </div>
                 </div>
 
-                <div className="pt-2">
-                    <Label className="text-slate-400 mb-2 block">Foto Tablero / Kilometraje (Obligatorio)</Label>
+                {/* La foto ahora es OPCIONAL o se puede quitar si el usuario lo prefiere, 
+                    pero la mantengo como respaldo secundario si quieren subirla */}
+                <div className="pt-2 border-t border-slate-800/50">
+                    <Label className="text-slate-500 mb-3 block text-xs font-bold uppercase tracking-widest">Foto Tablero (Opcional)</Label>
                     {uploadingState['kilometraje_url'] ? (
                         <div className="w-full flex items-center justify-center p-8 border-2 border-dashed border-slate-700 bg-slate-800/50 rounded-xl">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -535,24 +599,17 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                             {!isReadOnly && (
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        // Simple remove logic handled via new upload replacing it
-                                    }}
+                                    onClick={() => uploader({ target: { files: [] } } as any, 'kilometraje_url')}
                                     className="absolute bottom-2 right-2 bg-slate-900/80 text-white text-xs px-3 py-2 rounded-lg"
                                 >Cambiar</button>
                             )}
                         </div>
                     ) : (
                         <div className="flex flex-col sm:flex-row gap-3">
-                            <label className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-600 bg-slate-800/50 px-4 py-6 font-medium text-slate-300 hover:bg-slate-700 hover:text-white cursor-pointer transition-all">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                <span>Seleccionar Imagen</span>
+                            <label className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/30 px-4 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer transition-all">
+                                <Camera className="w-4 h-4" />
+                                <span>Subir Foto Respaldo</span>
                                 <input type="file" accept="image/*" className="hidden" onChange={(e) => uploader(e, 'kilometraje_url')} />
-                            </label>
-                            <label className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-blue-600 bg-blue-900/30 px-4 py-6 font-medium text-blue-300 hover:bg-blue-800 hover:text-white cursor-pointer transition-all">
-                                <Camera className="w-6 h-6" />
-                                <span>Tomar foto tablero</span>
-                                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => uploader(e, 'kilometraje_url')} />
                             </label>
                         </div>
                     )}
@@ -834,10 +891,15 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                         </Button>
                     )}
                     <Button
-                        className={`flex-1 h-12 text-lg font-semibold shadow-xl shadow-blue-900/20 pointer-events-auto ${!isFormValid ? 'opacity-50 cursor-not-allowed bg-slate-700 text-slate-400' : 'bg-blue-600 hover:bg-blue-500 text-white'
-                            }`}
-                        disabled={!isFormValid || isSaving}
-                        onClick={handleSave}
+                        className="flex-1 h-12 text-lg font-semibold shadow-xl shadow-blue-900/20 bg-blue-600 hover:bg-blue-500 text-white"
+                        disabled={isSaving}
+                        onClick={() => {
+                            if (!isFormValid) {
+                                setVerifyingPassword(true);
+                            } else {
+                                handleSave();
+                            }
+                        }}
                     >
                         {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : (
                             <>
@@ -862,6 +924,89 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                     </Button>
                 </div>
             </div>
-        </div >
+
+            {/* -- MODAL DE BYPASS (PASSWORD) -- */}
+            <Dialog open={verifyingPassword} onOpenChange={setVerifyingPassword}>
+                <DialogContent className="bg-slate-900 border-slate-700 text-white sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                            <Shield className="w-6 h-6 text-red-500" />
+                            Bypass de Seguridad
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                            Faltan datos obligatorios (Kilometraje o Combustible).
+                            Para continuar sin completar, ingrese la contraseña de supervisor.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-6 space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="pass" className="text-slate-300">Contraseña de Supervisor</Label>
+                            <Input
+                                id="pass"
+                                type="password"
+                                placeholder="••••••••"
+                                value={bypassPassword}
+                                onChange={(e) => setBypassPassword(e.target.value)}
+                                className="bg-slate-800 border-slate-700 text-white h-12 text-lg active:scale-100"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        if (bypassPassword.length > 3) {
+                                            setBypassMode(true);
+                                            setIsBypassVerified(true);
+                                            setItems((prev: any) => ({ ...prev, bypass_checklist: true }));
+                                            setVerifyingPassword(false);
+                                            setBypassPassword('');
+                                            toast.success('Bypass autorizado');
+                                            // Auto-save after bypass if triggered from button
+                                            setTimeout(handleSave, 100);
+                                        } else {
+                                            toast.error('Contraseña incorrecta');
+                                        }
+                                    }
+                                }}
+                            />
+                        </div>
+
+                        <div className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <p>Esta acción omitirá las validaciones de kilometraje y fotos requeridas. Se registrará la omisión en el historial.</p>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="flex gap-2">
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setVerifyingPassword(false);
+                                setBypassPassword('');
+                            }}
+                            className="text-slate-400 hover:text-white hover:bg-slate-800"
+                        >
+                            Volver al Checklist
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                if (bypassPassword.length > 3) {
+                                    setBypassMode(true);
+                                    setIsBypassVerified(true);
+                                    setItems((prev: any) => ({ ...prev, bypass_checklist: true }));
+                                    setVerifyingPassword(false);
+                                    setBypassPassword('');
+                                    toast.success('Bypass autorizado');
+                                    setTimeout(handleSave, 100);
+                                } else {
+                                    toast.error('Contraseña incorrecta');
+                                }
+                            }}
+                            className="bg-red-600 hover:bg-red-500 text-white font-bold"
+                        >
+                            Autorizar Omisión
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }

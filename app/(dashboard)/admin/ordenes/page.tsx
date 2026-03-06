@@ -475,7 +475,7 @@ export default function OrdenesPage() {
 
     // AUTO-FILTRAR órdenes para mecánicos
 
-    const isAdmin = user?.role === 'taller_admin' || user?.role === 'superadmin';
+    const isAdmin = ['taller_admin', 'superadmin', 'admin', 'admin_local', 'dueño', 'owner'].includes(user?.role || '');
     const isMecanico = user?.role === 'mecanico';
     const canViewPrices = isAdmin || user?.name?.toLowerCase().includes('juan');
     const isLoading = isLoadingOrders;

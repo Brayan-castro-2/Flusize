@@ -157,7 +157,7 @@ export function BoletaFactura({ orden, vehiculo, mecanico }: BoletaFacturaProps)
                         </div>
                         <div className="text-right">
                             <p className="text-sm font-bold">ORDEN DE TRABAJO</p>
-                            <p className="text-lg font-mono">#{orden.id.toString().slice(0, 8).toUpperCase()}</p>
+                            <p className="text-lg font-bold text-blue-600">OT #{orden.numero_orden || orden.id.toString().slice(-4).toUpperCase()}</p>
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 border p-4 rounded-lg bg-gray-50/50">
@@ -252,9 +252,27 @@ export function BoletaFactura({ orden, vehiculo, mecanico }: BoletaFacturaProps)
                     </div>
                 </div>
 
+                {/* Disclaimer Legal y Firma */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                    <div className="bg-slate-50 p-4 rounded-lg mb-8">
+                        <p className="text-[10px] leading-relaxed text-slate-600 font-medium text-justify uppercase">
+                            REPROGRAMACIONES DE ECU ÚNICO REQUISITO BENCINA 97 OCTANOS PERMANENTE EN BENCINEROS.
+                            SE RECOMIENDA NO SOBRE EXIGIR EL VEHÍCULO EN ALTAS TEMPERATURAS AMBIENTALES.
+                            ÚNICA GARANTÍA EN PUERTO OBD2 Y ECU (BROCHES O TORNILOS EN CASO DE DESMONTAJE)
+                            STEEL MONKEY NO SE HACE RESPONSABLE DEBIDO A FACTORES EXTERNOS QUE PUEDEN LLEVAR A UN INCIDENTE.
+                        </p>
+                    </div>
+
+                    <div className="flex justify-end mt-12">
+                        <div className="w-64 text-center">
+                            <div className="border-t-2 border-black mb-2"></div>
+                            <p className="text-xs font-bold uppercase tracking-wider">Firma del Cliente</p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Footer */}
-                <div className="mt-12 pt-6 border-t border-dashed border-gray-300 text-center">
-                    <p className="text-sm font-bold uppercase mb-1">Gracias por su preferencia</p>
+                <div className="mt-8 pt-4 border-t border-dashed border-gray-300 text-center">
                     <p className="text-[10px] text-gray-400 uppercase tracking-widest">Documento generado vía Flusize SaaS</p>
                 </div>
             </div>
