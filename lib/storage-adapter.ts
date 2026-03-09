@@ -139,6 +139,18 @@ export async function eliminarOrden(id: string | number): Promise<boolean> {
     return localService.eliminarOrden(String(id));
 }
 
+export async function obtenerOrdenesPorUsuario(userId: string): Promise<{
+    creadas: OrdenDB[];
+    asignadas: OrdenDB[];
+}> {
+    if (isSupabase()) {
+        console.log('🔵 Usando Supabase para obtener ordenes por usuario');
+        return supabaseService.obtenerOrdenesPorUsuario(userId);
+    }
+    console.log('🟡 Usando localStorage para obtener ordenes por usuario');
+    return localService.obtenerOrdenesPorUsuario(userId);
+}
+
 
 
 // ============ PERFILES/USUARIOS ============

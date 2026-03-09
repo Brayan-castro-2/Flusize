@@ -43,6 +43,7 @@ export interface VehiculoDB {
     color?: string | null;
     vin?: string | null;
     cliente_id: string; // Required to match Supabase
+    taller_id?: string; // V3 White Label
 
     // Relación anidada
     clientes?: ClienteDB | null;
@@ -83,6 +84,11 @@ export interface OrdenDB {
     subtotal?: number | null;
     iva?: number | null;
 
+    diagnostico?: string | null;
+    trabajos_realizados?: string | null;
+    creado_en?: string;
+    actualizado_en?: string;
+
     // Estructuras legacy para evitar romper UI (serán null en nuevos registros)
     detalle_trabajos?: string | null;
     detalles_vehiculo?: string | null;
@@ -102,6 +108,7 @@ export interface OrdenDB {
     vehiculo?: { id: string; patente: string; marca: string; modelo: string; ano?: string; vin?: string; motor?: string } | null;
     asignado?: { id: string; nombre_completo: string; rol?: string } | null;
     creado?: { id: string; nombre_completo: string; rol?: string } | null;
+    taller_id?: string; // V3 White Label
 }
 
 export interface CitaDB {

@@ -81,7 +81,7 @@ export async function GET() {
                     }).select('id').single();
                     if (clErr) throw new Error(`Cliente: ${clErr.message}`);
                     clienteId = cli.id;
-                    cacheClientes.set(clientKey, clienteId);
+                    cacheClientes.set(clientKey, clienteId as string);
                 }
 
                 // PASO B: Vehículo
@@ -103,7 +103,7 @@ export async function GET() {
                         const { data: veh, error: vehErr } = await supabase.from('vehiculos').insert(vehData).select('id').single();
                         if (vehErr) throw new Error(`Vehículo ${patente}: ${vehErr.message}`);
                         vehiculoId = veh.id;
-                        cacheVehiculos.set(patente, vehiculoId);
+                        cacheVehiculos.set(patente, vehiculoId as string);
                     }
                 }
 

@@ -3,9 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { obtenerOrdenPorId, buscarVehiculoPorPatente } from '@/lib/local-storage-service';
-import { actualizarOrden } from '@/lib/storage-adapter';
-import { OrdenDB, VehiculoDB } from '@/lib/supabase';
+import { obtenerOrdenPorId, buscarVehiculoPorPatente, actualizarOrden } from '@/lib/storage-adapter';
+import type { OrdenDB, VehiculoDB } from '@/lib/storage-adapter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

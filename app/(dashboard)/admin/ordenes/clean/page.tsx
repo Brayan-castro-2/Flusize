@@ -181,7 +181,7 @@ function OrderEditContent() {
 
                     setClienteNombre(nombreCliente);
                     setClienteTelefono(telefonoCliente);
-                    setSelectedClienteId(ordenData.cliente_id || (ordenData as any).cliente?.id || null);
+                    setSelectedClienteId((ordenData as any).cliente_id || (ordenData as any).cliente?.id || null);
                     setMetodosPago(ordenData.metodos_pago || []);
 
                     const kmMatch = rawDesc.match(/KM:\s*(\d+\.?\d*)/);
@@ -355,7 +355,7 @@ function OrderEditContent() {
 
                 // 2. Si el cliente de la orden CAMBIÓ (reasignación), actualizar también la tabla 'vehiculos'
                 // Usamos order.cliente_id (o fallback) para comparar
-                const originalClienteId = order.cliente_id || (order as any).cliente?.id;
+                const originalClienteId = (order as any).cliente_id || (order as any).cliente?.id;
                 if (selectedClienteId !== originalClienteId && order.patente_vehiculo) {
                     const { supabase } = await import('@/lib/supabase');
                     await supabase
