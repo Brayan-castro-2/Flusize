@@ -4,6 +4,8 @@ import * as xlsx from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     console.log('🚀 API /clean-slate - Clean Slate Import V3: Steel Monkey');
 
@@ -77,7 +79,8 @@ export async function GET() {
                         taller_id: TALLER_ID,
                         nombre_completo: nombre,
                         rut_dni: rut,
-                        telefono: telefono
+                        telefono: telefono,
+                        tipo: 'persona'
                     }).select('id').single();
                     if (clErr) throw new Error(`Cliente: ${clErr.message}`);
                     clienteId = cli.id;
