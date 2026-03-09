@@ -120,6 +120,8 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         luces_freno: false,
         neumaticos: '',
         kilometraje: '', // Nuevo campo manual
+        color: '', // Nuevo campo color
+        daños_marcados: [] as string[], // Nuevo: Áreas marcadas en la silueta
         bypass_checklist: false,
     });
 
@@ -220,6 +222,8 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
         luces_freno: false,
         neumaticos: '',
         kilometraje: '', // Nuevo campo manual
+        color: '', // Nuevo campo color
+        daños_marcados: [] as string[],
         bypass_checklist: false
     });
     const [photosSalida, setPhotosSalida] = useState<Record<string, string>>({});
@@ -515,33 +519,113 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
             </section>
             */}
 
-            {/* -- DAÑOS FÍSICOS -- */}
+            {/* -- DAÑOS FÍSICOS Y EVIDENCIA -- */}
             <section className="space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-slate-700" /> Evidencia de Daños Físicos ({context})
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
-                    <CheckboxCard
-                        label="Testigos"
-                        sublabel="Encendidos en tablero"
-                        checked={currentItems.testigos_encendidos}
-                        onChange={(v: boolean) => updater('testigos_encendidos', v)}
-                    />
-                    <CheckboxCard
-                        label="Luces Altas"
-                        checked={currentItems.luces_altas}
-                        onChange={(v: boolean) => updater('luces_altas', v)}
-                    />
-                    <CheckboxCard
-                        label="Luces Bajas"
-                        checked={currentItems.luces_bajas}
-                        onChange={(v: boolean) => updater('luces_bajas', v)}
-                    />
-                    <CheckboxCard
-                        label="Luces Freno"
-                        checked={currentItems.luces_freno}
-                        onChange={(v: boolean) => updater('luces_freno', v)}
-                    />
+
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+                    <p className="text-xs text-slate-500 mb-4 italic">
+                        Selecciona las zonas con daños en la silueta y sube fotos de respaldo.
+                    </p>
+
+                    {/* Botones de Zona (Toggles Simples) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                        {['Frontal', 'Trasero', 'Lateral Izquierdo', 'Lateral Derecho', 'Techo'].map((zona) => {
+                            const isSelected = currentItems.daños_marcados?.includes(zona);
+                            return (
+                                <button
+                                    key={zona}
+                                    type="button"
+                                    onClick={() => {
+                                        const current = currentItems.daños_marcados || [];
+                                        const next = isSelected
+                                            ? current.filter((i: string) => i !== zona)
+                                            : [...current, zona];
+                                        updater('daños_marcados', next);
+                                    }}
+                                    className={`
+                                        p-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center justify-between
+                                        ${isSelected
+                                            ? 'bg-red-50 border-red-500 text-red-700 shadow-sm'
+                                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
+                                        }
+                                    `}
+                                >
+                                    <span>{zona}</span>
+                                    {isSelected && <CheckCircle2 className="w-4 h-4 text-red-500 shrink-0" />}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Botón de Cámara Directo */}
+                    <div className="space-y-4">
+                        {!isReadOnly && (
+                            <label className="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-xl cursor-pointer transition-all shadow-md active:scale-[0.98]">
+                                <Camera className="w-6 h-6" />
+                                <span className="font-bold text-base">Subir / Tomar Foto del Daño</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    capture="environment"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                        const files = Array.from(e.target.files || []);
+                                        if (files.length === 0) return;
+
+                                        toast.success(`Subiendo ${files.length} fotos...`);
+                                        const urls = await Promise.all(
+                                            files.map(file => subirImagenChecklist(file, orderId, `daño_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`))
+                                        );
+
+                                        const validUrls = urls.filter(Boolean);
+                                        const current = currentItems.fotos_daños || [];
+                                        updater('fotos_daños', [...current, ...validUrls]);
+                                    }}
+                                />
+                            </label>
+                        )}
+
+                        {/* Renderizar fotos de daños subidas (Miniaturas) */}
+                        {currentItems.fotos_daños && currentItems.fotos_daños.length > 0 && (
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                {currentItems.fotos_daños.map((url: string, idx: number) => (
+                                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group shadow-sm">
+                                        <img src={url} className="w-full h-full object-cover" />
+                                        {!isReadOnly && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const next = currentItems.fotos_daños.filter((_: any, i: number) => i !== idx);
+                                                    updater('fotos_daños', next);
+                                                }}
+                                                className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-600 text-white p-1.5 rounded-md transition-colors"
+                                            >
+                                                <AlertTriangle className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Campo de Notas (Opcional) */}
+                    <div className="pt-2">
+                        <Label className="text-slate-600 mb-2 block font-semibold text-xs uppercase tracking-wider">
+                            Detalle del daño (Opcional)
+                        </Label>
+                        <textarea
+                            value={currentItems.detalle_daño || ''}
+                            onChange={(e) => updater('detalle_daño', e.target.value)}
+                            disabled={isReadOnly}
+                            placeholder="Describe brevemente los daños observados..."
+                            className="w-full min-h-[80px] p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-y disabled:opacity-75"
+                        />
+                    </div>
                 </div>
             </section>
 
@@ -569,6 +653,21 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                     </div>
 
                     <div className="space-y-2">
+                        <Label className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Color del Vehículo</Label>
+                        <div className="relative">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center overflow-hidden">
+                                <div className="w-full h-full" style={{ backgroundColor: currentItems.color?.toLowerCase() === 'blanco' ? '#fff' : currentItems.color?.toLowerCase() === 'negro' ? '#000' : currentItems.color?.toLowerCase() === 'rojo' ? '#ef4444' : '#64748b' }}></div>
+                            </div>
+                            <Input
+                                placeholder="Ej: Blanco Perla..."
+                                value={currentItems.color}
+                                onChange={(e) => updater('color', e.target.value)}
+                                className="bg-slate-800 border-slate-700 text-white pl-10 h-12 focus:ring-blue-500/20"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
                         <Label className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Estado de Neumáticos (Visual)</Label>
                         <div className="relative">
                             <Disc className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
@@ -576,7 +675,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                                 placeholder="Ej: Desgaste parejo..."
                                 value={currentItems.neumaticos}
                                 onChange={(e) => updater('neumaticos', e.target.value)}
-                                className="bg-slate-800 border-slate-700 text-white pl-10 h-12"
+                                className="bg-slate-800 border-slate-700 text-white pl-10 h-12 focus:ring-blue-500/20"
                             />
                         </div>
                     </div>
@@ -789,12 +888,12 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                 {(mode === 'checklist' || mode === 'salida') && (
                     <div className="flex items-center justify-between bg-slate-100/80 p-4 rounded-xl border border-slate-200 shadow-sm">
                         <div className="flex items-center gap-3">
-                            <Shield className={`w-5 h-5 ${bypassMode ? 'text-red-500' : 'text-slate-400'}`} />
+                            <Shield className={`w-5 h-5 ${bypassMode ? 'text-red-500' : 'text-slate-500'}`} />
                             <div>
-                                <p className="text-sm font-medium text-slate-200">
+                                <p className="text-sm font-bold text-slate-800">
                                     {bypassMode ? 'Modo: Omitir Checklist' : 'Omitir Checklist'}
                                 </p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-slate-600">
                                     {bypassMode
                                         ? 'Se guardará sin validar campos obligatorios.'
                                         : 'Requiere contraseña de supervisor.'}
@@ -811,7 +910,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                                     setIsBypassVerified(false);
                                     setItems(prev => ({ ...prev, bypass_checklist: false }));
                                 }}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
                                 Cancelar
                             </Button>

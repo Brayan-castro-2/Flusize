@@ -24,6 +24,8 @@ export interface AuthUser {
     role: 'cliente' | 'taller_admin' | 'mecanico' | 'superadmin' | 'admin' | 'flusize_admin';
     isActive: boolean;
     tallerId?: string;
+    workshopName?: string;
+    logoUrl?: string;
     modulos: TallerModulos;
     plan: string;
 }
@@ -114,11 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             let modulos: TallerModulos = { ...DEFAULT_MODULOS };
             let plan = DEFAULT_PLAN;
+            let workshopName = '';
+            let logoUrl = '';
 
             if (finalTallerId && !abortController.signal.aborted) {
                 const tallerPromise = supabase
                     .from('talleres')
-                    .select('modulos_activos, plan_suscripcion')
+                    .select('nombre, logo_url, modulos_activos, plan_suscripcion')
                     .eq('id', finalTallerId)
                     .maybeSingle();
 
@@ -131,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (!abortController.signal.aborted && taller) {
                     if (taller.modulos_activos) modulos = { ...DEFAULT_MODULOS, ...taller.modulos_activos };
                     if (taller.plan_suscripcion) plan = taller.plan_suscripcion;
+                    if (taller.nombre) workshopName = taller.nombre;
+                    if (taller.logo_url) logoUrl = taller.logo_url;
                 }
             }
 
@@ -144,6 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 role: finalRole as any,
                 isActive: perfil?.activo ?? true,
                 tallerId: finalTallerId,
+                workshopName,
+                logoUrl,
                 modulos,
                 plan,
             });

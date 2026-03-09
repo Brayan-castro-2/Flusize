@@ -53,8 +53,12 @@ export interface TallerDB {
     latitud?: number | null;
     longitud?: number | null;
     descripcion?: string | null;
+    reconocimiento?: string | null;
+    estadisticas?: string | null;
+    portada_url?: string | null;
     horario?: any; // jsonb
     plan_suscripcion?: string | null;
+    color_primario?: string | null;
     etiquetas_servicios?: string[] | null;
     created_at?: string;
     updated_at?: string;

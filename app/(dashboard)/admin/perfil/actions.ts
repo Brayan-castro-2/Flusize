@@ -87,3 +87,45 @@ export async function uploadLogoAction(tallerId: string, formData: FormData) {
         return { success: false, error: error.message };
     }
 }
+
+export async function uploadPortadaAction(tallerId: string, formData: FormData) {
+    try {
+        const file = formData.get('file') as File;
+        if (!file) throw new Error('No se proporcionó ningún archivo');
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${tallerId}/portada-${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        // Subir al bucket 'portadas_talleres'
+        // Nota: Asegúrate de que el bucket exista en Supabase
+        const { error: uploadError } = await supabaseAdmin.storage
+            .from('portadas_talleres')
+            .upload(filePath, file, {
+                upsert: true,
+                contentType: file.type
+            });
+
+        if (uploadError) throw uploadError;
+
+        // Obtener URL pública
+        const { data: { publicUrl } } = supabaseAdmin.storage
+            .from('portadas_talleres')
+            .getPublicUrl(filePath);
+
+        // Actualizar tabla talleres
+        const { error: updateError } = await supabaseAdmin
+            .from('talleres')
+            .update({ portada_url: publicUrl })
+            .eq('id', tallerId);
+
+        if (updateError) throw updateError;
+
+        revalidatePath('/admin/perfil');
+        revalidatePath(`/`); // Revalidar por si se ve en algún listado
+        return { success: true, portadaUrl: publicUrl };
+    } catch (error: any) {
+        console.error('[Action] Error uploading portada:', error);
+        return { success: false, error: error.message };
+    }
+}

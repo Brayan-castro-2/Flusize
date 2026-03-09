@@ -30,6 +30,10 @@ interface WorkshopData {
     ciudad: string | null;
     region: string | null;
     sitio_web: string | null;
+    reconocimiento: string | null;
+    estadisticas: string | null;
+    portada_url: string | null;
+    color_primario: string | null;
     reconocimientos?: { icon: string; label: string }[];
 }
 
@@ -124,14 +128,17 @@ export default function WorkshopDetail() {
             {/* NAVBAR DESKTOP & MOBILE */}
             <header className="border-b border-[#222] bg-[#0a0a0a] sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-[#ea580c] rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-lg shadow-orange-500/20">
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div
+                            className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-lg shadow-orange-500/20"
+                            style={{ backgroundColor: workshop.color_primario || '#ea580c' }}
+                        >
                             {workshop.nombre.charAt(0).toUpperCase()}
                         </div>
                         <div className="hidden sm:block">
                             <h1 className="text-xl font-black text-white leading-none tracking-tight">{workshop.nombre}</h1>
                             {isSteelmonkey ? (
-                                <p className="text-xs text-[#ea580c] font-bold tracking-widest mt-1 uppercase">TITÁN PERFORMANCE</p>
+                                <p className="text-xs font-bold tracking-widest mt-1 uppercase" style={{ color: workshop.color_primario || '#ea580c' }}>TITÁN PERFORMANCE</p>
                             ) : (
                                 <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-wider">Taller Verificado</p>
                             )}
@@ -147,54 +154,100 @@ export default function WorkshopDetail() {
                 </div>
             </header>
 
+            {/* CONTENEDOR DE PORTADA DINÁMICO */}
+            <div className="w-full h-48 md:h-64 lg:h-80 relative overflow-hidden bg-slate-900">
+                {workshop.portada_url ? (
+                    <img
+                        src={workshop.portada_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 opacity-50" />
+                )}
+                <div className="absolute inset-0 bg-black/20" />
+            </div>
+
             {/* MAIN LAYOUT */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 md:mt-12 grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
 
                 {/* COLUMNA IZQUIERDA: HERO & INFO */}
                 <div className="space-y-6">
                     {/* Hero Card */}
-                    <div className="bg-[#0f172a] rounded-[2rem] p-6 md:p-10 border border-slate-800/50 shadow-2xl relative overflow-hidden">
-                        {/* Glow de fondo */}
-                        <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full pointer-events-none" />
+                    <div className="bg-[#0f172a] rounded-[2rem] p-6 md:p-10 border border-slate-800/50 shadow-2xl relative overflow-hidden group/hero">
+                        {/* Background Image / Portada */}
+                        {workshop.portada_url ? (
+                            <div className="absolute inset-0 z-0">
+                                <img
+                                    src={workshop.portada_url}
+                                    alt="Portada Taller"
+                                    className="w-full h-full object-cover opacity-30 group-hover/hero:opacity-40 transition-opacity duration-700"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/80 to-transparent" />
+                            </div>
+                        ) : (
+                            <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full pointer-events-none" />
+                        )}
 
-                        {/* Badges Fila 1 */}
-                        <div className="flex flex-wrap gap-3 mb-8">
-                            <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0f172a] border border-orange-500/30 text-xs font-bold text-white tracking-wide">
-                                <span className="text-orange-500">🏆</span> PREMIO INNOVACIÓN 2024
-                            </span>
-                            <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0f172a] border border-orange-500/30 text-xs font-bold text-white tracking-wide">
-                                <span className="text-orange-500">⚡</span> +500 VEHÍCULOS POTENCIADOS
-                            </span>
-                            <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0f172a] border border-orange-500/30 text-xs font-bold text-white tracking-wide">
-                                <span className="text-orange-500">🛡️</span> CALIDAD CERTIFICADA
-                            </span>
-                        </div>
+                        <div className="relative z-10">
 
-                        {/* Badges Fila 2 */}
-                        <div className="flex items-center gap-3 mb-6">
-                            {isSteelmonkey && (
-                                <span className="px-4 py-1.5 rounded-full bg-[#ea580c] text-xs font-black text-white tracking-wide uppercase">
-                                    Taller Titán
-                                </span>
+                            {/* Badges Dinámicos */}
+                            {(workshop.reconocimiento || workshop.estadisticas) && (
+                                <div className="flex flex-wrap gap-3 mb-8">
+                                    {workshop.reconocimiento && (
+                                        <span
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0f172a]/80 backdrop-blur-md border text-xs font-bold text-white tracking-wide"
+                                            style={{ borderColor: `${workshop.color_primario || '#f97316'}4d` }}
+                                        >
+                                            <span style={{ color: workshop.color_primario || '#f97316' }}>🏆</span> {workshop.reconocimiento.toUpperCase()}
+                                        </span>
+                                    )}
+                                    {workshop.estadisticas && (
+                                        <span
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0f172a]/80 backdrop-blur-md border text-xs font-bold text-white tracking-wide"
+                                            style={{ borderColor: `${workshop.color_primario || '#f97316'}4d` }}
+                                        >
+                                            <span style={{ color: workshop.color_primario || '#f97316' }}>⚡</span> {workshop.estadisticas.toUpperCase()}
+                                        </span>
+                                    )}
+                                    <span
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0f172a]/80 backdrop-blur-md border text-xs font-bold text-white tracking-wide"
+                                        style={{ borderColor: `${workshop.color_primario || '#f97316'}4d` }}
+                                    >
+                                        <span style={{ color: workshop.color_primario || '#f97316' }}>🛡️</span> CALIDAD CERTIFICADA
+                                    </span>
+                                </div>
                             )}
-                            <span className="px-4 py-1.5 rounded-full bg-slate-800/80 text-xs font-bold text-slate-300 tracking-wide flex items-center gap-1.5 uppercase">
-                                <MapPin className="w-3.5 h-3.5 text-rose-400" />
-                                {workshop.ciudad || 'Santiago'}
-                            </span>
+
+                            {/* Badges Fila 2 */}
+                            <div className="flex items-center gap-3 mb-6">
+                                {isSteelmonkey && (
+                                    <span
+                                        className="px-4 py-1.5 rounded-full text-xs font-black text-white tracking-wide uppercase"
+                                        style={{ backgroundColor: workshop.color_primario || '#ea580c' }}
+                                    >
+                                        Taller Titán
+                                    </span>
+                                )}
+                                <span className="px-4 py-1.5 rounded-full bg-slate-800/80 text-xs font-bold text-slate-300 tracking-wide flex items-center gap-1.5 uppercase">
+                                    <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                                    {workshop.ciudad || 'Santiago'}
+                                </span>
+                            </div>
+
+                            {/* Título Principal */}
+                            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+                                {workshop.nombre} —<br />
+                                <span className="text-slate-200">
+                                    {isSteelmonkey ? 'Performance & Detail' : 'Centro Especializado'}
+                                </span>
+                            </h2>
+
+                            <p className="flex items-center gap-2 text-slate-400 text-lg md:text-xl font-medium">
+                                <MapPin className="w-5 h-5 text-indigo-400 shrink-0" />
+                                {workshop.direccion ? `${workshop.direccion}, ${workshop.ciudad || ''} ${workshop.region || ''}` : 'Ubicación no especificada'}
+                            </p>
                         </div>
-
-                        {/* Título Principal */}
-                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
-                            {workshop.nombre} —<br />
-                            <span className="text-slate-200">
-                                {isSteelmonkey ? 'Performance & Detail' : 'Centro Especializado'}
-                            </span>
-                        </h2>
-
-                        <p className="flex items-center gap-2 text-slate-400 text-lg md:text-xl font-medium">
-                            <MapPin className="w-5 h-5 text-indigo-400 shrink-0" />
-                            {workshop.direccion ? `${workshop.direccion}, ${workshop.ciudad || ''} ${workshop.region || ''}` : 'Ubicación no especificada'}
-                        </p>
                     </div>
 
                     {/* Grilla Info: Sobre Nosotros & Servicios */}
@@ -242,7 +295,13 @@ export default function WorkshopDetail() {
 
                 {/* COLUMNA DERECHA: CONTACTO (STICKY) */}
                 <div className="lg:sticky lg:top-28">
-                    <div className="bg-[#ea580c] rounded-[2rem] p-8 shadow-2xl shadow-orange-600/20 relative overflow-hidden">
+                    <div
+                        className="rounded-[2rem] p-8 shadow-2xl relative overflow-hidden"
+                        style={{
+                            backgroundColor: workshop.color_primario || '#ea580c',
+                            boxShadow: `0 25px 50px -12px ${workshop.color_primario || '#ea580c'}33`
+                        }}
+                    >
                         {/* Adorno circular sutil */}
                         <div className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -253,7 +312,7 @@ export default function WorkshopDetail() {
                         <h3 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-2">
                             Contacto Directo
                         </h3>
-                        <p className="text-orange-200 font-bold tracking-widest text-sm uppercase mb-8">
+                        <p className="text-white/80 font-bold tracking-widest text-sm uppercase mb-8">
                             Atención inmediata vía WhatsApp
                         </p>
 
@@ -263,7 +322,8 @@ export default function WorkshopDetail() {
                                     href={waLink}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex w-full items-center justify-center gap-3 bg-white text-orange-600 px-6 py-4 rounded-xl font-bold hover:bg-orange-50 transition-all active:scale-[0.98] shadow-lg shadow-black/10"
+                                    className="flex w-full items-center justify-center gap-3 bg-white px-6 py-4 rounded-xl font-bold hover:bg-white/90 transition-all active:scale-[0.98] shadow-lg shadow-black/10"
+                                    style={{ color: workshop.color_primario || '#ea580c' }}
                                 >
                                     <MessageCircle className="w-5 h-5 flex-shrink-0" />
                                     ENVIAR MENSAJE
@@ -287,7 +347,7 @@ export default function WorkshopDetail() {
                                     href={workshop.sitio_web.startsWith('http') ? workshop.sitio_web : `https://${workshop.sitio_web}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex w-full items-center justify-center gap-3 bg-orange-950/40 border border-orange-800 text-white px-6 py-4 rounded-xl font-bold hover:bg-orange-900/40 transition-all active:scale-[0.98]"
+                                    className="flex w-full items-center justify-center gap-3 bg-white/10 border border-white/20 text-white px-6 py-4 rounded-xl font-bold hover:bg-white/20 transition-all active:scale-[0.98]"
                                 >
                                     <Globe className="w-5 h-5 flex-shrink-0" />
                                     SITIO WEB OFICIAL

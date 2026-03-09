@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { getWorkshopData, updateWorkshopAction, uploadLogoAction } from './actions';
+import { getWorkshopData, updateWorkshopAction, uploadLogoAction, uploadPortadaAction } from './actions';
 import {
     Camera,
     Save,
@@ -16,7 +16,8 @@ import {
     AlertCircle,
     Settings,
     UserCircle,
-    Globe
+    Globe,
+    Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { actualizarPerfil } from '@/lib/storage-adapter';
@@ -26,10 +27,12 @@ export default function PerfilTallerPage() {
     const { user, refetchUser } = useAuth();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const portadaInputRef = useRef<HTMLInputElement>(null);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState(false);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [uploadingPortada, setUploadingPortada] = useState(false);
     const [workshop, setWorkshop] = useState<any>(null);
     const [personalInfo, setPersonalInfo] = useState({ nombre: '', email: '' });
 
@@ -68,6 +71,9 @@ export default function PerfilTallerPage() {
             facebook: workshop.facebook,
             sitio_web: workshop.sitio_web,
             ciudad: workshop.ciudad,
+            reconocimiento: workshop.reconocimiento,
+            estadisticas: workshop.estadisticas,
+            color_primario: workshop.color_primario,
             servicios: Array.isArray(workshop.servicios)
                 ? workshop.servicios
                 : (workshop.servicios || '').split(',').map((s: string) => s.trim()).filter(Boolean)
@@ -99,22 +105,49 @@ export default function PerfilTallerPage() {
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file || !workshop.id) return;
 
-        setUploading(true);
+        setUploadingLogo(true);
         const formData = new FormData();
         formData.append('file', file);
 
-        const res = await uploadLogoAction(user!.tallerId!, formData);
-        if (res.success) {
-            setWorkshop((prev: any) => ({ ...prev, logo_url: res.logoUrl }));
-            toast.success('Logo actualizado correctamente');
-        } else {
-            toast.error(res.error || 'Error al subir el logo');
+        try {
+            const result = await uploadLogoAction(workshop.id, formData);
+            if (result.success) {
+                setWorkshop((prev: any) => ({ ...prev, logo_url: result.logoUrl }));
+                toast.success('Logo actualizado');
+            } else {
+                toast.error(result.error);
+            }
+        } catch (error) {
+            toast.error('Error al subir el logo');
+        } finally {
+            setUploadingLogo(false);
         }
-        setUploading(false);
     };
 
+    const handlePortadaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !workshop.id) return;
+
+        setUploadingPortada(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const result = await uploadPortadaAction(workshop.id, formData);
+            if (result.success) {
+                setWorkshop((prev: any) => ({ ...prev, portada_url: result.portadaUrl }));
+                toast.success('Foto de portada actualizada');
+            } else {
+                toast.error(result.error);
+            }
+        } catch (error) {
+            toast.error('Error al subir la portada');
+        } finally {
+            setUploadingPortada(false);
+        }
+    };
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -191,50 +224,140 @@ export default function PerfilTallerPage() {
                     </div>
                 </div>
 
+                {/* Brand Personalization Section */}
+                <div className="bg-white border border-gray-200 rounded-[32px] p-6 sm:p-8 shadow-sm shadow-gray-200/50 space-y-6">
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <Camera className="w-4 h-4 text-blue-500" />
+                        Personalización de Marca (White Label)
+                    </h3>
+
+                    <div className="grid md:grid-cols-2 gap-8 items-start">
+                        {/* Color Picker */}
+                        <div className="space-y-4">
+                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Color Primario de tu Marca</label>
+                            <div className="flex items-center gap-4">
+                                <div
+                                    className="w-14 h-14 rounded-2xl border-4 border-white shadow-lg shrink-0"
+                                    style={{ backgroundColor: workshop.color_primario || '#EA580C' }}
+                                />
+                                <div className="flex-1">
+                                    <input
+                                        type="color"
+                                        value={workshop.color_primario || '#EA580C'}
+                                        onChange={e => setWorkshop({ ...workshop, color_primario: e.target.value })}
+                                        className="w-full h-10 bg-transparent cursor-pointer rounded-lg border-none"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1 font-medium italic">Este color se usará para tus botones, badges y acentos visuales.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Visual Preview Hint */}
+                        <div className="bg-gray-50 rounded-2xl p-4 border border-dashed border-gray-200">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div
+                                    className="px-3 py-1 rounded-full text-[9px] font-black text-white uppercase tracking-tighter"
+                                    style={{ backgroundColor: workshop.color_primario || '#EA580C' }}
+                                >
+                                    Vista Previa
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-gray-500 leading-relaxed font-medium">
+                                Los elementos que antes eran naranjas ahora adoptarán tu color corporativo.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Logo Section */}
                 <div className="bg-white border border-gray-200 rounded-[32px] p-6 sm:p-8 relative overflow-hidden group shadow-sm shadow-gray-200/50">
                     <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 pointer-events-none transition-opacity">
                         <Camera className="w-32 h-32 text-gray-900" />
                     </div>
 
-                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-                        <div className="relative">
-                            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-gray-50 border-2 border-gray-100 overflow-hidden shadow-xl relative group/logo">
-                                {workshop.logo_url ? (
-                                    <img src={workshop.logo_url} alt="Logo" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                        <Camera className="w-12 h-12" />
-                                    </div>
-                                )}
-                                {uploading && (
-                                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
-                                        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                                    </div>
-                                )}
+                    <div className="flex flex-col gap-10">
+                        {/* Logo Upload Section */}
+                        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                            <div className="relative">
+                                <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-gray-50 border-2 border-gray-100 overflow-hidden shadow-xl relative group/logo">
+                                    {workshop.logo_url ? (
+                                        <img src={workshop.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                            <Camera className="w-12 h-12" />
+                                        </div>
+                                    )}
+                                    {uploadingLogo && (
+                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+                                            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-4 border-white"
+                                >
+                                    <Camera className="w-4 h-4" />
+                                </button>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleLogoUpload}
+                                />
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-4 border-white"
-                            >
-                                <Camera className="w-4 h-4" />
-                            </button>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleLogoUpload}
-                            />
+
+                            <div className="flex-1 space-y-2 text-center md:text-left">
+                                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Logo de la Empresa</h3>
+                                <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
+                                    Este logo aparecerá en tu Bio-Link, reportes de inspección y comunicaciones con clientes.
+                                    Se recomienda una imagen cuadrada de al menos 400x400px.
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="flex-1 space-y-2 text-center md:text-left">
-                            <h3 className="text-xl font-bold text-gray-900 tracking-tight">Logo de la Empresa</h3>
-                            <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
-                                Este logo aparecerá en tu Bio-Link, reportes de inspección y comunicaciones con clientes.
-                                Se recomienda una imagen cuadrada de al menos 400x400px.
-                            </p>
+                        {/* Portada Upload Section */}
+                        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 pt-8 border-t border-gray-100">
+                            <div className="relative w-full md:w-80">
+                                <div className="h-32 sm:h-40 rounded-2xl bg-gray-50 border-2 border-gray-100 overflow-hidden shadow-lg relative group/portada">
+                                    {workshop.portada_url ? (
+                                        <img src={workshop.portada_url} alt="Portada" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                            <ImageIcon className="w-10 h-10" />
+                                        </div>
+                                    )}
+                                    {uploadingPortada && (
+                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+                                            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => portadaInputRef.current?.click()}
+                                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-4 border-white"
+                                >
+                                    <Camera className="w-4 h-4" />
+                                </button>
+                                <input
+                                    type="file"
+                                    ref={portadaInputRef}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handlePortadaUpload}
+                                />
+                            </div>
+
+                            <div className="flex-1 space-y-2 text-center md:text-left">
+                                <h3 className="text-lg font-bold text-gray-900 tracking-tight">Foto de Portada</h3>
+                                <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
+                                    Esta imagen se mostrará como fondo en el encabezado de tu perfil público.
+                                    Se recomienda una imagen panorámica de 1200x400px.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -267,6 +390,28 @@ export default function PerfilTallerPage() {
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all resize-none leading-relaxed"
                                     placeholder="Describe tu taller..."
                                 />
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Reconocimiento / Distinción (Max 30 carac.)</label>
+                                    <input
+                                        type="text"
+                                        value={workshop.reconocimiento || ''}
+                                        onChange={e => setWorkshop({ ...workshop, reconocimiento: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-semibold"
+                                        placeholder="Ej: Premio Innovación 2024"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Estadística (Max 30 carac.)</label>
+                                    <input
+                                        type="text"
+                                        value={workshop.estadisticas || ''}
+                                        onChange={e => setWorkshop({ ...workshop, estadisticas: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-semibold"
+                                        placeholder="Ej: +500 Autos Potenciados"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

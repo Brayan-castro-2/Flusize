@@ -108,6 +108,7 @@ function RecepcionContent() {
     const [modelo, setModelo] = useState('');
     const [anio, setAnio] = useState('');
     const [motor, setMotor] = useState('');
+    const [vehiculoColor, setVehiculoColor] = useState('');
 
     const [kmEnabled, setKmEnabled] = useState(false);
     const [kmActual, setKmActual] = useState('');
@@ -764,7 +765,7 @@ function RecepcionContent() {
                 vehiculo_modelo: String(modelo).trim(),
                 vehiculo_anio: String(anio).trim(),
                 vehiculo_motor: motor ? String(motor).trim() : undefined,
-                vehiculo_color: '-',
+                vehiculo_color: vehiculoColor ? String(vehiculoColor).trim() : '-',
 
                 precio_total: total || undefined,
                 fotos: fotos.length ? fotos : undefined,
@@ -827,6 +828,7 @@ function RecepcionContent() {
         setModelo('');
         setAnio('');
         setMotor('');
+        setVehiculoColor('');
         setKmEnabled(false);
         setKmActual('');
         setKmNuevo('');
@@ -948,8 +950,8 @@ function RecepcionContent() {
 
                 {estadoBusqueda ? (
                     <div className={`mt-3 p-3 rounded-xl border text-sm font-medium ${estadoBusqueda.includes('❌') ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-                            estadoBusqueda.includes('✅') ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-                                'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                        estadoBusqueda.includes('✅') ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                            'bg-blue-500/10 border-blue-500/30 text-blue-400'
                         }`}>
                         {estadoBusqueda}
                     </div>
@@ -989,6 +991,15 @@ function RecepcionContent() {
                             value={motor}
                             onChange={(e) => setMotor(e.target.value)}
                             placeholder="Ej: 1.4, 1.6 Twin Cam"
+                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm font-semibold text-slate-200">Color</label>
+                        <input
+                            value={vehiculoColor}
+                            onChange={(e) => setVehiculoColor(e.target.value)}
+                            placeholder="Ej: Rojo, Blanco, Gris"
                             className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
                         />
                     </div>

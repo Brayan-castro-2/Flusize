@@ -89,9 +89,33 @@ export function Header() {
                         </div>
                     )}
 
-                    {/* SteelMonkey Logo */}
+                    {/* Taller Logo with Fallback */}
                     <div className="flex items-center gap-2">
-                        <img src="/logo-steelmonkey.png" alt="SteelMonkey" className="h-10 w-auto object-contain" />
+                        {user?.logoUrl ? (
+                            <div className="relative">
+                                <img
+                                    src={user.logoUrl}
+                                    alt={user.workshopName || 'Logo'}
+                                    className="h-10 w-auto object-contain"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        const fallback = target.nextElementSibling as HTMLElement;
+                                        if (fallback) fallback.classList.remove('hidden');
+                                    }}
+                                />
+                                <div className="hidden flex items-center gap-2 px-2 py-1 bg-white/10 rounded-lg border border-white/20">
+                                    <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center font-bold text-white text-xs">
+                                        {user.workshopName?.charAt(0) || 'T'}
+                                    </div>
+                                    <span className="text-white text-sm font-bold truncate max-w-[120px]">
+                                        {user.workshopName || 'Taller'}
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <img src="/logo-steelmonkey.png" alt="SteelMonkey" className="h-10 w-auto object-contain" />
+                        )}
                     </div>
                 </div>
 

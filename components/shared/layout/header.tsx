@@ -10,13 +10,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, WifiOff } from 'lucide-react';
+import { LogOut, WifiOff, Building2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { getCurrentUserTaller } from '@/lib/auth-helpers';
 
 export function Header() {
     const { user, logout } = useAuth();
     const router = useRouter();
     const [isOffline, setIsOffline] = useState(false);
+    const [tallerData, setTallerData] = useState<any>(null);
+    const [logoError, setLogoError] = useState(false);
 
     useEffect(() => {
         // Detectar si estamos en modo offline revisando la consola
@@ -41,6 +44,13 @@ export function Header() {
         };
 
         checkOfflineMode();
+
+        // Cargar datos del taller
+        const loadTaller = async () => {
+            const data = await getCurrentUserTaller();
+            if (data) setTallerData(data);
+        };
+        loadTaller();
 
         // También verificar periódicamente
         const interval = setInterval(() => {
@@ -79,14 +89,26 @@ export function Header() {
                             <span className="text-xs font-medium text-amber-400 hidden sm:inline">Modo Demo</span>
                         </div>
                     )}
-                    <div className="relative h-12 w-12 rounded-xl overflow-hidden border-2 border-[#0066FF] shadow-[0_0_15px_rgba(0,102,255,0.3)]">
-                        <Image
-                            src="/logo-celular.png"
-                            alt="Brand Logo Flusize"
-                            fill
-                            className="object-cover"
-                            priority
-                        />
+                    <div className="relative h-12 w-12 rounded-xl overflow-hidden border-2 border-[#0066FF] shadow-[0_0_15px_rgba(0,102,255,0.3)] bg-slate-900 flex items-center justify-center">
+                        {(!tallerData?.logo_url && !logoError) || logoError ? (
+                            <Image
+                                src="/logo-steelmonkey.png"
+                                alt="Steel Monkey Logo"
+                                fill
+                                className="object-contain p-1"
+                                priority
+                                onError={() => setLogoError(true)}
+                            />
+                        ) : (
+                            <Image
+                                src={tallerData.logo_url}
+                                alt={tallerData.nombre || "Workshop Logo"}
+                                fill
+                                className="object-cover"
+                                priority
+                                onError={() => setLogoError(true)}
+                            />
+                        )}
                     </div>
                     <div className="hidden md:block">
                         <h1 className="text-xl font-bold text-white leading-none tracking-tight">
