@@ -1130,8 +1130,6 @@ export async function actualizarOrden(
         'descripcion_ingreso',
         'detalle_trabajos',
         'fotos_urls',
-        'cliente_nombre',
-        'cliente_telefono',
         'precio_total',
         'cotizacion_items',
         'subtotal',
