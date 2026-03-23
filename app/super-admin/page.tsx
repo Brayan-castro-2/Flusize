@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { Store, Car, DollarSign, Rocket, Users } from 'lucide-react';
 import { TallerForm } from './TallerForm';
 import { PlanSelector } from './PlanSelector';
+import { ModulosEditor } from './ModulosEditor';
 
 export const revalidate = 0; // Force dynamic rendering for admin dashboard
 
@@ -23,7 +24,7 @@ async function getAdminMetrics() {
     // Talleres para la tabla
     const { data: talleres } = await supabase
         .from('talleres')
-        .select('id, nombre, direccion, telefono, activo, creado_en, plan_suscripcion')
+        .select('id, nombre, direccion, telefono, activo, creado_en, plan_suscripcion, modulos_activos')
         .order('creado_en', { ascending: false });
 
     return {
@@ -122,6 +123,7 @@ export default async function SuperAdminPage() {
                                     <th className="px-6 py-4 rounded-tl-xl font-medium uppercase text-xs tracking-wider">Taller</th>
                                     <th className="px-6 py-4 font-medium uppercase text-xs tracking-wider">Plan / Facturación</th>
                                     <th className="px-6 py-4 font-medium uppercase text-xs tracking-wider">Estado / Registro</th>
+                                    <th className="px-6 py-4 font-medium uppercase text-xs tracking-wider">Módulos</th>
                                     <th className="px-6 py-4 rounded-tr-xl font-medium uppercase text-xs tracking-wider text-right">Acción</th>
                                 </tr>
                             </thead>
@@ -144,6 +146,13 @@ export default async function SuperAdminPage() {
                                             <div className="text-[10px] text-slate-400 mt-0.5">
                                                 ID: {taller.id.slice(0, 8)} • {new Date(taller.creado_en).toLocaleDateString('es-CL')}
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <ModulosEditor
+                                                tallerId={taller.id}
+                                                tallerNombre={taller.nombre}
+                                                modulosActivos={taller.modulos_activos || ['recepcion', 'ordenes', 'checklist']}
+                                            />
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button className="text-blue-600 hover:text-blue-800 font-semibold text-sm transition-colors">

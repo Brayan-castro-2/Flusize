@@ -18,7 +18,8 @@ import {
     Plus,
     X,
     ClipboardCheck,
-    ChevronRight
+    ChevronRight,
+    PhoneOff
 } from 'lucide-react';
 import {
     Select,
@@ -72,6 +73,8 @@ function OrderEditContent() {
     const [kmSalida, setKmSalida] = useState<string>('');
     const [clienteNombre, setClienteNombre] = useState<string>('');
     const [clienteTelefono, setClienteTelefono] = useState<string>('');
+    const [clienteRut, setClienteRut] = useState<string>('');
+    const [clienteEmail, setClienteEmail] = useState<string>('');
     const [clientesSugeridos, setClientesSugeridos] = useState<PerfilDB[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [metodosPago, setMetodosPago] = useState<Array<{ metodo: string; monto: number }>>([]);
@@ -103,6 +106,8 @@ function OrderEditContent() {
     const handleSelectCliente = (cli: any) => {
         setClienteNombre(cli.nombre_completo || '');
         setClienteTelefono(cli.telefono || cli.email || '');
+        setClienteRut(cli.rut_dni || '');
+        setClienteEmail(cli.email || '');
         setSelectedClienteId(cli.id);
         setShowSuggestions(false);
     };
@@ -178,9 +183,13 @@ function OrderEditContent() {
                     // ✅ FIX: Priorizar datos del objeto cliente (relación Supabase)
                     const nombreCliente = (ordenData as any).cliente?.nombre_completo || ordenData.cliente_nombre || '';
                     const telefonoCliente = (ordenData as any).cliente?.telefono || ordenData.cliente_telefono || '';
+                    const rutCliente = (ordenData as any).cliente?.rut_dni || '';
+                    const emailCliente = (ordenData as any).cliente?.email || '';
 
                     setClienteNombre(nombreCliente);
                     setClienteTelefono(telefonoCliente);
+                    setClienteRut(rutCliente);
+                    setClienteEmail(emailCliente);
                     setSelectedClienteId((ordenData as any).cliente_id || (ordenData as any).cliente?.id || null);
                     setMetodosPago(ordenData.metodos_pago || []);
 
@@ -199,7 +208,23 @@ function OrderEditContent() {
                     if (ordenData.cotizacion_items && ordenData.cotizacion_items.length > 0) {
                         setIsAvanzado(true);
                         setCotizacionItems(ordenData.cotizacion_items);
-                        setCalcularIva((ordenData.iva || 0) > 0);
+                        
+                        const sub = ordenData.subtotal || 0;
+                        const vIva = ordenData.iva || 0;
+                        
+                        setSubtotalAvanzado(sub);
+                        setIvaAvanzado(vIva);
+                        if (vIva > 0) setCalcularIva(true);
+
+                        setPrecioFinal(formatPrecio(ordenData.precio_total || 0));
+                    } else {
+                        // isAvanzado = false
+                        if ((ordenData.iva || 0) > 0) {
+                            setCalcularIva(true);
+                            setPrecioFinal(formatPrecio(ordenData.subtotal || Math.round(ordenData.precio_total! / 1.19)));
+                        } else {
+                            setPrecioFinal(formatPrecio(ordenData.precio_total || 0));
+                        }
                     }
                 }
             } catch (error) {
@@ -301,7 +326,11 @@ function OrderEditContent() {
             return;
         }
 
-        const precio = parsePrecio(precioFinal);
+        const baseNeto = parsePrecio(precioFinal);
+        const finalIva = calcularIva && !isAvanzado ? Math.round(baseNeto * 0.19) : (isAvanzado ? ivaAvanzado : 0);
+        const stotal = isAvanzado ? subtotalAvanzado : baseNeto;
+        const precio = isAvanzado ? (subtotalAvanzado + ivaAvanzado) : (calcularIva ? baseNeto + finalIva : baseNeto);
+
         if (precio < 0) {
             alert('El precio no puede ser negativo');
             return;
@@ -336,8 +365,8 @@ function OrderEditContent() {
             asignado_a: asignadoA || null,
             detalle_trabajos: detalleTrabajos || null,
             cotizacion_items: isAvanzado ? cotizacionItems.filter(item => item.descripcion.trim() !== '') : null,
-            subtotal: isAvanzado ? subtotalAvanzado : null,
-            iva: isAvanzado ? ivaAvanzado : null,
+            subtotal: stotal,
+            iva: finalIva,
             cliente_nombre: clienteNombre,
             cliente_telefono: clienteTelefono,
             cliente_id: selectedClienteId
@@ -350,7 +379,9 @@ function OrderEditContent() {
                 const { actualizarCliente } = await import('@/lib/storage-adapter');
                 await actualizarCliente(selectedClienteId, {
                     nombre_completo: clienteNombre,
-                    telefono: clienteTelefono
+                    telefono: clienteTelefono,
+                    rut_dni: clienteRut,
+                    email: clienteEmail
                 });
 
                 // 2. Si el cliente de la orden CAMBIÓ (reasignación), actualizar también la tabla 'vehiculos'
@@ -486,7 +517,39 @@ function OrderEditContent() {
                     </CardHeader>
                     <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-4 md:pt-6">
 
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                        {/* INICIO ONBOARDING TRACKING */}
+                        <div className="bg-slate-50 border border-slate-200 p-4 xl:p-5 rounded-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-sm animate-in fade-in">
+                            <div className="max-w-[100%] lg:max-w-[65%]">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                     Enlace de Seguimiento (Tracking)
+                                </h3>
+                                <p className="text-sm text-slate-500 mt-1.5 flex flex-col sm:flex-row items-start sm:items-center gap-1.5 italic leading-relaxed">
+                                    <PhoneOff className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <span>Compartir el tracking reduce las llamadas de clientes preguntando '¿Cómo va mi auto?'. Deja que el sistema les avise por ti.</span>
+                                </p>
+                            </div>
+                            <div className="flex gap-2 w-full lg:w-auto shrink-0">
+                                <Button 
+                                    onClick={() => window.open(`/tracking/${order.id}`, '_blank')}
+                                    variant="outline" 
+                                    className="flex-1 lg:flex-none border-slate-300 text-slate-700 bg-white hover:bg-slate-50 rounded-xl font-semibold shadow-sm"
+                                >
+                                    Ver Tracking
+                                </Button>
+                                <Button 
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(`${window.location.origin}/tracking/${order.id}`);
+                                        alert('Enlace copiado al portapapeles');
+                                    }}
+                                    className="flex-1 lg:flex-none bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm"
+                                >
+                                    Copiar Enlace
+                                </Button>
+                            </div>
+                        </div>
+                        {/* FIN ONBOARDING TRACKING */}
+
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mt-6">
                             <span className="text-slate-500">Patente</span>
                             <span className="font-mono font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">{order.patente_vehiculo}</span>
                         </div>
@@ -530,6 +593,17 @@ function OrderEditContent() {
                                     <div className="space-y-2">
                                         <Label className="text-slate-700">Teléfono</Label>
                                         <Input value={clienteTelefono} onChange={(e) => setClienteTelefono(e.target.value)} className="bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="+56 9..." />
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-700">RUT</Label>
+                                        <Input value={clienteRut} onChange={(e) => setClienteRut(e.target.value)} className="bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="12.345.678-9" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-700">Email</Label>
+                                        <Input type="email" value={clienteEmail} onChange={(e) => setClienteEmail(e.target.value)} className="bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="correo@ejemplo.com" />
                                     </div>
                                 </div>
 
@@ -622,15 +696,45 @@ function OrderEditContent() {
                                     </div>
 
                                     {!isAvanzado ? (
-                                        <div className="space-y-2 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-in fade-in duration-300">
-                                            <Label className="text-slate-700 font-semibold mb-1 block">Precio Total ($)</Label>
-                                            <Input
-                                                value={precioFinal}
-                                                onChange={(e) => setPrecioFinal(e.target.value)}
-                                                onBlur={() => setPrecioFinal(formatPrecio(parsePrecio(precioFinal)))}
-                                                className="bg-white border-slate-300 text-slate-900 rounded-xl text-2xl font-bold h-14"
-                                                placeholder="15000"
-                                            />
+                                        <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-in fade-in duration-300">
+                                            <div className="space-y-2">
+                                                <Label className="text-slate-700 font-semibold block">Subtotal (Neto / $)</Label>
+                                                <Input
+                                                    value={precioFinal}
+                                                    onChange={(e) => setPrecioFinal(e.target.value)}
+                                                    onBlur={() => setPrecioFinal(formatPrecio(parsePrecio(precioFinal)))}
+                                                    className="bg-white border-slate-300 text-slate-900 rounded-xl text-2xl font-bold h-14"
+                                                    placeholder="15000"
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center justify-between bg-white border-slate-200 border p-4 rounded-xl shadow-sm mt-3">
+                                                <span className="text-slate-700 font-semibold">Sumar IVA (19%)</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCalcularIva(!calcularIva)}
+                                                    className={`w-12 h-6 rounded-full transition-colors duration-200 ease-in-out flex items-center ${calcularIva ? 'bg-blue-600' : 'bg-slate-300'} relative p-1 cursor-pointer`}
+                                                >
+                                                    <span className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${calcularIva ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                </button>
+                                            </div>
+
+                                            {calcularIva && (
+                                                <div className="bg-slate-900 text-white p-4 rounded-xl space-y-2 shadow-md">
+                                                    <div className="flex justify-between text-sm text-slate-300 font-medium">
+                                                        <span>Subtotal Neto:</span>
+                                                        <span>${formatPrecio(parsePrecio(precioFinal))}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm text-blue-300 font-medium">
+                                                        <span>IVA (19%):</span>
+                                                        <span>+ ${formatPrecio(Math.round(parsePrecio(precioFinal) * 0.19))}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-xl font-bold border-t border-slate-700 pt-3 mt-3">
+                                                        <span>Total a Pagar:</span>
+                                                        <span className="text-green-400">${formatPrecio(parsePrecio(precioFinal) + Math.round(parsePrecio(precioFinal) * 0.19))}</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 duration-300 shadow-sm">

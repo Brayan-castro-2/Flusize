@@ -131,6 +131,7 @@ export async function POST(req: NextRequest) {
                 .update({
                     nombre_completo: nombreCompleto,
                     rol,
+                    rol_rbac: rol,
                     taller_id: tallerId,
                     activo: true,
                 })
@@ -149,6 +150,7 @@ export async function POST(req: NextRequest) {
                 email,
                 nombre_completo: nombreCompleto,
                 rol,
+                rol_rbac: rol,
                 taller_id: tallerId,
                 activo: true,
             });

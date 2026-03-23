@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
+import { useFlusizeFeatures } from '@/hooks/useFlusizeFeatures';
 import { buscarVehiculoPorPatente, crearVehiculo, crearOrden, obtenerOrdenes, obtenerCitas, actualizarCita, subirImagen, obtenerServiciosFrecuentes, buscarClientePorRut } from '@/lib/storage-adapter';
 import { consultarPatenteGetAPI, isGetAPIConfigured } from '@/lib/getapi-service';
 import imageCompression from 'browser-image-compression';
@@ -96,6 +97,8 @@ function RecepcionContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, isLoading: isLoadingAuth } = useAuth();
+    const { tieneModulo } = useFlusizeFeatures();
+    const hasMiniCrm = tieneModulo('clientes.mini_crm');
     const queryClient = useQueryClient();
 
     const [fechaHora, setFechaHora] = useState(nowCL());
@@ -153,6 +156,13 @@ function RecepcionContent() {
         totalDebt: number;
         debtOrders: OrdenDB[];
         lastVisit?: { date: string; service: string };
+    } | null>(null);
+
+    // Mini-CRM: client alert banner
+    const [clienteAlerta, setClienteAlerta] = useState<{
+        nivel: 'AMARILLO' | 'ROJO';
+        alias: string;
+        notas_internas: string;
     } | null>(null);
 
     // Efecto para procesar params de URL (redirección desde Clientes)
@@ -350,8 +360,14 @@ function RecepcionContent() {
                 setClienteWhatsapp(cliente.telefono || '');
                 setEmail(cliente.email || '');
                 setClienteRut(cliente.rut_dni || '');
+                if (cliente.nivel_alerta === 'AMARILLO' || cliente.nivel_alerta === 'ROJO') {
+                    setClienteAlerta({ nivel: cliente.nivel_alerta, alias: cliente.alias || '', notas_internas: cliente.notas_internas || '' });
+                } else {
+                    setClienteAlerta(null);
+                }
                 setEstadoBusqueda(`✅ Cliente encontrado: ${cliente.nombre_completo}`);
             } else {
+                setClienteAlerta(null);
                 setEstadoBusqueda('⚠️ Cliente no encontrado. Completa los datos.');
             }
         } catch (error) {
@@ -403,14 +419,18 @@ function RecepcionContent() {
                 if (marcaValida && modeloValido) {
                     setEstadoBusqueda(`✅ Vehículo encontrado: ${vehiculoLocal.marca} ${vehiculoLocal.modelo} (${vehiculoLocal.anio})`);
 
-                    // V3: Auto-fill client data if available
+                    // V3: Auto-fill client data + Mini-CRM alert
                     if (vehiculoLocal.clientes) {
                         const c = vehiculoLocal.clientes;
                         setClienteNombre(c.nombre_completo || '');
-                        // Ensure we default to empty string if undefined/null
                         setClienteWhatsapp(c.telefono || '');
                         setEmail(c.email || '');
                         setClienteRut(c.rut_dni || '');
+                        if (c.nivel_alerta === 'AMARILLO' || c.nivel_alerta === 'ROJO') {
+                            setClienteAlerta({ nivel: c.nivel_alerta, alias: c.alias || '', notas_internas: c.notas_internas || '' });
+                        } else {
+                            setClienteAlerta(null);
+                        }
                         console.log('👤 Datos de cliente auto-completados:', c.nombre_completo);
                     }
 
@@ -842,8 +862,9 @@ function RecepcionContent() {
         setDetallesVehiculo('');
         setFotos([]);
         setServicios([{ descripcion: '', precio: '' }]);
-        setStep('form'); // Reset to form step
-        setCreatedOrderId(null); // Clear created order ID
+        setClienteAlerta(null);
+        setStep('form');
+        setCreatedOrderId(null);
     };
 
     // Paso 1: Destruye el bloqueo condicional (Render)
@@ -1008,6 +1029,32 @@ function RecepcionContent() {
 
             <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
                 <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">CLIENTE</div>
+
+
+                {/* ── Mini-CRM Alert Banner (requires clientes.mini_crm flag) ── */}
+                {hasMiniCrm && clienteAlerta && (
+                    <div className={`mb-4 flex items-start gap-3 rounded-xl border-2 p-4 ${
+                        clienteAlerta.nivel === 'ROJO'
+                            ? 'border-red-500 bg-red-500/10'
+                            : 'border-amber-400 bg-amber-400/10'
+                    }`}>
+                        <span className="text-2xl mt-0.5 shrink-0">{clienteAlerta.nivel === 'ROJO' ? '🚨' : '⚠️'}</span>
+                        <div className="flex-1 min-w-0">
+                            <div className={`font-black text-sm uppercase tracking-wider mb-0.5 ${
+                                clienteAlerta.nivel === 'ROJO' ? 'text-red-400' : 'text-amber-400'
+                            }`}>
+                                {clienteAlerta.nivel === 'ROJO' ? 'Cliente con Alerta Roja' : 'Cliente con Precaución'}
+                                {clienteAlerta.alias && (
+                                    <span className="ml-2 normal-case font-semibold opacity-80">— «{clienteAlerta.alias}»</span>
+                                )}
+                            </div>
+                            {clienteAlerta.notas_internas && (
+                                <p className="text-sm text-slate-300 leading-snug">{clienteAlerta.notas_internas}</p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid gap-4 md:grid-cols-2">
                     <div>
                         <label className="text-sm font-semibold text-slate-200">Receptor (Nombre)</label>

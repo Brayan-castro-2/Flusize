@@ -60,6 +60,7 @@ export interface TallerDB {
     plan_suscripcion?: string | null;
     color_primario?: string | null;
     etiquetas_servicios?: string[] | null;
+    modulos_activos?: string[] | null; // Feature flags: módulos habilitados por taller
     created_at?: string;
     updated_at?: string;
 }
@@ -86,20 +87,12 @@ export interface ClienteDB {
     direccion?: string | null;
     notas?: string | null;
     taller_id: string; // FK -> Taller
-    // New Field (Pending if renamed? User didn't specify client link rename, but implied context)
-    // User said: "Tabla ordenes: Ahora tiene una columna vehiculo_global_id"
-    // Nothing about clientes global link rename. I'll keep global_profile_id or assume perfil_global_id?
-    // Schema provided: "table public.perfiles_globales".
-    // I will assume for consistency: perfil_global_id? Or wait?
-    // The previous prompt said "clientes... global_profile_id".
-    // THIS prompt didn't mention clientes table updates, only Ordenes and Talleres.
-    // I will keep `global_profile_id` but likely it should be `perfil_global_id` if we follow pattern.
-    // However, user only explicitly renamed Ordenes column.
-    // I will stick to `global_profile_id` for ClienteDB to minimize guessing, UNLESS I see strong evidence.
-    // Actually, `perfiles_globales` is the table. FK usually `perfil_global_id`.
-    // I'll update it to `perfil_global_id` to be safe and consistent with Spanish.
     perfil_global_id?: string | null;
     created_at?: string;
+    // Mini-CRM fields
+    alias?: string | null;
+    notas_internas?: string | null;
+    nivel_alerta?: 'VERDE' | 'AMARILLO' | 'ROJO' | null;
 }
 
 export interface ClienteWithStats extends ClienteDB {

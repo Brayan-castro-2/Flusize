@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useFlusizeFeatures } from '@/hooks/useFlusizeFeatures';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,8 @@ const formatCurrency = (val: number) =>
 
 export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'datos' }: ClienteModalProps) {
     const router = useRouter();
+    const { tieneModulo } = useFlusizeFeatures();
+    const hasMiniCrm = tieneModulo('clientes.mini_crm');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState(defaultTab);
 
@@ -52,6 +55,10 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
     const [tipo, setTipo] = useState<'persona' | 'empresa'>('persona');
     const [direccion, setDireccion] = useState('');
     const [notas, setNotas] = useState('');
+    // Mini-CRM
+    const [alias, setAlias] = useState('');
+    const [notasInternas, setNotasInternas] = useState('');
+    const [nivelAlerta, setNivelAlerta] = useState<'VERDE' | 'AMARILLO' | 'ROJO'>('VERDE');
 
     // Vehicle Form State
     const [showAddVehicle, setShowAddVehicle] = useState(false);
@@ -70,26 +77,31 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
 
 
 
+    // Single unified effect: fires whenever the modal opens or the target client changes.
+    // The `key` prop on <Dialog> (set to cliente?.id) forces a full remount when switching
+    // clients, so this effect mainly handles the "reopen same modal with new data" case.
     useEffect(() => {
-        if (isOpen) {
-            setActiveTab(defaultTab || 'datos');
-            if (defaultTab === 'vehiculos') {
-                setShowAddVehicle(true);
-            } else {
-                setShowAddVehicle(false);
-            }
-        }
-    }, [isOpen, defaultTab]);
+        if (!isOpen) return;
 
-    useEffect(() => {
+        // Reset tab and vehicle form
+        setActiveTab(defaultTab || 'datos');
+        setShowAddVehicle(defaultTab === 'vehiculos');
+        setSearchStatus('');
+        setNewVehicle({ patente: '', marca: '', modelo: '', anio: '', motor: '' });
+
+        // Populate / clear client fields
         if (cliente) {
-            setNombre(cliente.nombre_completo);
+            setNombre(cliente.nombre_completo ?? '');
             setTelefono(cliente.telefono?.replace('+569', '') || '');
             setEmail(cliente.email || '');
             setRut(cliente.rut_dni || '');
             setTipo((cliente.tipo as 'persona' | 'empresa') || 'persona');
             setDireccion(cliente.direccion || '');
             setNotas(cliente.notas || '');
+            setAlias(cliente.alias || '');
+            setNotasInternas(cliente.notas_internas || '');
+            setNivelAlerta((cliente.nivel_alerta as 'VERDE' | 'AMARILLO' | 'ROJO') || 'VERDE');
+            setOptimisticVehicles(cliente.vehiculos || []);
         } else {
             setNombre('');
             setTelefono('');
@@ -98,16 +110,12 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
             setTipo('persona');
             setDireccion('');
             setNotas('');
-        }
-    }, [cliente, isOpen]);
-
-    useEffect(() => {
-        if (cliente?.vehiculos) {
-            setOptimisticVehicles(cliente.vehiculos);
-        } else {
+            setAlias('');
+            setNotasInternas('');
+            setNivelAlerta('VERDE');
             setOptimisticVehicles([]);
         }
-    }, [cliente]);
+    }, [isOpen, cliente, defaultTab]);
 
     const handlePatenteBlur = async () => {
         const patente = newVehicle.patente.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -208,6 +216,9 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                 tipo,
                 direccion: direccion || undefined,
                 notas: notas || undefined,
+                alias: alias.trim() || undefined,
+                notas_internas: notasInternas.trim() || undefined,
+                nivel_alerta: nivelAlerta,
             };
 
             if (cliente) {
@@ -240,7 +251,9 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
         : null;
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        // key forces a full remount when switching between different clients,
+        // guaranteeing clean state (no crossover / cloning between records).
+        <Dialog key={cliente?.id ?? 'new'} open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[720px] bg-slate-950 border-slate-800 text-slate-100 max-h-[90vh] overflow-y-auto p-0">
 
                 {/* ── PREMIUM HEADER ─────────────────────────── */}
@@ -414,7 +427,63 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                         Contactar por WhatsApp
                                     </a>
                                 )}
+
+
+                                {/* ── Mini-CRM (gated by clientes.mini_crm flag) ────── */}
+                                {hasMiniCrm && (
+                                    <div className="mt-4 pt-4 border-t border-slate-800 space-y-4">
+                                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Información Interna del Taller</p>
+
+                                        {/* Alias */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="alias" className="text-slate-300 text-xs font-bold uppercase tracking-wider">Alias Interno</Label>
+                                            <Input
+                                                id="alias"
+                                                value={alias}
+                                                onChange={e => setAlias(e.target.value)}
+                                                placeholder='Ej: "El tío del furgón"'
+                                                className="bg-slate-900/70 border-slate-700 text-white focus:border-blue-500"
+                                            />
+                                        </div>
+
+                                        {/* Notas internas */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="notas-internas" className="text-slate-300 text-xs font-bold uppercase tracking-wider">Notas Internas (solo taller)</Label>
+                                            <Textarea
+                                                id="notas-internas"
+                                                value={notasInternas}
+                                                onChange={e => setNotasInternas(e.target.value)}
+                                                className="bg-slate-900/70 border-slate-700 text-white focus:border-blue-500 min-h-[70px] resize-none"
+                                                placeholder="Ej: Siempre trae para llevar al mismo día, paga en efectivo..."
+                                            />
+                                        </div>
+
+                                        {/* Nivel Alerta */}
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300 text-xs font-bold uppercase tracking-wider">Nivel de Alerta</Label>
+                                            <div className="flex gap-2">
+                                                {([
+                                                    { value: 'VERDE',    label: '✅ Normal',    active: 'bg-emerald-600 border-emerald-500 text-white', inactive: 'border-slate-700 text-slate-400 hover:border-emerald-600' },
+                                                    { value: 'AMARILLO', label: '⚠️ Cuidado',   active: 'bg-amber-500 border-amber-400 text-white',    inactive: 'border-slate-700 text-slate-400 hover:border-amber-500' },
+                                                    { value: 'ROJO',     label: '🚨 Alerta',    active: 'bg-red-600 border-red-500 text-white',        inactive: 'border-slate-700 text-slate-400 hover:border-red-600' },
+                                                ] as const).map(opt => (
+                                                    <button
+                                                        key={opt.value}
+                                                        type="button"
+                                                        onClick={() => setNivelAlerta(opt.value)}
+                                                        className={`flex-1 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                                                            nivelAlerta === opt.value ? opt.active : `bg-transparent ${opt.inactive}`
+                                                        }`}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </form>
+
                         </TabsContent>
 
                         <TabsContent value="historial" className="py-2">

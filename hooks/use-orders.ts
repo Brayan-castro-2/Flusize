@@ -112,12 +112,12 @@ export function useDeleteOrder() {
             // Actualizar caché de manera optimista
             // 1. Lista simple
             queryClient.setQueryData<OrdenDB[]>(['orders'], (old) =>
-                old?.filter(o => o.id !== orderId)
+                old?.filter(o => String(o.id) !== String(orderId))
             );
 
             // 2. Dashboard
             queryClient.setQueryData<OrdenDB[]>(['dashboard_orders'], (old) =>
-                old?.filter(o => o.id !== orderId)
+                old?.filter(o => String(o.id) !== String(orderId))
             );
 
             // 3. Infinite Scroll (Pages)
@@ -127,7 +127,7 @@ export function useDeleteOrder() {
                     ...old,
                     pages: old.pages.map((page: any) => ({
                         ...page,
-                        orders: page.orders.filter((o: any) => o.id !== orderId)
+                        orders: page.orders.filter((o: any) => String(o.id) !== String(orderId))
                     }))
                 };
             });
@@ -163,7 +163,7 @@ export function useUpdateOrder() {
             const previousInfinite = queryClient.getQueryData<any>(['orders', 'infinite']);
 
             const updateItem = (old: OrdenDB[] | undefined) =>
-                old?.map(o => o.id === id ? { ...o, ...updates } : o);
+                old?.map(o => String(o.id) === String(id) ? { ...o, ...updates } : o);
 
             // Actualizar caché de inmediato
             queryClient.setQueryData<OrdenDB[]>(['orders'], updateItem);
@@ -176,7 +176,7 @@ export function useUpdateOrder() {
                     ...old,
                     pages: old.pages.map((page: any) => ({
                         ...page,
-                        orders: page.orders.map((o: any) => o.id === id ? { ...o, ...updates } : o)
+                        orders: page.orders.map((o: any) => String(o.id) === String(id) ? { ...o, ...updates } : o)
                     }))
                 };
             });

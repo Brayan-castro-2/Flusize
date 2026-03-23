@@ -173,13 +173,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 if (session?.user) {
                     // PASO 1: Carga INMEDIATA desde datos de sesión (0ms de espera)
-                    const basicUser = buildUserFromSession(session.user);
-                    setUser(basicUser);
+                    setUser(prev => {
+                        const basic = buildUserFromSession(session.user);
+                        // Si ya tenemos el mismo usuario enriquecido, no lo "degradamos" a basic
+                        if (prev?.id === session.user.id) return prev;
+                        return basic;
+                    });
                     setIsLoading(false); // ← UI visible de inmediato
 
                     // PASO 2: Enriquecer con datos de DB en segundo plano
                     enrichUserInBackground(session.user);
                 } else {
+
                     setUser(null);
                     setIsLoading(false);
                 }
@@ -195,10 +200,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!mounted) return;
 
             if (event === 'SIGNED_IN' && session?.user) {
-                const basicUser = buildUserFromSession(session.user);
-                setUser(basicUser);
+                setUser(prev => {
+                    const basic = buildUserFromSession(session.user);
+                    if (prev?.id === session.user.id) return prev;
+                    return basic;
+                });
                 setIsLoading(false);
                 enrichUserInBackground(session.user);
+
 
                 if (typeof window !== 'undefined' &&
                     (window.location.pathname === '/login' || window.location.pathname === '/')) {
@@ -236,11 +245,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refetchUser = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-            const basicUser = buildUserFromSession(session.user);
-            setUser(basicUser);
+            setUser(prev => {
+                const basic = buildUserFromSession(session.user);
+                if (prev?.id === session.user.id) return prev;
+                return basic;
+            });
             enrichUserInBackground(session.user);
         }
     };
+
 
     return (
         <AuthContext.Provider value={{ user, isLoading, logout, refetchUser }}>
