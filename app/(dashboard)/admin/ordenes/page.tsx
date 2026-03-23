@@ -85,6 +85,7 @@ import {
     ArrowDown,
     // Loader2 ya importado arriba
     ChevronRight,
+    MessageCircle,
 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 
@@ -243,6 +244,15 @@ function MobileOrderCard({
 
                         {/* ── Quick Links (Tracking + Print) ── */}
                         <div
+                            className="mt-4 mb-2 px-2"
+                            onClick={e => e.stopPropagation()}
+                            onTouchStart={e => e.stopPropagation()}
+                        >
+                            <p className="text-[11px] text-blue-400/90 bg-blue-900/20 p-2 rounded-lg border border-blue-800/30 leading-snug">
+                                💡 <span className="font-semibold text-blue-300">Tip:</span> Enviar el tracking al cliente reduce hasta un 70% las llamadas consultando "¿cómo va mi auto?".
+                            </p>
+                        </div>
+                        <div
                             className="grid grid-cols-2 gap-2 mt-2"
                             onClick={e => e.stopPropagation()}
                             onTouchStart={e => e.stopPropagation()}
@@ -252,11 +262,40 @@ function MobileOrderCard({
                                     size="sm"
                                     variant="outline"
                                     className="w-full h-9 bg-white/10 border border-white/20 text-white hover:bg-white/20 text-xs rounded-lg"
+                                    title="Ver Tracking Público"
                                 >
                                     <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                    Ver Tracking
+                                    Tracking
                                 </Button>
                             </Link>
+                            {order.cliente?.telefono ? (
+                                <Link
+                                    href={`https://wa.me/${order.cliente.telefono.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${order.cliente.nombre_completo || ''}, revisa el estado de tu vehículo aquí: https://app.flusize.com/tracking/${order.id}`)}`}
+                                    target="_blank"
+                                    onClick={e => e.stopPropagation()}
+                                >
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-full h-9 border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs rounded-lg"
+                                        title="Enviar estado al cliente para evitar llamadas"
+                                    >
+                                        <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+                                        WhatsApp
+                                    </Button>
+                                </Link>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full h-9 border-slate-600/50 text-slate-500 cursor-not-allowed text-xs rounded-lg flex gap-1.5"
+                                    title="Cliente sin teléfono registrado"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <MessageCircle className="w-3.5 h-3.5 opacity-50" />
+                                    WhatsApp
+                                </Button>
+                            )}
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -433,15 +472,43 @@ export default function OrdenesPage() {
             try {
                 const updatedOrder = await obtenerOrdenPorId(orderId);
                 if (updatedOrder) {
-                    // Actualizar caché reactiva local sin recargar los 1.601 registros
-                    queryClient.setQueryData(ORDERS_QUERY_KEY, (oldOrders: OrdenDB[] | undefined) => {
-                        if (!oldOrders) return oldOrders;
-                        return oldOrders.map(o => String(o.id) === String(orderId) ? { ...o, ...updatedOrder } : o);
+                    // Actualizar TODAS las cachés reactivas (infinite, paginated, legacy) mediante coincidencia parcial de queryKey
+                    queryClient.setQueriesData({ queryKey: ['orders'] }, (oldData: any) => {
+                        if (!oldData) return oldData;
+                        
+                        // Formato 1: useInfiniteQuery (tiene pages)
+                        if (oldData.pages) {
+                            return {
+                                ...oldData,
+                                pages: oldData.pages.map((page: any) => ({
+                                    ...page,
+                                    orders: page.orders?.map((o: any) => String(o.id) === String(orderId) ? { ...o, ...updatedOrder } : o) || []
+                                }))
+                            };
+                        }
+                        
+                        // Formato 2: Array directo (useOrders legacy, dashboard_orders)
+                        if (Array.isArray(oldData)) {
+                            return oldData.map((o: any) => String(o.id) === String(orderId) ? { ...o, ...updatedOrder } : o);
+                        }
+                        
+                        // Formato 3: usePaginatedOrders ({ data: [], count: n })
+                        if (oldData.data && Array.isArray(oldData.data)) {
+                            return {
+                                ...oldData,
+                                data: oldData.data.map((o: any) => String(o.id) === String(orderId) ? { ...o, ...updatedOrder } : o)
+                            };
+                        }
+
+                        return oldData;
                     });
 
-                    queryClient.setQueryData(['dashboard_orders'], (oldOrders: OrdenDB[] | undefined) => {
-                        if (!oldOrders) return oldOrders;
-                        return oldOrders.map(o => String(o.id) === String(orderId) ? { ...o, ...updatedOrder } : o);
+                    // También para dashboard_orders si existe
+                    queryClient.setQueriesData({ queryKey: ['dashboard_orders'] }, (oldData: any) => {
+                        if (Array.isArray(oldData)) {
+                            return oldData.map((o: any) => String(o.id) === String(orderId) ? { ...o, ...updatedOrder } : o);
+                        }
+                        return oldData;
                     });
                 }
             } catch (err) {
@@ -1143,7 +1210,7 @@ export default function OrdenesPage() {
                                     <TableHead className="text-slate-700 font-semibold cursor-pointer hover:text-blue-600" onClick={() => handleSort('estado')}>
                                         <div className="flex items-center">Estado <SortIcon column="estado" /></div>
                                     </TableHead>
-                                    <TableHead className="text-slate-700 w-[80px]"></TableHead>
+                                    <TableHead className="text-slate-700 w-[100px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -1177,8 +1244,10 @@ export default function OrdenesPage() {
 
                                     const isExpanded = expandedOrderId === order.id;
                                     const vehiculo = order.vehiculos;
+                                    const uniqueKey = (order as any).isAppointment ? `appt-${order.id}` : `order-${order.id}`;
+                                    
                                     return (
-                                        <Fragment key={order.id}>
+                                        <Fragment key={uniqueKey}>
                                             <TableRow
                                                 className={`border-slate-200 hover:bg-slate-50 cursor-pointer ${hasDebt(order) ? 'bg-red-50 border-l-4 border-l-red-500' : ''} ${isExpanded ? 'bg-slate-50' : ''}`}
                                                 onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
@@ -1227,81 +1296,86 @@ export default function OrdenesPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell onClick={(e) => e.stopPropagation()}>
-                                                    <div className="flex items-center gap-1">
-                                                        {/* Confirm Appointment Button */}
-                                                        {(order as any).isAppointment && (
-                                                            <Link href={`/recepcion?citaId=${order.id}`} onClick={(e) => e.stopPropagation()}>
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="ghost"
-                                                                    className="text-purple-400 hover:text-purple-300 h-8 w-8 p-0"
-                                                                    title="Confirmar Cita y Crear Orden"
-                                                                >
-                                                                    <CheckCircle className="w-3.5 h-3.5" />
-                                                                </Button>
-                                                            </Link>
-                                                        )}
+                                                    <div className="flex items-center gap-0.5">
+                                                        {/* Expand button */}
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
-                                                            className="text-slate-400 hover:text-slate-300 h-8 w-8 p-0"
+                                                            className="text-slate-400 hover:text-slate-600 h-7 w-7 p-0"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 const newExpandedId = isExpanded ? null : order.id;
                                                                 setExpandedOrderId(newExpandedId);
-                                                                if (newExpandedId) {
-                                                                    fetchChecklist(newExpandedId);
-                                                                }
+                                                                if (newExpandedId) fetchChecklist(newExpandedId);
                                                             }}
                                                         >
                                                             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                                         </Button>
-                                                        <Link href={`/admin/ordenes/clean?id=${order.id}`} onClick={(e) => e.stopPropagation()}>
-                                                            <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 h-8 w-8 p-0">
-                                                                <Edit className="w-3.5 h-3.5" />
-                                                            </Button>
-                                                        </Link>
-                                                        {isAdmin && (
-                                                            deleteConfirm === order.id ? (
-                                                                <div className="flex gap-0.5">
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="text-red-400 hover:text-red-300 h-8 w-8 p-0"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleDeleteOrder(order as any);
-                                                                        }}
-                                                                        disabled={deleteOrder.isPending}
-                                                                    >
-                                                                        ✓
-                                                                    </Button>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="text-slate-400 hover:text-slate-300 h-8 w-8 p-0"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setDeleteConfirm(null);
-                                                                        }}
-                                                                    >
-                                                                        ✕
-                                                                    </Button>
-                                                                </div>
-                                                            ) : (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="ghost"
-                                                                    className="text-red-400 hover:text-red-300 h-8 w-8 p-0"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setDeleteConfirm(order.id);
-                                                                    }}
-                                                                >
-                                                                    <Trash2 className="w-3.5 h-3.5" />
+
+                                                        {/* WhatsApp / tracking link */}
+                                                        {(order.cliente?.telefono || order.cliente_telefono) ? (
+                                                            <Link
+                                                                href={`https://wa.me/${(order.cliente?.telefono || order.cliente_telefono || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${order.cliente?.nombre_completo || order.cliente_nombre || ''}, revisa el estado de tu vehículo aquí: https://app.flusize.com/tracking/${order.id}`)}`}
+                                                                target="_blank"
+                                                                onClick={e => e.stopPropagation()}
+                                                            >
+                                                                <Button size="sm" variant="ghost" className="text-green-500 hover:text-green-600 hover:bg-green-50 h-7 w-7 p-0" title="Enviar estado por WhatsApp">
+                                                                    <MessageCircle className="w-3.5 h-3.5" />
                                                                 </Button>
-                                                            )
+                                                            </Link>
+                                                        ) : (
+                                                            <Button size="sm" variant="ghost" className="text-slate-300 cursor-not-allowed h-7 w-7 p-0" title="Sin teléfono registrado" onClick={e => e.stopPropagation()} disabled>
+                                                                <MessageCircle className="w-3.5 h-3.5 opacity-30" />
+                                                            </Button>
                                                         )}
+
+                                                        {/* Confirm appointment (only for appointments) */}
+                                                        {(order as any).isAppointment && (
+                                                            <Link href={`/recepcion?citaId=${order.id}`} onClick={(e) => e.stopPropagation()}>
+                                                                <Button size="sm" variant="ghost" className="text-purple-500 hover:text-purple-600 h-7 w-7 p-0" title="Confirmar Cita">
+                                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                                </Button>
+                                                            </Link>
+                                                        )}
+
+                                                        {/* More actions dropdown (Edit + Delete) */}
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button size="sm" variant="ghost" className="text-slate-400 hover:text-slate-600 h-7 w-7 p-0" onClick={e => e.stopPropagation()}>
+                                                                    <MoreVertical className="w-3.5 h-3.5" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="bg-white border-slate-200 shadow-lg">
+                                                                <DropdownMenuItem asChild>
+                                                                    <Link href={`/admin/ordenes/clean?id=${order.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 text-slate-700 cursor-pointer">
+                                                                        <Edit className="w-3.5 h-3.5" />
+                                                                        Editar
+                                                                    </Link>
+                                                                </DropdownMenuItem>
+                                                                {isAdmin && (
+                                                                    <>
+                                                                        <DropdownMenuSeparator className="bg-slate-100" />
+                                                                        {deleteConfirm === order.id ? (
+                                                                            <div className="px-2 py-1.5 space-y-1">
+                                                                                <p className="text-xs text-slate-500 font-medium">¿Confirmar eliminación?</p>
+                                                                                <div className="flex gap-1">
+                                                                                    <Button size="sm" variant="ghost" className="text-red-500 h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); handleDeleteOrder(order as any); }} disabled={deleteOrder.isPending}>Sí</Button>
+                                                                                    <Button size="sm" variant="ghost" className="text-slate-500 h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}>No</Button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <DropdownMenuItem
+                                                                                className="text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer gap-2"
+                                                                                onClick={(e) => { e.stopPropagation(); setDeleteConfirm(order.id); }}
+                                                                            >
+                                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                                Eliminar
+                                                                            </DropdownMenuItem>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -1474,32 +1548,37 @@ export default function OrdenesPage() {
 
                                                             {/* Checklist Section Placeholder */}
                                                             <div className="mt-6 border-t border-slate-700/50 pt-4">
-                                                                <div className="flex justify-between items-center mb-4">
-                                                                    <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                                                                        <ClipboardCheck className="w-4 h-4" />
-                                                                        Lista de Chequeo
-                                                                    </h3>
-                                                                    <div className="flex gap-2">
-                                                                        <Link href={`/tracking/${order.id}`} target="_blank" prefetch={false}>
+                                                                <div className="flex flex-col mb-4">
+                                                                    <div className="flex justify-between items-center mb-2">
+                                                                        <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                                                                            <ClipboardCheck className="w-4 h-4" />
+                                                                            Lista de Chequeo y Tracking
+                                                                        </h3>
+                                                                        <div className="flex gap-2">
+                                                                            <Link href={`/tracking/${order.id}`} target="_blank" prefetch={false}>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="outline"
+                                                                                    className="h-8 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700"
+                                                                                >
+                                                                                    <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                                                                    Ver Tracking
+                                                                                </Button>
+                                                                            </Link>
                                                                             <Button
                                                                                 size="sm"
                                                                                 variant="outline"
                                                                                 className="h-8 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700"
+                                                                                onClick={() => handlePrintOrder(order)}
                                                                             >
-                                                                                <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                                                                Ver Tracking
+                                                                                <Printer className="w-3.5 h-3.5 mr-1.5" />
+                                                                                Imprimir Orden
                                                                             </Button>
-                                                                        </Link>
-                                                                        <Button
-                                                                            size="sm"
-                                                                            variant="outline"
-                                                                            className="h-8 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700"
-                                                                            onClick={() => handlePrintOrder(order)}
-                                                                        >
-                                                                            <Printer className="w-3.5 h-3.5 mr-1.5" />
-                                                                            Imprimir Orden
-                                                                        </Button>
+                                                                        </div>
                                                                     </div>
+                                                                    <p className="text-xs text-blue-400 bg-blue-900/10 p-2 border border-blue-900/20 rounded-md">
+                                                                        💡 <span className="font-semibold">Tip para el taller:</span> Enviar el tracking al cliente reduce hasta un 70% las llamadas consultando "¿cómo va mi auto?".
+                                                                    </p>
                                                                 </div>
 
                                                                 {/* Checklist Content / Actions */}
@@ -1557,9 +1636,10 @@ export default function OrdenesPage() {
 
                         {!isLoadingOrders && displayOrders.map((order) => {
                             const vehiculo = order.vehiculo;
+                            const uniqueKey = (order as any).isAppointment ? `appt-${order.id}` : `order-${order.id}`;
                             return (
                                 <MobileOrderCard
-                                    key={order.id}
+                                    key={uniqueKey}
                                     order={order}
                                     vehiculo={vehiculo}
                                     hasDebt={hasDebt}

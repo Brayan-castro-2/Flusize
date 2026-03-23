@@ -754,6 +754,7 @@ export async function obtenerOrdenesPaginadas(
                 creado_en,
                 cliente:clientes (
                     nombre_completo,
+                    telefono,
                     rut_dni
                 ),
                 vehiculos:vehiculos!ordenes_vehiculo_local_id_fkey (
