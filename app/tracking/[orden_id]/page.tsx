@@ -4,6 +4,9 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
+import { FirmaCanvas } from '@/components/contratos/firma-canvas';
+import { ContratoDocumento } from '@/components/contratos/contrato-documento';
+import type { ContratoData } from '@/components/contratos/contrato-documento';
 import {
     Check,
     Wrench,
@@ -78,6 +81,32 @@ interface TrackingData {
         precio_unitario: number;
         subtotal: number;
     }[];
+}
+
+// Contrato pendiente (para firma en tracking)
+interface ContratoTracking {
+    id: string;
+    tipo: 'venta' | 'arriendo';
+    estado: 'pendiente_firma' | 'firmado' | 'borrador';
+    vehiculo_patente: string | null;
+    vehiculo_marca: string | null;
+    vehiculo_modelo: string | null;
+    vehiculo_color: string | null;
+    vehiculo_anio: string | null;
+    vehiculo_motor: string | null;
+    cliente_nombre: string | null;
+    cliente_rut: string | null;
+    cliente_domicilio: string | null;
+    cliente_telefono: string | null;
+    precio_total: number | null;
+    pie_pagado: number | null;
+    saldo_pendiente: number | null;
+    precio_dia: number | null;
+    fecha_salida: string | null;
+    fecha_retorno: string | null;
+    dias: number | null;
+    firma_base64: string | null;
+    firmado_en: string | null;
 }
 
 // ─────────────────────────────────────────
@@ -726,6 +755,142 @@ const SkeletonTracking = () => (
 );
 
 // ─────────────────────────────────────────
+// CONTRATO FIRMA SECTION (CLIENTE REMOTO)
+// ─────────────────────────────────────────
+function ContratoFirmaSection({ contrato, ordenId, onFirmado }: {
+    contrato: ContratoTracking;
+    ordenId: string;
+    onFirmado: () => void;
+}) {
+    const [firma, setFirma] = useState<string | null>(null);
+    const [guardando, setGuardando] = useState(false);
+    const [verContrato, setVerContrato] = useState(false);
+
+    const fechaHoy = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    const contratoData: ContratoData = contrato.tipo === 'venta'
+        ? {
+            tipo: 'venta',
+            numero: contrato.id.slice(-8).toUpperCase(),
+            fecha: fechaHoy,
+            vendedor_nombre: 'Rentmontt SpA.',
+            vendedor_rut: '77.294.859-K',
+            vendedor_email: 'olivares@rentmontt.cl',
+            vendedor_fono: '+569 9265 7540',
+            vendedor_ciudad: 'Puerto Montt',
+            comprador_nombre: contrato.cliente_nombre || '',
+            comprador_rut: contrato.cliente_rut || '',
+            comprador_domicilio: contrato.cliente_domicilio || '',
+            comprador_telefono: contrato.cliente_telefono || '',
+            vehiculo_marca: contrato.vehiculo_marca || '',
+            vehiculo_modelo: contrato.vehiculo_modelo || '',
+            vehiculo_color: contrato.vehiculo_color || '',
+            vehiculo_anio: contrato.vehiculo_anio || '',
+            vehiculo_motor: contrato.vehiculo_motor || '',
+            vehiculo_patente: contrato.vehiculo_patente || '',
+            precio_total: contrato.precio_total || 0,
+            pie_pagado: contrato.pie_pagado || 0,
+            saldo_pendiente: contrato.saldo_pendiente || 0,
+            firma_base64: firma,
+        }
+        : {
+            tipo: 'arriendo',
+            numero: contrato.id.slice(-8).toUpperCase(),
+            fecha: fechaHoy,
+            vendedor_nombre: 'Rentmontt SpA.',
+            vendedor_rut: '77.294.859-K',
+            vendedor_email: 'olivares@rentmontt.cl',
+            vendedor_fono: '+569 9265 7540',
+            vendedor_ciudad: 'Puerto Montt',
+            comprador_nombre: contrato.cliente_nombre || '',
+            comprador_rut: contrato.cliente_rut || '',
+            comprador_domicilio: contrato.cliente_domicilio || '',
+            comprador_telefono: contrato.cliente_telefono || '',
+            vehiculo_marca: contrato.vehiculo_marca || '',
+            vehiculo_modelo: contrato.vehiculo_modelo || '',
+            vehiculo_color: contrato.vehiculo_color || '',
+            vehiculo_anio: contrato.vehiculo_anio || '',
+            vehiculo_patente: contrato.vehiculo_patente || '',
+            fecha_salida: contrato.fecha_salida ? new Date(contrato.fecha_salida).toLocaleDateString('es-CL') : '',
+            fecha_retorno: contrato.fecha_retorno ? new Date(contrato.fecha_retorno).toLocaleDateString('es-CL') : '',
+            precio_total: contrato.precio_total || 0,
+            precio_dia: contrato.precio_dia || 0,
+            dias: contrato.dias || 0,
+            firma_base64: firma,
+        };
+
+    const handleFirmar = async () => {
+        if (!firma) { alert('Por favor, realiza tu firma antes de confirmar.'); return; }
+        setGuardando(true);
+        try {
+            const ip = await fetch('https://api.ipify.org?format=json')
+                .then(r => r.json()).then(r => r.ip).catch(() => null);
+
+            const { error } = await supabase.from('contratos').update({
+                firma_base64: firma,
+                estado: 'firmado',
+                firmado_en: new Date().toISOString(),
+                ip_cliente: ip,
+                actualizado_en: new Date().toISOString(),
+            }).eq('id', contrato.id);
+
+            if (error) throw error;
+            onFirmado();
+        } catch (err: any) {
+            alert('Error al guardar la firma: ' + (err?.message || 'Intenta de nuevo.'));
+        }
+        setGuardando(false);
+    };
+
+    return (
+        <div className="px-4 py-3">
+            <div className="bg-white border-2 border-blue-100 rounded-3xl shadow-sm overflow-hidden">
+                <div className="bg-blue-600 px-5 py-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-white" />
+                    <span className="text-white font-bold text-sm">
+                        Contrato de {contrato.tipo === 'venta' ? 'Compraventa' : 'Arriendo'} — Pendiente de Firma
+                    </span>
+                </div>
+                <div className="p-5 space-y-4">
+                    <p className="text-sm text-slate-600">
+                        <strong>{contrato.vehiculo_marca} {contrato.vehiculo_modelo} ({contrato.vehiculo_patente})</strong><br />
+                        Revisa el contrato y luego firma abajo para confirmar el {contrato.tipo === 'venta' ? 'acuerdo de compra' : 'arriendo'}.
+                    </p>
+
+                    <button onClick={() => setVerContrato(!verContrato)}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-blue-200 rounded-xl text-blue-700 font-bold text-sm hover:bg-blue-50 transition-colors">
+                        <FileText className="w-4 h-4" />
+                        {verContrato ? 'Ocultar contrato' : '📄 Ver contrato completo'}
+                    </button>
+
+                    {verContrato && (
+                        <div className="overflow-auto rounded-xl border border-slate-200 bg-slate-50 max-h-80">
+                            <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '397px', height: '560px', overflow: 'hidden' }}>
+                                <ContratoDocumento data={contratoData} />
+                            </div>
+                        </div>
+                    )}
+
+                    <FirmaCanvas
+                        onFirmaChange={setFirma}
+                        label={contrato.tipo === 'venta' ? 'COMPRADOR' : 'ARRENDATARIO'}
+                    />
+
+                    <button onClick={handleFirmar} disabled={!firma || guardando}
+                        className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black rounded-2xl text-base shadow-sm transition-all">
+                        {guardando ? '⏳ Guardando firma...' : firma ? '✅ Confirmar y Firmar Contrato' : 'Dibuja tu firma arriba para firmar'}
+                    </button>
+
+                    <p className="text-[10px] text-slate-400 text-center leading-relaxed">
+                        Al confirmar, tu firma digital queda registrada con fecha, hora e IP. Tiene validez legal equivalente a una firma física bajo la Ley 19.799.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────
 // RENTAL ACTIVE CARD (PORTAL ARRENDATARIO)
 // ─────────────────────────────────────────
 function RentalActiveCard({ data, waLink }: { data: TrackingData, waLink: string | null }) {
@@ -798,6 +963,9 @@ export default function TrackingPage() {
     const [galleryOpen, setGalleryOpen] = useState(false);
     const [photoIdx, setPhotoIdx] = useState(0);
     const [detailsOpen, setDetailsOpen] = useState(false);
+    const [contrato, setContrato] = useState<ContratoTracking | null>(null);
+    const [firmaGuardada, setFirmaGuardada] = useState(false);
+    const [firmaActual, setFirmaActual] = useState<string | null>(null);
 
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -820,6 +988,19 @@ export default function TrackingPage() {
     useEffect(() => {
         if (isLoadingAuth) return;
         load();
+
+        // Buscar contrato pendiente de firma para esta orden
+        const fetchContrato = async () => {
+            if (!id) return;
+            const { data: ct } = await supabase
+                .from('contratos')
+                .select('*')
+                .eq('orden_id', id)
+                .eq('estado', 'pendiente_firma')
+                .maybeSingle();
+            if (ct) setContrato(ct as ContratoTracking);
+        };
+        fetchContrato();
     }, [id, isLoadingAuth]);
 
     // Dynamically fetch GetAPI technical specs for vehicle
@@ -942,6 +1123,23 @@ export default function TrackingPage() {
                         userName={(user as any)?.user_metadata?.nombre || (user as any)?.user_metadata?.name || null}
                     />
                 </div>
+
+                {/* ZONA DE FIRMA DEL CONTRATO */}
+                {contrato && !firmaGuardada && (
+                    <ContratoFirmaSection
+                        contrato={contrato}
+                        ordenId={id}
+                        onFirmado={() => setFirmaGuardada(true)}
+                    />
+                )}
+                {firmaGuardada && (
+                    <div className="px-4 py-3">
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
+                            <p className="text-emerald-700 font-bold text-sm">✅ Contrato firmado exitosamente</p>
+                            <p className="text-emerald-600 text-xs mt-1">Tu firma digital ha sido registrada. Recibirás una copia por WhatsApp.</p>
+                        </div>
+                    </div>
+                )}
 
                 <div className="pt-4">
                     <WorkshopFooter taller={data.taller} numeroOrden={data.numero_orden} />

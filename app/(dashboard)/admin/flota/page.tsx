@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { consultarPatenteGetAPI } from '@/lib/getapi-service';
 import { BuscadorInventario, CartItem } from '@/components/inventario/buscador-inventario';
+import { NuevoContratoForm } from '@/components/contratos/nuevo-contrato-form';
 import { GenerarContratoModal } from '@/components/contratos/generar-contrato-modal';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -238,6 +239,7 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
     const [procesando, setProcesando] = useState(false);
     const [trackingLink, setTrackingLink] = useState<string | null>(null);
     const [trackingOrdenId, setTrackingOrdenId] = useState<string | null>(null);
+    const [showNuevoContrato, setShowNuevoContrato] = useState(false);
     const [showGenerarContrato, setShowGenerarContrato] = useState(false);
 
     useEffect(() => {
@@ -604,45 +606,28 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                                             className="flex items-center gap-2 text-xs text-emerald-400 font-bold hover:text-emerald-300 transition-colors bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
                                             <Copy className="w-3.5 h-3.5" /> Copiar link
                                         </button>
-                                        <button onClick={() => setShowGenerarContrato(true)}
-                                            className="flex items-center gap-2 text-xs text-blue-400 font-bold hover:text-blue-300 transition-colors bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">
-                                            <FileText className="w-3.5 h-3.5" /> Generar Contrato PDF
-                                        </button>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Botón Generar Contrato (vehículos ya vendidos/arrendados) */}
-                            {(v.estado === 'Vendido' || v.estado === 'Arrendado') && !trackingLink && (
-                                <button onClick={() => setShowGenerarContrato(true)}
+                            {/* Botón Generar Contrato — abre formulario de variables primero */}
+                            {(v.estado === 'Disponible' || v.estado === 'Arrendado' || v.estado === 'Vendido') && (
+                                <button onClick={() => setShowNuevoContrato(true)}
                                     className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-300 font-semibold text-sm transition-colors">
-                                    <FileText className="w-4 h-4" /> Generar Contrato PDF
+                                    <FileText className="w-4 h-4" /> 📋 Crear Contrato Digital
                                 </button>
                             )}
 
-                            {/* Modal Generar Contrato */}
-                            {showGenerarContrato && (
-                                <GenerarContratoModal
-                                    isOpen={showGenerarContrato}
-                                    onClose={() => setShowGenerarContrato(false)}
-                                    contrato={{
-                                        id: trackingOrdenId || v.id,
-                                        tipo_orden: v.destino_unidad === 'Arriendo' ? 'arriendo' : 'venta',
-                                        precio_total: v.precio_objetivo,
-                                        pie_pagado: v.precio_objetivo,
-                                        saldo_pendiente: 0,
-                                        fecha_salida: v.fecha_salida || undefined,
-                                        fecha_retorno: v.fecha_retorno || undefined,
-                                        precio_dia: v.precio_arriendo_dia || 0,
-                                        dias: v.fecha_salida && v.fecha_retorno ? Math.max(1, Math.ceil((new Date(v.fecha_retorno).getTime() - new Date(v.fecha_salida).getTime()) / 86400000)) : 0,
-                                        cliente_nombre: v.cliente_nombre,
-                                        vehiculo_marca: v.marca,
-                                        vehiculo_modelo: v.modelo,
-                                        vehiculo_color: v.color || '',
-                                        vehiculo_anio: v.anio ? String(v.anio) : '',
-                                        vehiculo_motor: v.vin || '',
-                                        vehiculo_patente: v.patente,
+                            {/* Formulario Nuevo Contrato */}
+                            {showNuevoContrato && (
+                                <NuevoContratoForm
+                                    isOpen={showNuevoContrato}
+                                    onClose={() => setShowNuevoContrato(false)}
+                                    onSuccess={(contratoId) => {
+                                        setShowNuevoContrato(false);
+                                        toast.info('Contrato creado — ve a Contratos Digitales para enviar por WhatsApp');
                                     }}
+                                    vehiculo={v}
                                 />
                             )}
 
