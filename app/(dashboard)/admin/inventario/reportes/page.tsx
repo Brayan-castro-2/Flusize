@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import {
     Download, AlertTriangle, Package, Search, X, TrendingUp, TrendingDown,
-    DollarSign, ShoppingCart, BarChart2, Percent
+    DollarSign, ShoppingCart, BarChart2, Percent, ArrowLeft
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
@@ -138,10 +138,15 @@ function ReportsContent() {
             {/* ── Header ── */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600">
-                        Reportes de Inventario
-                    </h2>
-                    <p className="text-slate-500 text-sm mt-1">KPIs financieros, alertas críticas y distribución de movimientos.</p>
+                    <div className="flex items-center gap-3 mb-2">
+                        <button onClick={() => router.push('/admin/inventario')} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
+                        <h2 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600">
+                            Reportes de Inventario
+                        </h2>
+                    </div>
+                    <p className="text-slate-500 text-sm mt-1 ml-9">KPIs financieros, alertas críticas y distribución de movimientos.</p>
                 </div>
                 <div className="flex gap-3">
                     <button onClick={handleDownloadPDF} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">

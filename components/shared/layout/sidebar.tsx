@@ -18,7 +18,8 @@ interface NavItem {
     href: string;
     label: string;
     icon: React.ReactNode;
-    roles: string[];
+    roles?: string[]; // Mantener por si algún módulo aún no tiene permiso mapeado
+    permissions?: string[]; // Un array: si el usuario tiene al menos uno de los permisos requeridos, lo ve
     showBadge?: boolean;
 }
 
@@ -27,24 +28,28 @@ const navItems: NavItem[] = [
         href: '/recepcion',
         label: 'Recepción',
         icon: <ClipboardList className="w-5 h-5" />,
-        roles: ['mecanico', 'taller_admin', 'superadmin'],
+        permissions: ['ordenes.crear'],
+        roles: ['mecanico', 'taller_admin', 'superadmin'], // Fallback
     },
     {
         href: '/admin',
         label: 'Dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
+        permissions: ['dashboard.view'],
         roles: ['taller_admin', 'superadmin'],
     },
     {
         href: '/admin/ordenes',
         label: 'Órdenes',
         icon: <FileText className="w-5 h-5" />,
-        roles: ['taller_admin', 'superadmin'],
+        permissions: ['ordenes.ver_todas', 'ordenes.ver_propias'],
+        roles: ['mecanico', 'taller_admin', 'superadmin'],
     },
     {
         href: '/admin/agenda',
         label: 'Agenda',
         icon: <Calendar className="w-5 h-5" />,
+        // Aún no hay permiso granular para agenda en ALL_PERMISSIONS, podemos usar roles por defecto
         roles: ['taller_admin', 'superadmin'],
         showBadge: true,
     },
@@ -52,24 +57,36 @@ const navItems: NavItem[] = [
         href: '/admin/usuarios',
         label: 'Usuarios',
         icon: <Users className="w-5 h-5" />,
+        permissions: ['usuarios.ver'],
         roles: ['taller_admin', 'superadmin'],
     },
     {
         href: '/admin/clientes',
         label: 'Gestión Clientes',
         icon: <Users className="w-5 h-5" />,
+        permissions: ['clientes.ver'],
         roles: ['taller_admin', 'superadmin'],
-        showBadge: false, // Could be true if we track new customers
+        showBadge: false,
     },
 ];
 
 export function Sidebar() {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const pathname = usePathname();
 
     if (!user) return null;
 
-    const filteredItems = navItems.filter(item => item.roles.includes(user.role));
+    // Filtramos los items: si define permissions, revisamos si tiene al menos uno.
+    // Si no define permissions pero define roles, revisamos roles (fallback).
+    const filteredItems = navItems.filter(item => {
+        if (item.permissions && item.permissions.length > 0) {
+            return item.permissions.some(perm => hasPermission(perm));
+        }
+        if (item.roles && item.roles.length > 0) {
+            return item.roles.includes(user.role);
+        }
+        return true;
+    });
 
     return (
         <>
@@ -108,8 +125,8 @@ export function Sidebar() {
                 </div>
             </aside>
 
-            {/* Mobile Bottom Navigation - Solo para admin */}
-            {['taller_admin', 'superadmin'].includes(user.role) && (
+            {/* Mobile Bottom Navigation */}
+            {filteredItems.length > 0 && (
                 <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-lg border-t border-[#333333] safe-area-inset-bottom">
                     <div className="flex items-center justify-around py-2 px-2">
                         {filteredItems.map((item) => {

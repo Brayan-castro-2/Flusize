@@ -22,9 +22,10 @@ import {
 import { toast } from 'sonner';
 import { actualizarPerfil } from '@/lib/storage-adapter';
 import { useRouter } from 'next/navigation';
+import { ServiciosManager } from '@/components/admin/servicios-manager';
 
 export default function PerfilTallerPage() {
-    const { user, refetchUser } = useAuth();
+    const { user, refetchUser, hasPermission } = useAuth();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const portadaInputRef = useRef<HTMLInputElement>(null);
@@ -37,10 +38,20 @@ export default function PerfilTallerPage() {
     const [personalInfo, setPersonalInfo] = useState({ nombre: '', email: '' });
 
     useEffect(() => {
-        if (user?.tallerId) {
+        if (!user) return;
+        
+        // FASE 75 y PERMISOS: Bloqueo de Perfil para Mecánicos u otros sin permiso.
+        // Solo Admin, Superadmin, o quienes tengan explicitamente perfil.editar.
+        const isAdmin = user.role === 'admin' || user.role === 'superadmin' || user.role === 'taller_admin';
+        if (!isAdmin && !hasPermission('perfil.editar')) {
+            router.replace('/admin/ordenes');
+            return;
+        }
+
+        if (user.tallerId) {
             loadData();
         }
-    }, [user?.tallerId]);
+    }, [user?.tallerId, user?.role, hasPermission, router]);
 
     const loadData = async () => {
         setLoading(true);
@@ -472,32 +483,7 @@ export default function PerfilTallerPage() {
                 </div>
 
                 {/* Servicios */}
-                <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm shadow-gray-200/50">
-                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                        <Wrench className="w-4 h-4 text-blue-500" />
-                        Servicios y Especialidades
-                    </h3>
-
-                    <div className="space-y-4">
-                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                            Catálogo de Servicios (Separados por comas)
-                        </label>
-                        <textarea
-                            value={Array.isArray(workshop.servicios) ? workshop.servicios.join(', ') : (workshop.servicios || '')}
-                            onChange={e => setWorkshop({ ...workshop, servicios: e.target.value })}
-                            rows={3}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all resize-none leading-relaxed"
-                            placeholder="Mecánica General, Detailing..."
-                        />
-                        <div className="flex flex-wrap gap-2">
-                            {(Array.isArray(workshop.servicios) ? workshop.servicios : (workshop.servicios || '').split(',').map((s: string) => s.trim()).filter(Boolean)).map((tag: string, i: number) => (
-                                <span key={i} className="px-3 py-1 bg-blue-50 border border-blue-100 rounded-lg text-[10px] font-bold text-blue-600 uppercase tracking-wider">
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                <ServiciosManager />
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-end gap-4 pt-4 pb-10">

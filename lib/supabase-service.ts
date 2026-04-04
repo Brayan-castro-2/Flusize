@@ -1476,6 +1476,8 @@ export async function obtenerServiciosFrecuentes(): Promise<ServicioDB[]> {
         .select('*')
         .eq('taller_id', tallerId)
         .eq('activo', true)
+        // nullsFirst: false ensures that never-used services (legacy without last_used_at) go to the bottom
+        .order('last_used_at', { ascending: false, nullsFirst: false })
         .order('descripcion', { ascending: true });
 
     if (error) {
@@ -1484,6 +1486,104 @@ export async function obtenerServiciosFrecuentes(): Promise<ServicioDB[]> {
     }
 
     return data || [];
+}
+
+// Obtener TODOS los servicios (incluyendo inactivos) para gestión en Perfil Taller
+export async function obtenerTodosServiciosFrecuentes(tallerIdOverride?: string): Promise<ServicioDB[]> {
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
+    if (!tallerId) return [];
+
+    const { data, error } = await supabase
+        .from('servicios_frecuentes')
+        .select('*')
+        .eq('taller_id', tallerId)
+        .order('last_used_at', { ascending: false, nullsFirst: false })
+        .order('descripcion', { ascending: true });
+
+    if (error) {
+        console.error('Error al obtener todos los servicios frecuentes:', error);
+        return [];
+    }
+
+    return data || [];
+}
+
+// Crear nuevo servicio frecuente desde el panel de administración
+export async function crearServicioFrecuente(datos: { descripcion: string, precio_base?: number, taller_id: string }): Promise<ServicioDB | null> {
+    const { data, error } = await supabase
+        .from('servicios_frecuentes')
+        .insert({
+            descripcion: datos.descripcion.trim(),
+            precio_base: datos.precio_base || 0,
+            taller_id: datos.taller_id,
+            activo: true,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error creando servicio:', error);
+        return null;
+    }
+    return data;
+}
+
+// Actualizar servicio frecuente
+export async function actualizarServicioFrecuente(id: number, updates: Partial<ServicioDB>): Promise<boolean> {
+    const { error } = await supabase
+        .from('servicios_frecuentes')
+        .update(updates)
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error actualizando servicio:', error);
+        return false;
+    }
+    return true;
+}
+
+// Eliminar (Hard Delete) servicio frecuente
+export async function eliminarServicioFrecuente(id: number): Promise<boolean> {
+    const { error } = await supabase
+        .from('servicios_frecuentes')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error eliminando servicio:', error);
+        return false;
+    }
+    return true;
+}
+
+// Registrar / Actualizar uso de servicios al crear una orden
+export async function registrarUsoServicios(servicios: { descripcion: string, precio_base?: number }[], tallerIdOverride?: string): Promise<void> {
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
+    if (!tallerId || servicios.length === 0) return;
+
+    // Filtramos descripciones vacías
+    const validServices = servicios.filter(s => s.descripcion && s.descripcion.trim());
+    if (validServices.length === 0) return;
+
+    const payload = validServices.map(s => ({
+        taller_id: tallerId,
+        descripcion: s.descripcion.trim(),
+        precio_base: s.precio_base || 0,
+        activo: true,
+        last_used_at: new Date().toISOString()
+    }));
+
+    // Usamos upsert basado en constraint (taller_id, descripcion)
+    const { error } = await supabase
+        .from('servicios_frecuentes')
+        .upsert(payload, {
+            onConflict: 'taller_id,descripcion',
+            ignoreDuplicates: false // queremos actualizar last_used_at
+        });
+
+    if (error) {
+        console.error('Error al registrar uso de servicios:', error);
+    }
 }
 
 export async function obtenerCitasSemana(startDate: Date, endDate: Date, tallerIdOverride?: string): Promise<CitaDB[]> {

@@ -1,20 +1,9 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
-import { MapPin, Wrench, Locate, MessageCircle, Star } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, ZoomControl, useMap } from 'react-leaflet';
 import { useRef, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Fix for default marker icons in Leaflet
-const customIcon = new L.Icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
 
 interface Workshop {
     id: string | number;
@@ -26,6 +15,7 @@ interface Workshop {
     whatsapp?: string;
     ciudad?: string;
     image?: string;
+    specialties?: string[];
 }
 
 interface LeafletMapProps {
@@ -45,16 +35,45 @@ const MapInstanceCapturer = ({ setMap }: { setMap: (map: L.Map) => void }) => {
     return null;
 };
 
+const createCustomIcon = (workshop: Workshop) => {
+    const isPremium = workshop.rating >= 4.8;
+    const isVulca = workshop.specialties?.some((s: string) => s.toLowerCase().includes('vulca'));
+    
+    let emoji = '🛠️';
+    if (isVulca) emoji = '🚗';
+    if (workshop.specialties?.some((s: string) => s.toLowerCase().includes('cerraj'))) emoji = '🔑';
+    if (workshop.specialties?.some((s: string) => s.toLowerCase().includes('detail'))) emoji = '✨';
+
+    return L.divIcon({
+        html: `
+            <div class="relative group">
+                <div class="w-11 h-11 bg-white rounded-2xl flex items-center justify-center shadow-[0_10px_25px_rgba(0,0,0,0.1)] border-2 ${isPremium ? 'border-amber-400' : 'border-blue-500'} transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1">
+                    <span class="text-xl">${emoji}</span>
+                    ${isPremium ? `
+                        <div class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-600 rounded-full border-2 border-white flex items-center justify-center shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] ${isPremium ? 'border-t-amber-400' : 'border-t-blue-500'} drop-shadow-sm"></div>
+            </div>
+        `,
+        className: 'custom-div-icon',
+        iconSize: [44, 52],
+        iconAnchor: [22, 52],
+    });
+};
+
 const LeafletMap = forwardRef(({ workshops, onSelect, selectedId }: LeafletMapProps, ref) => {
     const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
-    const router = useRouter();
 
     useImperativeHandle(ref, () => ({
         flyToLocation: (lat: number, lng: number, zoom = 16) => {
             if (mapInstance) {
                 mapInstance.flyTo([lat, lng], zoom, { duration: 1.5 });
             }
-        }
+        },
+        getCurrentMap: () => mapInstance
     }));
 
     return (
@@ -68,7 +87,7 @@ const LeafletMap = forwardRef(({ workshops, onSelect, selectedId }: LeafletMapPr
                 style={{ background: '#f8fafc' }}
             >
                 <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
                 />
 
@@ -79,106 +98,13 @@ const LeafletMap = forwardRef(({ workshops, onSelect, selectedId }: LeafletMapPr
                     <Marker
                         key={workshop.id}
                         position={[workshop.coordinates.lat, workshop.coordinates.lng]}
-                        icon={customIcon}
+                        icon={createCustomIcon(workshop)}
                         eventHandlers={{
                             click: () => onSelect(String(workshop.id)),
-                            dblclick: () => router.push(`/${workshop.slug || String(workshop.id)}`)
                         }}
-                    >
-                        <Popup>
-                            <div
-                                onClick={() => router.push(`/${workshop.slug || workshop.id}`)}
-                                className="p-0 min-w-[220px] font-sans cursor-pointer group/popup overflow-hidden rounded-2xl"
-                            >
-                                {workshop.image && (
-                                    <div className="h-24 w-full relative overflow-hidden">
-                                        <img
-                                            src={workshop.image}
-                                            alt={workshop.name}
-                                            className="w-full h-full object-cover group-hover/popup:scale-110 transition-transform duration-500"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                        <div className="absolute bottom-2 left-3">
-                                            <div className="inline-block bg-blue-600 text-[8px] font-black text-white px-2 py-0.5 rounded-md uppercase tracking-wider">
-                                                Partner Verificado
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="p-4">
-                                    <h4
-                                        className="font-black text-slate-800 text-sm mb-1 leading-tight group-hover/popup:text-blue-600 transition-colors"
-                                    >
-                                        {workshop.name}
-                                    </h4>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-3 font-bold">
-                                        <MapPin className="w-3 h-3 text-slate-400" />
-                                        {workshop.location}
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => router.push(`/${workshop.slug || workshop.id}`)}
-                                            className="flex-1 bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all shadow-lg shadow-black/10"
-                                        >
-                                            Ver Perfil
-                                        </button>
-                                        <a
-                                            href={`https://wa.me/${(workshop.whatsapp || '').replace(/\D/g, '')}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="w-10 h-10 flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-90"
-                                        >
-                                            <MessageCircle className="w-5 h-5" />
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </Popup>
-                    </Marker>
+                    />
                 ))}
             </MapContainer>
-
-            {/* Floating Controls Overlay - Corner Bottom Right (Above Promo Banner) */}
-            <div className="absolute right-4 bottom-20 md:bottom-[380px] flex flex-col items-end gap-3 z-[1000]">
-                {/* Geolocation Button */}
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition(
-                                (position) => {
-                                    const { latitude, longitude } = position.coords;
-                                    if (mapInstance) {
-                                        mapInstance.flyTo([latitude, longitude], 16, { duration: 2 });
-                                    }
-                                }
-                            );
-                        }
-                    }}
-                    className="w-12 h-12 bg-blue-600 text-white shadow-2xl hover:bg-blue-500 flex items-center justify-center rounded-full transition-all active:scale-90 group border-2 border-white"
-                    title="Mi ubicación"
-                >
-                    <Locate className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                </button>
-            </div>
-
-            {/* Workshops Info - Anclado a la izquierda superior */}
-            <div className="absolute top-24 left-4 z-[1000] hidden md:block">
-                <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3 min-w-[160px]">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0">
-                        <Wrench className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="font-black text-slate-800 text-sm leading-none mb-0.5">
-                            {workshops.length} Talleres
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cerca de ti</span>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 });

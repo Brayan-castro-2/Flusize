@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
             const { data: { user: creadorAuthUser } } = await supabaseRequestClient.auth.getUser();
 
             if (creadorAuthUser) {
-                // Obtenemos el perfil real del creador para saber su rol
+                // 1. Obtener rol del creador
                 const { data: creadorPerfil } = await supabaseAdmin
                     .from('perfiles')
                     .select('rol')
@@ -72,13 +72,29 @@ export async function POST(req: NextRequest) {
                     .maybeSingle();
 
                 const rolDelCreador = creadorPerfil?.rol || '';
-                const rolesPermitidos = ROLES_QUE_PUEDE_CREAR[rolDelCreador] || [];
 
-                if (!rolesPermitidos.includes(rol)) {
+                // 2. Verificar permiso 'usuarios.crear' en la tabla permisos_rol
+                const { data: permisoData } = await supabaseAdmin
+                    .from('permisos_rol')
+                    .select('concedido')
+                    .eq('rol', rolDelCreador)
+                    .eq('permiso', 'usuarios.crear')
+                    .maybeSingle();
+
+                const tienePermisoCrear = permisoData?.concedido === true || 
+                                         ['superadmin', 'taller_admin'].includes(rolDelCreador);
+
+                if (!tienePermisoCrear) {
                     return NextResponse.json(
-                        {
-                            error: `No tienes permisos para crear un usuario con el rol "${rol}". Tu nivel de acceso (${rolDelCreador}) solo puede crear: ${rolesPermitidos.join(', ') || 'ningún rol'}.`
-                        },
+                        { error: `No tienes permisos ('usuarios.crear') para crear nuevos usuarios.` },
+                        { status: 403 }
+                    );
+                }
+
+                // 3. Restricción de Jerarquía: Solo superadmin crea superadmin
+                if (rol === 'superadmin' && rolDelCreador !== 'superadmin') {
+                    return NextResponse.json(
+                        { error: 'Solo un Super Usuario puede crear otros Super Usuarios.' },
                         { status: 403 }
                     );
                 }

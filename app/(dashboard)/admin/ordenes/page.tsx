@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, Fragment, useRef, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 
@@ -23,9 +24,14 @@ import { usePerfiles } from '@/hooks/use-perfiles';
 import { useVehiculos } from '@/hooks/use-vehiculos';
 import { useAuth } from '@/contexts/auth-context';
 import { useAppointments, APPOINTMENTS_QUERY_KEY } from '@/hooks/use-appointments';
+import { useFlusizeFeatures } from '@/hooks/useFlusizeFeatures';
+import { normalizePlan, planHasModule } from '@/lib/plan-config';
 import type { CitaDB } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
+import { BuscadorInventario, type CartItem } from '@/components/inventario/buscador-inventario';
+import { BitacoraAvanceModal } from '@/components/ordenes/bitacora-avance-modal';
+import { FijarPrecioModal } from '@/components/ordenes/fijar-precio-modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -86,12 +92,31 @@ import {
     // Loader2 ya importado arriba
     ChevronRight,
     MessageCircle,
+    Share2,
+    Activity,
+    History as HistoryIcon,
+    Box as BoxIcon
 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 
 import Link from 'next/link';
-// import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions'; // Eliminada para usar versión dinámica
 
+function ETAInput({ orderId, currentEta, onUpdateETA }: { orderId: string, currentEta: string | null, onUpdateETA: (id: string, eta: string) => void }) {
+    const [val, setVal] = useState(currentEta ? new Date(currentEta).toISOString().slice(0, 16) : '');
+    return (
+        <div className="flex flex-col gap-1 w-[160px] flex-shrink-0">
+            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">⏱️ Entrega Estimada</label>
+            <input 
+                type="datetime-local" 
+                value={val}
+                onChange={e => setVal(e.target.value)}
+                onBlur={() => onUpdateETA(orderId, val)}
+                className="bg-slate-800/80 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 h-9 outline-none focus:border-blue-500 transition-colors w-full z-10 relative"
+                onClick={e => e.stopPropagation()}
+            />
+        </div>
+    );
+}
 
 // ─── Mobile Order Card (Accordion + Long Press) ─────────────────────────────
 function MobileOrderCard({
@@ -100,8 +125,8 @@ function MobileOrderCard({
     hasDebt,
     getStatusBadge,
     getCleanMotivo,
-    isMecanico,
-    isAdmin,
+    canEditOrders,
+    canDeleteOrders,
     deleteConfirm,
     setDeleteConfirm,
     handleDeleteOrder,
@@ -110,16 +135,22 @@ function MobileOrderCard({
     isLoadingChecklist,
     onOpenChecklist,
     onUpdateStatus,
+    onOpenBitacora,
+    onUpdateETA,
     onExpand,
     onPrintOrder,
+    bitacoraEntries,
+    isLoadingBitacora,
+    repuestos,
+    isLoadingRepuestos,
 }: {
     order: any;
     vehiculo: any;
     hasDebt: (o: any) => boolean;
     getStatusBadge: (status: string, id?: string, interactive?: boolean) => React.ReactNode;
     getCleanMotivo: (desc: string) => string;
-    isMecanico: boolean;
-    isAdmin: boolean;
+    canEditOrders: boolean;
+    canDeleteOrders: boolean;
     deleteConfirm: string | null;
     setDeleteConfirm: (id: string | null) => void;
     handleDeleteOrder: (order: any) => void;
@@ -128,8 +159,14 @@ function MobileOrderCard({
     isLoadingChecklist: boolean;
     onOpenChecklist: (orderId: string, mode: 'checklist' | 'readonly_ingreso' | 'salida') => void;
     onUpdateStatus: (orderId: string, newStatus: string) => void;
+    onOpenBitacora: (orderId: string) => void;
+    onUpdateETA: (orderId: string, eta: string) => void;
     onExpand: (orderId: string) => void;
     onPrintOrder: (order: any) => void;
+    bitacoraEntries?: any[];
+    isLoadingBitacora?: boolean;
+    repuestos?: any[];
+    isLoadingRepuestos?: boolean;
 }) {
     const router = useRouter();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -204,7 +241,7 @@ function MobileOrderCard({
                 </div>
 
                 {/* ── Accordion Detail (visible when expanded) ── */}
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[1600px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
                     <div className="pt-3 border-t border-slate-600/50 space-y-3 text-xs text-slate-300">
                         {order.descripcion_ingreso && (
                             <div>
@@ -221,11 +258,14 @@ function MobileOrderCard({
 
                         {/* ── Workflow Actions (same as desktop) ── */}
                         <div
-                            className="mt-4 w-full"
+                            className="mt-4 w-full flex flex-col gap-2"
                             onClick={e => e.stopPropagation()}
                             onTouchStart={e => e.stopPropagation()}
                         >
-                            <p className="text-slate-500 font-medium uppercase tracking-wider mb-2 text-[10px]">Flujo de Trabajo</p>
+                            <div className="flex justify-between items-end gap-2 w-full">
+                                <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">Flujo de Trabajo</p>
+                                <ETAInput orderId={order.id} currentEta={order.eta_entrega || null} onUpdateETA={onUpdateETA} />
+                            </div>
                             {isLoadingChecklist ? (
                                 <div className="flex justify-center py-3">
                                     <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
@@ -237,7 +277,87 @@ function MobileOrderCard({
                                         checklist={checklist}
                                         onOpenChecklist={onOpenChecklist}
                                         onUpdateStatus={onUpdateStatus}
+                                        onOpenBitacora={onOpenBitacora}
                                     />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Repuestos y Materiales */}
+                        <div className="space-y-3 mt-4 border-t border-slate-700/30 pt-4">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                <BoxIcon className="w-3.5 h-3.5" />
+                                Materiales y Repuestos
+                            </h3>
+                            
+                            {isLoadingRepuestos ? (
+                                <div className="flex items-center gap-2 text-slate-500 text-[10px] py-1">
+                                    <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
+                                </div>
+                            ) : repuestos && repuestos.length > 0 ? (
+                                <div className="space-y-2">
+                                    {repuestos.map((rep: any) => (
+                                        <div key={rep.id} className="bg-slate-800/40 rounded-lg p-2 flex justify-between items-center border border-slate-700/50">
+                                            <div className="flex-1 min-w-0 pr-2">
+                                                <div className="text-slate-200 font-medium truncate">{rep.producto?.nombre}</div>
+                                                <div className="text-[9px] text-slate-500">{rep.cantidad} x ${rep.precio_unitario.toLocaleString('es-CL')}</div>
+                                            </div>
+                                            <div className="text-emerald-400 font-bold">${rep.subtotal.toLocaleString('es-CL')}</div>
+                                        </div>
+                                    ))}
+                                    <div className="flex justify-between items-center px-1 pt-1">
+                                        <span className="text-slate-500 text-[10px] font-bold uppercase">Total Materiales</span>
+                                        <span className="text-emerald-400 font-black">${repuestos.reduce((acc, curr) => acc + curr.subtotal, 0).toLocaleString('es-CL')}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-slate-600 italic text-[10px] py-1">
+                                    No hay materiales registrados.
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Historial (Bitácora) */}
+                        <div className="space-y-3 mt-4 border-t border-slate-700/30 pt-4">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                <HistoryIcon className="w-3.5 h-3.5" />
+                                Historial Reciente (Bitácora)
+                            </h3>
+
+                            {isLoadingBitacora ? (
+                                <div className="flex items-center gap-2 text-slate-500 text-[10px] py-1">
+                                    <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
+                                </div>
+                            ) : bitacoraEntries && bitacoraEntries.length > 0 ? (
+                                <div className="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-slate-700/50 pl-2">
+                                    {bitacoraEntries.slice(0, 5).map((entry: any) => (
+                                        <div key={entry.id} className="relative pl-6">
+                                            <div className={`absolute left-[-13px] top-1 w-2 h-2 rounded-full border border-slate-900 ${
+                                                entry.tipo === 'alerta' ? 'bg-orange-500' : 
+                                                entry.tipo === 'repuesto' ? 'bg-emerald-500' : 
+                                                entry.tipo === 'evidencia' ? 'bg-violet-500' : 'bg-blue-500'
+                                            }`} />
+                                            <div className="bg-slate-800/30 rounded-lg p-2 space-y-1">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[9px] text-slate-500">
+                                                        {new Date(entry.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-300 leading-snug">{entry.contenido}</p>
+                                                {entry.fotos?.length > 0 && (
+                                                    <div className="flex gap-1 overflow-x-auto pt-1">
+                                                        {entry.fotos.map((f: string, i: number) => (
+                                                            <img key={i} src={f} className="w-10 h-10 rounded object-cover" alt="Adv" />
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-slate-600 italic text-[10px] py-1">
+                                    Sin avances registrados.
                                 </div>
                             )}
                         </div>
@@ -249,7 +369,7 @@ function MobileOrderCard({
                             onTouchStart={e => e.stopPropagation()}
                         >
                             <p className="text-[11px] text-blue-400/90 bg-blue-900/20 p-2 rounded-lg border border-blue-800/30 leading-snug">
-                                💡 <span className="font-semibold text-blue-300">Tip:</span> Enviar el tracking al cliente reduce hasta un 70% las llamadas consultando "¿cómo va mi auto?".
+                                💡 <span className="font-semibold text-blue-300">Tip:</span> Comparte el link de tracking para que el cliente vea estos avances en tiempo real.
                             </p>
                         </div>
                         <div
@@ -278,7 +398,7 @@ function MobileOrderCard({
                                         size="sm"
                                         variant="outline"
                                         className="w-full h-9 border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs rounded-lg"
-                                        title="Enviar estado al cliente para evitar llamadas"
+                                        title="Enviar estado al cliente"
                                     >
                                         <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
                                         WhatsApp
@@ -289,7 +409,7 @@ function MobileOrderCard({
                                     size="sm"
                                     variant="outline"
                                     className="w-full h-9 border-slate-600/50 text-slate-500 cursor-not-allowed text-xs rounded-lg flex gap-1.5"
-                                    title="Cliente sin teléfono registrado"
+                                    title="Cliente sin teléfono"
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <MessageCircle className="w-3.5 h-3.5 opacity-50" />
@@ -299,16 +419,16 @@ function MobileOrderCard({
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="w-full h-9 bg-white/10 border border-white/20 text-white hover:bg-white/20 text-xs rounded-lg"
+                                className="w-full h-9 bg-white/10 border border-white/20 text-white hover:bg-white/20 text-xs rounded-lg col-span-2"
                                 onClick={e => { e.stopPropagation(); onPrintOrder(order); }}
                             >
                                 <Printer className="w-3.5 h-3.5 mr-1.5" />
-                                Imprimir
+                                Imprimir Orden
                             </Button>
                         </div>
 
-                        <p className="text-slate-600 italic text-center text-[10px] pt-1">
-                            Mantén pulsado 0.7s para editar completo
+                        <p className="text-slate-600 italic text-center text-[10px] pt-3 border-t border-slate-700/30">
+                            Mantén pulsado 0.7s para edición avanzada
                         </p>
                     </div>
                 </div>
@@ -319,14 +439,14 @@ function MobileOrderCard({
                         {getStatusBadge(order.estado, order.id, true)}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                        {!isMecanico && (
+                        {canEditOrders && (
                             <Link href={`/admin/ordenes/clean?id=${order.id}`} onClick={e => e.stopPropagation()}>
                                 <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 px-2">
                                     <Edit className="w-3.5 h-3.5" />
                                 </Button>
                             </Link>
                         )}
-                        {isAdmin && (
+                        {canDeleteOrders && (
                             deleteConfirm === order.id ? (
                                 <div className="flex gap-1">
                                     <Button
@@ -365,7 +485,10 @@ function MobileOrderCard({
 export default function OrdenesPage() {
 
     const { toast } = useToast();
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
+    const { tieneModulo } = useFlusizeFeatures();
+    const planStr = normalizePlan(user?.plan);
+    const hasAgenda = planHasModule(planStr, 'agenda');
     const router = useRouter();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -432,12 +555,45 @@ export default function OrdenesPage() {
     const [checklists, setChecklists] = useState<Record<string, any>>({});
     const [loadingChecklists, setLoadingChecklists] = useState<Record<string, boolean>>({});
 
+    // Repuestos State
+    const [repuestosExp, setRepuestosExp] = useState<Record<string, any[]>>({});
+    const [loadingRepuestos, setLoadingRepuestos] = useState<Record<string, boolean>>({});
+
+    // Bitacora (Historial) State
+    const [bitacoraExp, setBitacoraExp] = useState<Record<string, any[]>>({});
+    const [loadingBitacora, setLoadingBitacora] = useState<Record<string, boolean>>({});
+
     // Checklist Dialog State
     const [checklistDialog, setChecklistDialog] = useState<{
         open: boolean;
         orderId: string | null;
         mode: 'checklist' | 'readonly_ingreso' | 'salida';
     }>({ open: false, orderId: null, mode: 'checklist' });
+
+    // Bitacora Modal State
+    const [isBitacoraModalOpen, setIsBitacoraModalOpen] = useState(false);
+    const [bitacoraOrderId, setBitacoraOrderId] = useState<string | null>(null);
+
+    // Fijar Precio Modal State
+    const [isPrecioModalOpen, setIsPrecioModalOpen] = useState(false);
+    const [precioOrder, setPrecioOrder] = useState<any>(null);
+
+    const handleOpenBitacora = (orderId: string) => {
+        setBitacoraOrderId(orderId);
+        setIsBitacoraModalOpen(true);
+    };
+
+    const handleUpdateETA = async (orderId: string, eta: string) => {
+        try {
+            const { error } = await supabase.from('ordenes').update({ eta_entrega: eta || null }).eq('id', orderId);
+            if (error) throw error;
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            toast({ description: "ETA de entrega actualizada." });
+        } catch (err) {
+            console.error(err);
+            toast({ description: "Error al actualizar la ETA.", variant: "destructive" });
+        }
+    };
 
     const fetchChecklist = async (orderId: string, force = false) => {
         if (!force && checklists[orderId]) return;
@@ -456,7 +612,51 @@ export default function OrdenesPage() {
         }
     };
 
+    const fetchRepuestos = async (orderId: string, force = false) => {
+        if (!force && repuestosExp[orderId]) return;
 
+        setLoadingRepuestos(prev => ({ ...prev, [orderId]: true }));
+        try {
+            const { data, error } = await supabase
+                .from('orden_repuestos')
+                .select(`
+                    id,
+                    cantidad,
+                    precio_unitario,
+                    subtotal,
+                    producto:productos!orden_repuestos_producto_id_fkey(nombre, codigo)
+                `)
+                .eq('orden_id', orderId);
+            
+            // Si la tabla no existe todavía (PGRST205), se ignora silenciosamente
+            if (error && error.code !== 'PGRST205' && error.code !== '42P01') throw error;
+            setRepuestosExp(prev => ({ ...prev, [orderId]: data || [] }));
+        } catch (error) {
+            console.error('Error fetching repuestos:', error);
+        } finally {
+            setLoadingRepuestos(prev => ({ ...prev, [orderId]: false }));
+        }
+    };
+
+    const fetchBitacora = async (orderId: string, force = false) => {
+        if (!force && bitacoraExp[orderId]) return;
+
+        setLoadingBitacora(prev => ({ ...prev, [orderId]: true }));
+        try {
+            const { data, error } = await supabase
+                .from('bitacora_ordenes')
+                .select('*')
+                .eq('orden_id', orderId)
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            setBitacoraExp(prev => ({ ...prev, [orderId]: data || [] }));
+        } catch (error) {
+            console.error('Error fetching bitacora:', error);
+        } finally {
+            setLoadingBitacora(prev => ({ ...prev, [orderId]: false }));
+        }
+    };
 
     const handleOpenChecklist = (orderId: string, mode: 'checklist' | 'readonly_ingreso' | 'salida') => {
         setChecklistDialog({ open: true, orderId: orderId, mode });
@@ -533,26 +733,28 @@ export default function OrdenesPage() {
 
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
-    // Auto-fetch checklist when order is expanded
+    // Auto-fetch checklist and repuestos when order is expanded
     useEffect(() => {
         if (expandedOrderId !== null) {
             fetchChecklist(expandedOrderId);
+            fetchRepuestos(expandedOrderId);
+            fetchBitacora(expandedOrderId);
         }
     }, [expandedOrderId]);
 
-    // AUTO-FILTRAR órdenes para mecánicos
-
-    const isAdmin = ['taller_admin', 'superadmin', 'admin', 'admin_local', 'dueño', 'owner'].includes(user?.role || '');
-    const isMecanico = user?.role === 'mecanico';
-    const canViewPrices = isAdmin || user?.name?.toLowerCase().includes('juan');
+    // AUTO-FILTRAR órdenes para mecánicos basado en permisos
+    const canViewPrices = hasPermission('financials.view_totals');
+    const canDeleteOrders = hasPermission('ordenes.eliminar');
+    const canViewAllOrders = hasPermission('ordenes.ver_todas');
+    const canEditOrders = hasPermission('ordenes.editar');
     const isLoading = isLoadingOrders;
 
-    // Auto-filtrar órdenes para mecánicos: solo ven las asignadas a ellos
+    // Auto-filtrar órdenes si no puede ver todas
     useEffect(() => {
-        if (isMecanico && user?.id) {
+        if (!canViewAllOrders && user?.id) {
             setMechanicFilter(user.id);
         }
-    }, [isMecanico, user?.id]);
+    }, [canViewAllOrders, user?.id]);
 
     // Memoizar mapas para búsquedas O(1) en lugar de O(n)
     const perfilesMap = useMemo(() => {
@@ -1036,7 +1238,8 @@ export default function OrdenesPage() {
                                 autoComplete="off"
                             />
                         </div>
-                        {/* View Type Filter */}
+                        {/* View Type Filter — solo visible si tiene módulo agenda */}
+                        {hasAgenda && (
                         <div className="space-y-1.5">
                             <div className="flex items-center">
                                 <label className="text-xs text-slate-600 font-medium px-1">Tipo de Vista</label>
@@ -1053,6 +1256,7 @@ export default function OrdenesPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+                        )}
                         <div className="grid grid-cols-2 gap-2 sm:gap-3">
                             <div className="space-y-1.5">
                                 <label className="text-xs text-slate-600 font-medium px-1">Estado</label>
@@ -1349,10 +1553,31 @@ export default function OrdenesPage() {
                                                                 <DropdownMenuItem asChild>
                                                                     <Link href={`/admin/ordenes/clean?id=${order.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 text-slate-700 cursor-pointer">
                                                                         <Edit className="w-3.5 h-3.5" />
-                                                                        Editar
+                                                                        Editar Orden
                                                                     </Link>
                                                                 </DropdownMenuItem>
-                                                                {isAdmin && (
+                                                                <DropdownMenuItem
+                                                                    className="flex items-center gap-2 text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 cursor-pointer"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setPrecioOrder(order);
+                                                                        setIsPrecioModalOpen(true);
+                                                                    }}
+                                                                >
+                                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                                    Finalizar y Cobrar
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    className="flex items-center gap-2 text-blue-600 focus:text-blue-700 focus:bg-blue-50 cursor-pointer"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleOpenBitacora(order.id);
+                                                                    }}
+                                                                >
+                                                                    <FileText className="w-3.5 h-3.5" />
+                                                                    Añadir Avance
+                                                                </DropdownMenuItem>
+                                                                {canDeleteOrders && (
                                                                     <>
                                                                         <DropdownMenuSeparator className="bg-slate-100" />
                                                                         {deleteConfirm === order.id ? (
@@ -1546,26 +1771,46 @@ export default function OrdenesPage() {
                                                                 </div>
                                                             </div>
 
-                                                            {/* Checklist Section Placeholder */}
-                                                            <div className="mt-6 border-t border-slate-700/50 pt-4">
-                                                                <div className="flex flex-col mb-4">
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                                                                            <ClipboardCheck className="w-4 h-4" />
-                                                                            Lista de Chequeo y Tracking
+                                                            {/* Tracking CTA Prominente */}
+                                                            {(order.cliente?.telefono || order.cliente_telefono) && (
+                                                                <div className="mt-6 bg-gradient-to-r from-emerald-900/40 to-slate-900/40 border border-emerald-500/20 rounded-xl p-5 shadow-lg shadow-emerald-900/10">
+                                                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                                                        <div className="flex-1">
+                                                                            <h3 className="text-emerald-400 font-black flex items-center gap-2 mb-1.5 text-base">
+                                                                                <Share2 className="w-5 h-5" />
+                                                                                Aumenta la Transparencia
+                                                                            </h3>
+                                                                            <p className="text-sm text-slate-300">
+                                                                                <span className="font-semibold text-white">💡 Tip:</span> Enviar este enlace por WhatsApp <strong className="text-emerald-300">reduce en 80%</strong> las llamadas del cliente preguntando por el estado de su vehículo.
+                                                                            </p>
+                                                                        </div>
+                                                                        <Link
+                                                                            href={`https://wa.me/${(order.cliente?.telefono || order.cliente_telefono || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${order.cliente?.nombre_completo || order.cliente_nombre || ''} 👋,\n\nPuedes revisar el estado de tu vehículo en tiempo real aquí:\n\n👉 https://app.flusize.com/tracking/${order.id}\n\n¡Saludos!`)}`}
+                                                                            target="_blank"
+                                                                            onClick={e => e.stopPropagation()}
+                                                                            className="shrink-0 w-full sm:w-auto"
+                                                                        >
+                                                                            <Button className="w-full sm:w-auto bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold h-12 px-6 shadow-xl shadow-[#25D366]/20 transition-all active:scale-95">
+                                                                                <MessageCircle className="w-5 h-5 mr-2" />
+                                                                                Compartir Tracking al Cliente
+                                                                            </Button>
+                                                                        </Link>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Bitácora Section */}
+                                                            <div className="mt-6 border-t border-slate-700/50 pt-6">
+                                                                <div className="flex flex-col mb-5">
+                                                                    <div className="flex justify-between items-center mb-4">
+                                                                        <h3 className="text-base font-black text-white flex items-center gap-2 uppercase tracking-wide">
+                                                                            <Activity className="w-5 h-5 text-blue-400" />
+                                                                            Bitácora de Trabajo y Evidencias
                                                                         </h3>
-                                                                        <div className="flex gap-2">
-                                                                            <Link href={`/tracking/${order.id}`} target="_blank" prefetch={false}>
+                                                                        <div className="flex items-center gap-4">
+                                                                            <ETAInput orderId={order.id} currentEta={order.eta_entrega || null} onUpdateETA={handleUpdateETA} />
+                                                                            <div className="flex gap-2 self-end">
                                                                                 <Button
-                                                                                    size="sm"
-                                                                                    variant="outline"
-                                                                                    className="h-8 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700"
-                                                                                >
-                                                                                    <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                                                                    Ver Tracking
-                                                                                </Button>
-                                                                            </Link>
-                                                                            <Button
                                                                                 size="sm"
                                                                                 variant="outline"
                                                                                 className="h-8 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700"
@@ -1576,25 +1821,143 @@ export default function OrdenesPage() {
                                                                             </Button>
                                                                         </div>
                                                                     </div>
-                                                                    <p className="text-xs text-blue-400 bg-blue-900/10 p-2 border border-blue-900/20 rounded-md">
-                                                                        💡 <span className="font-semibold">Tip para el taller:</span> Enviar el tracking al cliente reduce hasta un 70% las llamadas consultando "¿cómo va mi auto?".
-                                                                    </p>
+                                                                    </div>
+                                                                    <p className="text-sm text-slate-400">Todo el registro de notas, fotos iniciales y avances queda aquí como línea de tiempo.</p>
                                                                 </div>
 
-                                                                {/* Checklist Content / Actions */}
-                                                                <div className="bg-slate-900/30 rounded-lg p-4 border border-dashed border-slate-800">
+                                                                {/* Acciones y Timeline Content */}
+                                                                <div className="bg-slate-900/50 rounded-xl p-5 border border-slate-800 shadow-inner">
                                                                     {loadingChecklists[order.id] ? (
-                                                                        <div className="flex justify-center py-2">
-                                                                            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                                                        <div className="flex justify-center py-6">
+                                                                            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
                                                                         </div>
                                                                     ) : (
-                                                                        <div className="flex flex-col items-center justify-center gap-3">
+                                                                        <div className="flex flex-col gap-6">
+                                                                            {/* Header Action Buttons (Zero Friction) */}
                                                                             <OrderWorkflowActions
                                                                                 order={order as any}
                                                                                 checklist={checklists[order.id]}
                                                                                 onOpenChecklist={handleOpenChecklist}
                                                                                 onUpdateStatus={handleUpdateStatus}
+                                                                                onOpenBitacora={handleOpenBitacora}
                                                                             />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Repuestos y Materiales (NUEVO) */}
+                                                                <div className="space-y-3">
+                                                                    <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                                                                        <BoxIcon className="w-4 h-4" />
+                                                                        Repuestos y Materiales
+                                                                    </h3>
+                                                                    
+                                                                    {loadingRepuestos[order.id] ? (
+                                                                        <div className="flex items-center gap-2 text-slate-400 text-xs py-2">
+                                                                            <Loader2 className="w-3 h-3 animate-spin" /> Cargando materiales...
+                                                                        </div>
+                                                                    ) : repuestosExp[order.id]?.length > 0 ? (
+                                                                        <div className="bg-slate-900/30 border border-slate-700/50 rounded-lg overflow-hidden">
+                                                                            <table className="w-full text-xs text-left">
+                                                                                <thead>
+                                                                                    <tr className="border-b border-slate-700/50 bg-slate-900/50">
+                                                                                        <th className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider">Nombre</th>
+                                                                                        <th className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider text-right">Cant.</th>
+                                                                                        <th className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider text-right">Precio</th>
+                                                                                        <th className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider text-right">Total</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody className="divide-y divide-slate-700/30">
+                                                                                    {repuestosExp[order.id].map((rep: any) => (
+                                                                                        <tr key={rep.id} className="hover:bg-slate-700/20 transition-colors">
+                                                                                            <td className="px-3 py-2 text-slate-200">
+                                                                                                <div className="font-medium">{rep.producto?.nombre}</div>
+                                                                                                {rep.producto?.codigo && <div className="text-[10px] text-slate-500 font-mono">{rep.producto.codigo}</div>}
+                                                                                            </td>
+                                                                                            <td className="px-3 py-2 text-slate-300 text-right font-mono">{rep.cantidad}</td>
+                                                                                            <td className="px-3 py-2 text-slate-300 text-right">${rep.precio_unitario.toLocaleString('es-CL')}</td>
+                                                                                            <td className="px-3 py-2 text-emerald-400 font-bold text-right">${rep.subtotal.toLocaleString('es-CL')}</td>
+                                                                                        </tr>
+                                                                                    ))}
+                                                                                </tbody>
+                                                                                <tfoot>
+                                                                                    <tr className="bg-slate-900/50 border-t border-slate-700">
+                                                                                        <td colSpan={3} className="px-3 py-2 text-slate-400 font-bold uppercase tracking-wider text-right">Total Materiales</td>
+                                                                                        <td className="px-3 py-2 text-emerald-400 font-black text-right text-sm">
+                                                                                            ${repuestosExp[order.id].reduce((acc: number, curr: any) => acc + curr.subtotal, 0).toLocaleString('es-CL')}
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </tfoot>
+                                                                            </table>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-slate-500 text-xs italic py-2 px-3 bg-slate-900/20 rounded-lg border border-dashed border-slate-800">
+                                                                            No se registraron repuestos en esta orden.
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Historial de Avances (Bitácora) */}
+                                                                <div className="space-y-3">
+                                                                    <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                                                                        <HistoryIcon className="w-4 h-4" />
+                                                                        Historial de Avances
+                                                                    </h3>
+
+                                                                    {loadingBitacora[order.id] ? (
+                                                                        <div className="flex items-center gap-2 text-slate-400 text-xs py-2">
+                                                                            <Loader2 className="w-3 h-3 animate-spin" /> Cargando bitácora...
+                                                                        </div>
+                                                                    ) : bitacoraExp[order.id]?.length > 0 ? (
+                                                                        <div className="space-y-3 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-700/50">
+                                                                            {bitacoraExp[order.id].map((entry: any) => (
+                                                                                <div key={entry.id} className="relative pl-8">
+                                                                                    <div className={`absolute left-1.5 top-1.5 w-3 h-3 rounded-full border-2 border-slate-900 ${
+                                                                                        entry.tipo === 'alerta' ? 'bg-orange-500' : 
+                                                                                        entry.tipo === 'repuesto' ? 'bg-emerald-500' : 
+                                                                                        entry.tipo === 'evidencia' ? 'bg-violet-500' : 'bg-blue-500'
+                                                                                    }`} />
+                                                                                    <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl p-3 space-y-2">
+                                                                                        <div className="flex justify-between items-start gap-2">
+                                                                                            <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded ${
+                                                                                                entry.tipo === 'alerta' ? 'bg-orange-500/20 text-orange-400' : 
+                                                                                                entry.tipo === 'repuesto' ? 'bg-emerald-500/20 text-emerald-400' : 
+                                                                                                entry.tipo === 'evidencia' ? 'bg-violet-500/20 text-violet-400' : 'bg-blue-500/20 text-blue-400'
+                                                                                            }`}>
+                                                                                                {entry.tipo}
+                                                                                            </span>
+                                                                                            <span className="text-[10px] text-slate-500">
+                                                                                                {new Date(entry.created_at).toLocaleString('es-CL', {
+                                                                                                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                                                                                })}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        {entry.contenido && <p className="text-xs text-slate-300">{entry.contenido}</p>}
+                                                                                        
+                                                                                        {entry.fotos?.length > 0 && (
+                                                                                            <div className="flex gap-2 overflow-x-auto pb-1">
+                                                                                                {entry.fotos.map((foto: string, idx: number) => (
+                                                                                                    <img key={idx} src={foto} className="w-16 h-16 rounded-md object-cover border border-slate-700 shadow-sm" alt="Evidencia" />
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        )}
+
+                                                                                        {entry.repuestos?.length > 0 && (
+                                                                                            <div className="text-[10px] text-emerald-400 font-medium">
+                                                                                                📦 {entry.repuestos.map((r: any) => {
+                                                                                                    const subtotal = r.subtotal || (r.cantidad * r.precio_unitario) || 0;
+                                                                                                    const precioFormat = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(subtotal);
+                                                                                                    return `${r.cantidad}x ${r.nombre} (${precioFormat})`;
+                                                                                                }).join(', ')}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-slate-500 text-xs italic py-2 px-3 bg-slate-900/20 rounded-lg border border-dashed border-slate-800">
+                                                                            No hay registros en la bitácora aún.
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -1645,8 +2008,8 @@ export default function OrdenesPage() {
                                     hasDebt={hasDebt}
                                     getStatusBadge={getStatusBadge}
                                     getCleanMotivo={getCleanMotivo}
-                                    isMecanico={isMecanico}
-                                    isAdmin={isAdmin}
+                                    canEditOrders={canEditOrders}
+                                    canDeleteOrders={canDeleteOrders}
                                     deleteConfirm={deleteConfirm}
                                     setDeleteConfirm={setDeleteConfirm}
                                     handleDeleteOrder={handleDeleteOrder}
@@ -1655,8 +2018,18 @@ export default function OrdenesPage() {
                                     isLoadingChecklist={!!loadingChecklists[order.id]}
                                     onOpenChecklist={handleOpenChecklist}
                                     onUpdateStatus={handleUpdateStatus}
-                                    onExpand={fetchChecklist}
+                                    onOpenBitacora={handleOpenBitacora}
+                                    onUpdateETA={handleUpdateETA}
+                                    onExpand={(id) => {
+                                        fetchChecklist(id);
+                                        fetchRepuestos(id);
+                                        fetchBitacora(id);
+                                    }}
                                     onPrintOrder={handlePrintOrder}
+                                    bitacoraEntries={bitacoraExp[order.id]}
+                                    isLoadingBitacora={loadingBitacora[order.id]}
+                                    repuestos={repuestosExp[order.id]}
+                                    isLoadingRepuestos={loadingRepuestos[order.id]}
                                 />
                             );
                         })}
@@ -1714,6 +2087,53 @@ export default function OrdenesPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* BITACORA AVANCE MODAL */}
+            {bitacoraOrderId && (
+                <BitacoraAvanceModal
+                    isOpen={isBitacoraModalOpen}
+                    onClose={() => setIsBitacoraModalOpen(false)}
+                    orderId={bitacoraOrderId}
+                    onSaved={() => {
+                        // Opcional: recargar datos o mostrar toast
+                    }}
+                />
+            )}
+
+            {/* FIJAR PRECIO MODAL */}
+            {precioOrder && (
+                <FijarPrecioModal
+                    isOpen={isPrecioModalOpen}
+                    onClose={() => {
+                        setIsPrecioModalOpen(false);
+                        setPrecioOrder(null);
+                    }}
+                    order={precioOrder}
+                    onSaved={async () => {
+                        // Optimización de Memoria: Recargar solo la orden afectada
+                        try {
+                            const updatedOrder = await obtenerOrdenPorId(precioOrder.id);
+                            if (updatedOrder) {
+                                queryClient.setQueriesData({ queryKey: ['orders'] }, (oldData: any) => {
+                                    if (!oldData) return oldData;
+                                    if (oldData.pages) {
+                                        return {
+                                            ...oldData,
+                                            pages: oldData.pages.map((page: any) => ({
+                                                ...page,
+                                                orders: page.orders?.map((o: any) => String(o.id) === String(precioOrder.id) ? { ...o, ...updatedOrder } : o) || []
+                                            }))
+                                        };
+                                    }
+                                    return oldData;
+                                });
+                            }
+                        } catch (err) {
+                            console.error("Error actualizando cache tras cierre:", err);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }

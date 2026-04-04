@@ -86,11 +86,17 @@ function buildPermissionsData(roles: Rol[], rawPermisos: any[]): PermisosData {
     });
 
     rawPermisos.forEach(p => {
-        const rol = roles.find(r => r.id === p.rol_id);
+        // En la BD la columna se llama 'rol' y almacena el nombre del rol en texto
+        const rol = roles.find(r => r.nombre === p.rol);
         if (rol) {
-            const key = `${p.modulo}.${p.accion}`;
+            // En la BD la columna se llama 'permiso' y almacena la clave completa (ej: usuarios.ver)
+            const key = p.permiso;
             permissions[rol.nombre] = permissions[rol.nombre] || {};
             permissions[rol.nombre][key] = p.concedido ?? false;
+        } else if (p.rol && permissions[p.rol]) {
+            // Porcelana: si el rol ya está mapeado directamente
+            const key = p.permiso;
+            permissions[p.rol][key] = p.concedido ?? false;
         }
     });
 
@@ -129,7 +135,7 @@ export default function UsuariosPage() {
 }
 
 function UsuariosContent() {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
 
     const [perfiles, setPerfiles] = useState<Perfil[]>([]);
     const [roles, setRoles] = useState<Rol[]>([]);
@@ -158,7 +164,10 @@ function UsuariosContent() {
     const [savingRole, setSavingRole] = useState(false);
     const [editRoleMode, setEditRoleMode] = useState<Record<string, string>>({}); // userId → new role name
 
-    const isAdmin = ADMIN_ROLES.includes(user?.role ?? '');
+    const isAdmin = hasPermission('usuarios.editar');
+    const canCreateUser = hasPermission('usuarios.crear') || user?.role === 'superadmin';
+    const canEditRoles = hasPermission('usuarios.editar') || user?.role === 'superadmin';
+    const canViewMatrix = hasPermission('roles.crear') || hasPermission('usuarios.editar') || user?.role === 'superadmin';
     const isSuperAdmin = user?.role === 'superadmin';
 
     // ─── FETCH ─────────────────────────────────────────────────────────────────
@@ -363,18 +372,15 @@ function UsuariosContent() {
         const key = `${rolNombre}-${permKey}`;
         setUpdatingPerm(key);
 
-        const [modulo, accion] = permKey.split('.');
-
         try {
             const { error } = await supabase
                 .from('permisos_rol')
                 .upsert({
-                    rol_id: rol.id,
-                    modulo,
-                    accion,
+                    rol: rolNombre,
+                    permiso: permKey,
                     concedido: !currentValue,
                 }, {
-                    onConflict: 'rol_id,modulo,accion',
+                    onConflict: 'rol,permiso',
                     ignoreDuplicates: false,
                 });
 
@@ -560,7 +566,7 @@ function UsuariosContent() {
             )}
 
             {/* ── Permissions Matrix Panel (Admin Only) ── */}
-            {isAdmin && (
+            {canViewMatrix && (
                 <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                     <button
                         onClick={() => { setShowRolePanel(v => !v); if (!showRolePanel && !permissionsData) fetchPermissions(); }}
@@ -682,7 +688,7 @@ function UsuariosContent() {
                             <p className="text-xs text-slate-500">{perfiles.length} usuario{perfiles.length !== 1 ? 's' : ''} registrado{perfiles.length !== 1 ? 's' : ''}</p>
                         </div>
                     </div>
-                    {isAdmin && (
+                    {canCreateUser && (
                         <button
                             onClick={() => setCreateUserModalOpen(true)}
                             className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 transition-colors shadow-sm"
@@ -705,7 +711,7 @@ function UsuariosContent() {
                                     <th className="px-6 py-4">Usuario</th>
                                     <th className="px-6 py-4">Rol en el sistema</th>
                                     <th className="px-6 py-4">Registrado</th>
-                                    {isAdmin && <th className="px-6 py-4 text-center">Acciones</th>}
+                                    {canEditRoles && <th className="px-6 py-4 text-center">Acciones</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -768,7 +774,7 @@ function UsuariosContent() {
                                         <td className="px-6 py-4 text-slate-400 text-xs font-medium">
                                             {perfil.creado_en ? new Date(perfil.creado_en).toLocaleDateString('es-CL') : '—'}
                                         </td>
-                                        {isAdmin && (
+                                        {canEditRoles && (
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-center gap-2">
                                                     {perfil.activo && (

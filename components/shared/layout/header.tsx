@@ -91,14 +91,9 @@ export function Header() {
                     )}
                     <div className="relative h-12 w-12 rounded-xl overflow-hidden border-2 border-[#0066FF] shadow-[0_0_15px_rgba(0,102,255,0.3)] bg-slate-900 flex items-center justify-center">
                         {(!tallerData?.logo_url && !logoError) || logoError ? (
-                            <Image
-                                src="/logo-steelmonkey.png"
-                                alt="Steel Monkey Logo"
-                                fill
-                                className="object-contain p-1"
-                                priority
-                                onError={() => setLogoError(true)}
-                            />
+                            <div className="w-full h-full bg-gradient-to-br from-[#0066FF] to-blue-900 flex items-center justify-center font-black text-white text-lg">
+                                {getInitials(tallerData?.nombre || 'Taller')}
+                            </div>
                         ) : (
                             <Image
                                 src={tallerData.logo_url}

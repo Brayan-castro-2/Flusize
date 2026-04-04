@@ -113,7 +113,14 @@ export function Header() {
                                 </div>
                             </div>
                         ) : (
-                            <img src="/logo-steelmonkey.png" alt="SteelMonkey" className="h-10 w-auto object-contain" />
+                            <div className="flex items-center gap-2 px-2 py-1.5 bg-white/10 rounded-xl border border-white/20 shadow-sm backdrop-blur-md">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center font-black text-white text-xs shadow-inner border border-white/10">
+                                    {getInitials(user?.workshopName || 'Taller')}
+                                </div>
+                                <span className="text-white text-sm font-bold truncate max-w-[120px] hidden sm:block tracking-tight">
+                                    {user?.workshopName || 'Taller'}
+                                </span>
+                            </div>
                         )}
                     </div>
                 </div>

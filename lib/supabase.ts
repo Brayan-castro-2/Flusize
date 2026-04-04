@@ -142,6 +142,7 @@ export interface OrdenDB {
     fecha_salida?: string | null;
     fecha_termino?: string | null;
     fecha_cierre?: string | null;
+    eta_entrega?: string | null; // Estimated delivery datetime
 
     precio_total: number;
     subtotal?: number | null; // NEW: Chameleon Quoter
@@ -229,4 +230,5 @@ export interface ServicioDB {
     precio_base: number;
     categoria?: string | null;
     activo: boolean;
+    last_used_at?: string | null;
 }

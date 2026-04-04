@@ -428,9 +428,9 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                     <Fuel className="w-4 h-4 text-slate-700" /> Nivel de Combustible ({context})
                 </h3>
 
-                <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-6">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-6">
                     <div className="flex justify-between items-end">
-                        <span className="text-slate-400 text-sm">Nivel actual</span>
+                        <span className="text-slate-500 dark:text-slate-400 text-sm">Nivel actual</span>
                         <span className={`text-2xl font-bold font-mono ${getFuelColor(currentItems.combustible)}`}>
                             {currentItems.combustible}%
                         </span>
@@ -442,12 +442,12 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                         max="100"
                         value={currentItems.combustible}
                         onChange={(e) => updater('combustible', parseInt(e.target.value))}
-                        className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                     />
 
                     <div className="pt-2">
                         {uploadingState['combustible_url'] ? (
-                            <div className="w-full flex items-center justify-center p-8 border-2 border-dashed border-slate-700 bg-slate-800/50 rounded-xl">
+                            <div className="w-full flex items-center justify-center p-8 border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                             </div>
                         ) : currentPhotos.combustible_url ? (
@@ -630,10 +630,10 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
             </section>
 
             {/* -- KILOMETRAJE Y LLANTAS -- */}
-            <section className={`bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-6`}>
+            <section className={`bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-6`}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Kilometraje Actual ({context})</Label>
+                        <Label className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">Kilometraje Actual ({context})</Label>
                         <div className="relative">
                             <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                             <Input
@@ -647,13 +647,13 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                                     const formatted = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                                     updater('kilometraje', formatted);
                                 }}
-                                className="bg-slate-800 border-slate-700 text-white pl-10 h-12 text-lg font-mono focus:ring-blue-500/20"
+                                className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white pl-10 h-12 text-lg font-mono focus:ring-blue-500/20"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Color del Vehículo</Label>
+                        <Label className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">Color del Vehículo</Label>
                         <div className="relative">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center overflow-hidden">
                                 <div className="w-full h-full" style={{ backgroundColor: currentItems.color?.toLowerCase() === 'blanco' ? '#fff' : currentItems.color?.toLowerCase() === 'negro' ? '#000' : currentItems.color?.toLowerCase() === 'rojo' ? '#ef4444' : '#64748b' }}></div>
@@ -662,20 +662,20 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                                 placeholder="Ej: Blanco Perla..."
                                 value={currentItems.color}
                                 onChange={(e) => updater('color', e.target.value)}
-                                className="bg-slate-800 border-slate-700 text-white pl-10 h-12 focus:ring-blue-500/20"
+                                className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white pl-10 h-12 focus:ring-blue-500/20"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Estado de Neumáticos (Visual)</Label>
+                        <Label className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">Estado de Neumáticos (Visual)</Label>
                         <div className="relative">
                             <Disc className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                             <Input
                                 placeholder="Ej: Desgaste parejo..."
                                 value={currentItems.neumaticos}
                                 onChange={(e) => updater('neumaticos', e.target.value)}
-                                className="bg-slate-800 border-slate-700 text-white pl-10 h-12 focus:ring-blue-500/20"
+                                className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white pl-10 h-12 focus:ring-blue-500/20"
                             />
                         </div>
                     </div>
@@ -684,7 +684,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                 {/* La foto ahora es OPCIONAL o se puede quitar si el usuario lo prefiere, 
                     pero la mantengo como respaldo secundario si quieren subirla */}
                 <div className="pt-2 border-t border-slate-800/50">
-                    <Label className="text-slate-500 mb-3 block text-xs font-bold uppercase tracking-widest">Foto Tablero (Opcional)</Label>
+                    <Label className="text-slate-400 dark:text-slate-500 mb-3 block text-xs font-bold uppercase tracking-widest">Foto Tablero (Opcional)</Label>
                     {uploadingState['kilometraje_url'] ? (
                         <div className="w-full flex items-center justify-center p-8 border-2 border-dashed border-slate-700 bg-slate-800/50 rounded-xl">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -705,7 +705,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                         </div>
                     ) : (
                         <div className="flex flex-col sm:flex-row gap-3">
-                            <label className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/30 px-4 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer transition-all">
+                            <label className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 cursor-pointer transition-all">
                                 <Camera className="w-4 h-4" />
                                 <span>Subir Foto Respaldo</span>
                                 <input type="file" accept="image/*" className="hidden" onChange={(e) => uploader(e, 'kilometraje_url')} />

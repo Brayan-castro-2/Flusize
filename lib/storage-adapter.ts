@@ -323,7 +323,45 @@ export async function obtenerServiciosFrecuentes(): Promise<ServicioDB[]> {
     if (isSupabase()) {
         return supabaseService.obtenerServiciosFrecuentes();
     }
-    return []; // No implementado en local
+    return [
+        { id: 1, descripcion: 'Revisión General', precio_base: 25000, activo: true },
+        { id: 2, descripcion: 'Cambio de Aceite', precio_base: 45000, activo: true },
+        { id: 3, descripcion: 'Alineación', precio_base: 15000, activo: true },
+    ];
+}
+
+export async function obtenerTodosServiciosFrecuentes(tallerIdOverride?: string): Promise<ServicioDB[]> {
+    if (isSupabase()) {
+        return supabaseService.obtenerTodosServiciosFrecuentes(tallerIdOverride);
+    }
+    return [];
+}
+
+export async function registrarUsoServicios(servicios: { descripcion: string, precio_base?: number }[], tallerIdOverride?: string): Promise<void> {
+    if (isSupabase()) {
+        return supabaseService.registrarUsoServicios(servicios, tallerIdOverride);
+    }
+}
+
+export async function crearServicioFrecuente(datos: { descripcion: string, precio_base?: number, taller_id: string }): Promise<ServicioDB | null> {
+    if (isSupabase()) {
+        return supabaseService.crearServicioFrecuente(datos);
+    }
+    return null;
+}
+
+export async function actualizarServicioFrecuente(id: number, updates: Partial<ServicioDB>): Promise<boolean> {
+    if (isSupabase()) {
+        return supabaseService.actualizarServicioFrecuente(id, updates);
+    }
+    return true;
+}
+
+export async function eliminarServicioFrecuente(id: number): Promise<boolean> {
+    if (isSupabase()) {
+        return supabaseService.eliminarServicioFrecuente(id);
+    }
+    return true;
 }
 
 // Re-exportar tipos

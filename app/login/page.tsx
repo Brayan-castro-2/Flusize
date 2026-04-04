@@ -93,7 +93,7 @@ export default function LoginPage() {
 
             if (error) throw error;
 
-            router.push('/admin/ordenes');
+            window.location.href = '/';
         } catch (error: any) {
             console.error('Password Login error:', error);
             setStatus('error');
@@ -202,7 +202,8 @@ export default function LoginPage() {
                                                         value={email}
                                                         onChange={(e) => setEmail(e.target.value)}
                                                         placeholder="tu@correo.com"
-                                                        className="h-14 pl-12 bg-slate-50 border-slate-200 text-slate-800 rounded-2xl focus-visible:ring-blue-500 focus-visible:ring-offset-0 text-base shadow-sm"
+                                                        className="h-14 pl-12 bg-slate-50 border-slate-200 text-slate-900 rounded-2xl focus-visible:ring-blue-500 focus-visible:ring-offset-0 text-base shadow-sm [&]:text-slate-900"
+                                                        style={{ color: '#111827' }}
                                                         required
                                                     />
                                                 </div>
@@ -214,7 +215,8 @@ export default function LoginPage() {
                                                         value={password}
                                                         onChange={(e) => setPassword(e.target.value)}
                                                         placeholder="Contraseña secreta"
-                                                        className="h-14 pl-12 pr-12 bg-slate-50 border-slate-200 text-slate-800 rounded-2xl focus-visible:ring-blue-500 focus-visible:ring-offset-0 text-base shadow-sm"
+                                                        className="h-14 pl-12 pr-12 bg-slate-50 border-slate-200 text-slate-900 rounded-2xl focus-visible:ring-blue-500 focus-visible:ring-offset-0 text-base shadow-sm [&]:text-slate-900"
+                                                        style={{ color: '#111827' }}
                                                         required
                                                     />
                                                     <button

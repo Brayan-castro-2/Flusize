@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { useFlusizeFeatures } from '@/hooks/useFlusizeFeatures';
-import { buscarVehiculoPorPatente, crearVehiculo, crearOrden, obtenerOrdenes, obtenerCitas, actualizarCita, subirImagen, obtenerServiciosFrecuentes, buscarClientePorRut } from '@/lib/storage-adapter';
+import { normalizePlan, planHasModule } from '@/lib/plan-config';
+import { buscarVehiculoPorPatente, crearVehiculo, crearOrden, obtenerOrdenes, obtenerCitas, actualizarCita, subirImagen, obtenerServiciosFrecuentes, registrarUsoServicios, buscarClientePorRut } from '@/lib/storage-adapter';
 import { consultarPatenteGetAPI, isGetAPIConfigured } from '@/lib/getapi-service';
 import imageCompression from 'browser-image-compression';
 import { DebtAlertModal } from '@/components/reception/debt-alert-modal';
@@ -15,10 +15,17 @@ import {
     Calendar,
     Wallet,
     CheckCircle2,
-    ArrowRight
+    ArrowRight,
+    MessageCircle,
+    ClipboardCheck,
+    ShieldCheck,
+    EyeOff
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import ChecklistForm from '@/components/ordenes/checklist-form';
+import { BuscadorInventario, CartItem as RepuestoSeleccionado } from '@/components/inventario/buscador-inventario';
+import { supabase } from '@/lib/supabase';
+import { useFlusizeFeatures } from '@/hooks/useFlusizeFeatures';
 
 const MOCK_DB: Record<string, { marca: string; modelo: string; anio: string; motor: string }> = {
     PROFE1: { marca: 'Nissan', modelo: 'V16', anio: '2010', motor: '1.6 Twin Cam' },
@@ -98,6 +105,9 @@ function RecepcionContent() {
     const searchParams = useSearchParams();
     const { user, isLoading: isLoadingAuth } = useAuth();
     const { tieneModulo } = useFlusizeFeatures();
+    const planStr = normalizePlan(user?.plan);
+    const hasInventario = planHasModule(planStr, 'inventario');
+    const hasChecklist = planHasModule(planStr, 'checklist');
     const hasMiniCrm = tieneModulo('clientes.mini_crm');
     const queryClient = useQueryClient();
 
@@ -133,9 +143,11 @@ function RecepcionContent() {
     const [isUploading, setIsUploading] = useState(false);
 
     const [formaPago, setFormaPago] = useState('efectivo');
+    const [repuestosOrden, setRepuestosOrden] = useState<RepuestoSeleccionado[]>([]);
 
     // Servicios Frecuentes V3
     const [serviciosFrecuentesDB, setServiciosFrecuentesDB] = useState<{ descripcion: string, precio_base: number }[]>([]);
+    const [kmHabilitadoPorTaller, setKmHabilitadoPorTaller] = useState(false);
 
     const [servicios, setServicios] = useState<Servicio[]>([
         { descripcion: '', precio: '' },
@@ -147,8 +159,18 @@ function RecepcionContent() {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
     // Multi-step State
-    const [step, setStep] = useState<'form' | 'checklist'>('form');
+    const [step, setStep] = useState<'form' | 'checklist' | 'success'>('form');
     const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+    const [createdOrderDetails, setCreatedOrderDetails] = useState<{ ordenId: string; patente: string; vehiculo: string; } | null>(null);
+
+    // Validation errors
+    const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
+
+    // Skip Checklist Modal
+    const [showSkipModal, setShowSkipModal] = useState(false);
+    const [skipPassword, setSkipPassword] = useState('');
+    const [showSkipPassword, setShowSkipPassword] = useState(false);
+    const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
 
     // Debt alert modal state
     const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
@@ -199,6 +221,16 @@ function RecepcionContent() {
                     { descripcion: 'AdBlue OFF', precio_base: 0 },
                     { descripcion: 'Regeneración', precio_base: 0 },
                 ]);
+            }
+
+            // Leer flag km_recepcion del taller para mostrar/ocultar botón KM
+            if (user?.tallerId) {
+                try {
+                    const { supabase: sb } = await import('@/lib/supabase');
+                    const { data: taller } = await sb.from('talleres').select('modulos_activos').eq('id', user.tallerId).single();
+                    const modulos: string[] = taller?.modulos_activos || [];
+                    setKmHabilitadoPorTaller(modulos.includes('km_recepcion'));
+                } catch { /* sin bloquear */ }
             }
         };
         fetchServicios();
@@ -289,8 +321,10 @@ function RecepcionContent() {
     const precioRefs = useRef<Array<HTMLInputElement | null>>([]);
 
     const total = useMemo(() => {
-        return servicios.reduce((acc, s) => acc + parsePrecio(s.precio), 0);
-    }, [servicios]);
+        const totalServicios = servicios.reduce((acc, s) => acc + parsePrecio(s.precio), 0);
+        const totalRepuestos = repuestosOrden.reduce((acc, r) => acc + (r.precio_venta * r.cantidad), 0);
+        return totalServicios + totalRepuestos;
+    }, [servicios, repuestosOrden]);
 
     useEffect(() => {
         const id = window.setInterval(() => setFechaHora(nowCL()), 1000);
@@ -687,41 +721,13 @@ function RecepcionContent() {
         setServicios((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
     };
 
-    const handleNextStep = async () => {
+    // ─── Shared order creation logic ──────────────────────────────────────
+    const buildOrdenPayload = () => {
         const p = normalizePatente(patente);
-        if (!user) {
-            alert('Sesión no encontrada. Inicia sesión nuevamente.');
-            return;
-        }
-        if (!p) {
-            alert('Ingresa una patente.');
-            return;
-        }
-        if (!marca || !modelo || !anio) {
-            alert('Completa los datos del vehículo (Marca, Modelo, Año).');
-            return;
-        }
-        if (kmEnabled) {
-            if (!kmActual || parsePrecio(kmActual) <= 0 || !kmNuevo || parsePrecio(kmNuevo) <= 0) {
-                alert('Ingresa KM actual y KM nuevo.');
-                return;
-            }
-            if (kmServiceIndex === null) {
-                alert('Activa el servicio KM para poder cobrarlo.');
-                return;
-            }
-        }
-
         const serviciosForOrder = servicios
             .map((s) => ({ descripcion: s.descripcion.trim(), precio: parsePrecio(s.precio) }))
             .filter((s) => s.descripcion || s.precio);
 
-        if (serviciosForOrder.length === 0) {
-            alert('Agrega al menos un servicio.');
-            return;
-        }
-
-        // Descripción concisa para la columna Motivo (Ej: "KM, DPF")
         const shortDescription = serviciosForOrder
             .map((s) => {
                 const d = (s.descripcion || '').toUpperCase();
@@ -733,111 +739,211 @@ function RecepcionContent() {
                 if (d.includes('REGENERACION') || d.includes('REGENERACIÓN')) return 'Regeneración';
                 return s.descripcion;
             })
-            // Unique values only
             .filter((value, index, self) => self.indexOf(value) === index)
             .join(', ');
 
-        // const motorInfo = motor && motor.trim() ? `Motor: ${motor}` : '';
-        const descripcionIngreso = shortDescription; // [motorInfo, shortDescription].filter(Boolean).join(' - ');
-
-        // Detalle completo con precios para el registro interno (detalle_trabajos)
         const detalleServicios = serviciosForOrder
             .map((s) => `- ${s.descripcion || 'Servicio'}: $${moneyCL(s.precio)}`)
             .join('\n');
 
-        // Validar campos obligatorios del vehículo
-        if (!marca || marca.trim() === '' || marca === 'Por definir') {
-            alert('Por favor ingresa la Marca del vehículo.');
-            return;
-        }
-        if (!modelo || modelo.trim() === '' || modelo === 'Por definir') {
-            alert('Por favor ingresa el Modelo del vehículo.');
-            return;
-        }
-        if (!anio || String(anio).trim() === '') {
-            alert('Por favor ingresa el Año del vehículo.');
-            return;
+        const whatsappCompleto = clienteWhatsapp ? `+569${clienteWhatsapp}` : undefined;
+
+        return { p, serviciosForOrder, shortDescription, detalleServicios, whatsappCompleto };
+    };
+
+    const validateForm = (): boolean => {
+        const p = normalizePatente(patente);
+        const errors: Record<string, boolean> = {};
+        const missing: string[] = [];
+
+        if (!p) { errors['patente'] = true; missing.push('Patente del vehículo'); }
+        if (!marca || marca === 'Por definir') { errors['marca'] = true; missing.push('Marca'); }
+        if (!modelo || modelo === 'Por definir') { errors['modelo'] = true; missing.push('Modelo'); }
+        if (!anio) { errors['anio'] = true; missing.push('Año'); }
+
+        if (!clienteWhatsapp || clienteWhatsapp.length < 9) {
+            errors['whatsapp'] = true;
+            missing.push('Número de WhatsApp (9 dígitos)');
         }
 
-        setIsGuardando(true);
+        if (kmEnabled) {
+            if (!kmActual || parsePrecio(kmActual) <= 0) { errors['kmActual'] = true; missing.push('KM Actual'); }
+            if (!kmNuevo || parsePrecio(kmNuevo) <= 0) { errors['kmNuevo'] = true; missing.push('KM Nuevo'); }
+        }
+
+        const serviciosValidos = servicios.filter(s => s.descripcion.trim() || parsePrecio(s.precio) > 0);
+        if (serviciosValidos.length === 0) { errors['servicios'] = true; missing.push('Al menos un servicio'); }
+
+        setValidationErrors(errors);
+
+        if (missing.length > 0) {
+            const { toast } = require('sonner');
+            toast.error(`Faltan campos obligatorios: ${missing.join(', ')}.`, { duration: 4000 });
+            return false;
+        }
+        return true;
+    };
+
+    const ejecutarCreacionOrden = async (): Promise<{ orderId: string } | null> => {
+        const { p, serviciosForOrder, shortDescription, detalleServicios, whatsappCompleto } = buildOrdenPayload();
         try {
-            // Construir número completo de WhatsApp con prefijo +569
-            const whatsappCompleto = clienteWhatsapp ? `+569${clienteWhatsapp}` : undefined;
-
-            console.log('📝 Creando orden con lógica V3...', { patente: p, marca, modelo });
-
             const orden = await crearOrden({
                 patente_vehiculo: p,
-                descripcion_ingreso: descripcionIngreso,
-                detalle_trabajos: detalleServicios, // Descripción detallada con precios
-                creado_por: user.id,
+                descripcion_ingreso: shortDescription,
+                detalle_trabajos: detalleServicios,
+                creado_por: user!.id,
                 estado: 'pendiente',
-                asignado_a: user.id,
-
-                // Client Data
+                asignado_a: user!.id,
                 cliente_nombre: clienteNombre || undefined,
                 cliente_telefono: whatsappCompleto,
                 cliente_email: email || undefined,
                 cliente_rut: clienteRut || undefined,
-
-                // Vehicle Data (for auto-creation)
                 vehiculo_marca: String(marca).trim(),
                 vehiculo_modelo: String(modelo).trim(),
                 vehiculo_anio: String(anio).trim(),
                 vehiculo_motor: motor ? String(motor).trim() : undefined,
                 vehiculo_color: vehiculoColor ? String(vehiculoColor).trim() : '-',
-
                 precio_total: total || undefined,
                 fotos: fotos.length ? fotos : undefined,
                 detalles_vehiculo: detallesVehiculo.trim() || undefined,
             } as any, user?.tallerId);
 
-            const currentCitaId = searchParams.get('citaId');
+            if (!orden) return null;
 
-            if (orden) {
-                // Si venimos de una cita, actualizar su estado
-                if (currentCitaId) {
-                    try {
-                        await actualizarCita(Number(currentCitaId), { estado: 'confirmada' });
-                        console.log(`✅ Cita #${currentCitaId} marcada como confirmada`);
-                    } catch (err) {
-                        console.error('Error actualizando estado de cita:', err);
+            // --- PROCESAMIENTO DE INVENTARIO ---
+            if (repuestosOrden.length > 0 && user?.tallerId) {
+                try {
+                    // 1. Tabla puente
+                    const repuestosPayload = repuestosOrden.map(r => ({
+                        orden_id: orden.id,
+                        producto_id: r.id,   // campo principal (lectura en ordenes/page.tsx)
+                        repuesto_id: r.id,   // alias (compatibilidad con clean/page.tsx)
+                        cantidad: r.cantidad,
+                        precio_unitario: r.precio_venta
+                    }));
+                    await supabase.from('orden_repuestos').insert(repuestosPayload);
+
+                    // 2. Histórico de Movimientos y Descuento de Stock
+                    for (const r of repuestosOrden) {
+                        await supabase.from('movimientos_inventario').insert({
+                            producto_id: r.id,
+                            taller_id: user.tallerId,
+                            tipo_movimiento: 'SALIDA',
+                            cantidad: r.cantidad,
+                            nota: `Uso en Orden #${orden.id}`,
+                            usuario_id: user.id
+                        });
+
+                        const { data: prod } = await supabase.from('productos').select('stock_actual').eq('id', r.id).single();
+                        if (prod) {
+                            await supabase.from('productos').update({ stock_actual: Math.max(0, (prod.stock_actual || 0) - r.cantidad) }).eq('id', r.id);
+                        }
                     }
+                } catch (inventarioErr) {
+                    console.error('Error procesando inventario:', inventarioErr);
                 }
             }
 
-            if (!orden) {
-                alert('No se pudo crear la orden.');
-                return;
+            // Update appointment if came from one
+            const currentCitaId = searchParams.get('citaId');
+            if (currentCitaId) {
+                await actualizarCita(Number(currentCitaId), { estado: 'confirmada' }).catch(console.error);
             }
 
-            setCreatedOrderId(orden.id.toString());
-            setCreatedOrderId(orden.id.toString());
-            setStep('checklist');
-            window.scrollTo(0, 0); // Scroll to top
+            // Register frequent services usage asynchronously
+            registrarUsoServicios(serviciosForOrder, user?.tallerId).catch(err =>
+                console.error('Error registrando uso de servicios:', err)
+            );
 
-            // Inyectar la orden en caché activamente y hacer invalidate en background
+            // Inject into React Query cache
             queryClient.setQueryData(['orders', 'infinite'], (oldData: any) => {
                 if (!oldData || !oldData.pages) return oldData;
                 const newPages = [...oldData.pages];
                 if (newPages.length > 0) {
-                    newPages[0] = {
-                        ...newPages[0],
-                        orders: [orden, ...newPages[0].orders] // Agregar al principio
-                    };
+                    newPages[0] = { ...newPages[0], orders: [orden, ...newPages[0].orders] };
                 }
                 return { ...oldData, pages: newPages };
             });
-
-            // Invalidar caché para refetch en segundo plano
             queryClient.invalidateQueries({ queryKey: ['orders'], exact: false });
             queryClient.invalidateQueries({ queryKey: ['dashboard_orders'], exact: false });
             queryClient.invalidateQueries({ queryKey: ['appointments'], exact: false });
 
+            // Store details for success screen
+            setCreatedOrderDetails({
+                ordenId: orden.id.toString(),
+                patente: p,
+                vehiculo: `${marca} ${modelo} (${anio})`,
+            });
+
+            return { orderId: orden.id.toString() };
         } catch (error) {
             console.error('Error al crear orden:', error);
-            alert('Ocurrió un error inesperado.');
+            return null;
+        }
+    };
+
+    const handleNextStep = async () => {
+        if (!user) {
+            const { toast } = require('sonner');
+            toast.error('Sesión no encontrada. Inicia sesión nuevamente.');
+            return;
+        }
+        if (!validateForm()) return;
+
+        setIsGuardando(true);
+        try {
+            const result = await ejecutarCreacionOrden();
+            if (!result) {
+                const { toast } = require('sonner');
+                toast.error('No se pudo crear la orden. Intenta nuevamente.');
+                return;
+            }
+            setCreatedOrderId(result.orderId);
+            setStep('checklist');
+            window.scrollTo(0, 0);
         } finally {
+            setIsGuardando(false);
+        }
+    };
+
+    // Skip checklist: verify user password via Supabase then create order directly
+    const handleSkipChecklist = async () => {
+        if (!user?.email || !skipPassword) {
+            const { toast } = require('sonner');
+            toast.error('Ingresa tu contraseña para confirmar.');
+            return;
+        }
+
+        setIsVerifyingPassword(true);
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: skipPassword,
+            });
+
+            if (error) {
+                const { toast } = require('sonner');
+                toast.error('Contraseña incorrecta. No se puede omitir el checklist.');
+                setSkipPassword('');
+                return;
+            }
+
+            // Password OK → close modal and create order
+            setShowSkipModal(false);
+            setSkipPassword('');
+            setIsGuardando(true);
+
+            const result = await ejecutarCreacionOrden();
+            if (!result) {
+                const { toast } = require('sonner');
+                toast.error('No se pudo crear la orden. Intenta nuevamente.');
+                return;
+            }
+            setCreatedOrderId(result.orderId);
+            setStep('success'); // ← skip checklist, go to success screen
+            window.scrollTo(0, 0);
+        } finally {
+            setIsVerifyingPassword(false);
             setIsGuardando(false);
         }
     };
@@ -865,7 +971,12 @@ function RecepcionContent() {
         setClienteAlerta(null);
         setStep('form');
         setCreatedOrderId(null);
+        setCreatedOrderDetails(null);
+        setValidationErrors({});
     };
+
+
+
 
     // Paso 1: Destruye el bloqueo condicional (Render)
     if (loading) {
@@ -876,8 +987,109 @@ function RecepcionContent() {
         );
     }
 
-    // Renderizado del Checklist
+    // ── Success Screen ────────────────────────────────────────────────────
+    if (step === 'success' && createdOrderDetails) {
+        const whatsappMsg = encodeURIComponent(
+            `Hola ${clienteNombre || 'cliente'} 👋, tu vehículo *${createdOrderDetails.vehiculo}* (patente *${createdOrderDetails.patente}*) ha sido recibido en nuestro taller. Te mantendremos informado del progreso. Si tienes dudas, escríbenos aquí mismo.`
+        );
+        const whatsappUrl = clienteWhatsapp
+            ? `https://wa.me/569${clienteWhatsapp}?text=${whatsappMsg}`
+            : null;
+
+        return (
+            <div className="mx-auto max-w-lg px-4 py-10 flex flex-col items-center">
+                {/* Success card */}
+                <div className="w-full rounded-3xl bg-slate-900 border border-slate-700 shadow-2xl px-6 py-8 flex flex-col items-center text-center">
+
+                    {/* Icon */}
+                    <div className="w-20 h-20 bg-green-500/20 border-2 border-green-500 rounded-full flex items-center justify-center mb-5">
+                        <CheckCircle2 className="w-10 h-10 text-green-400" />
+                    </div>
+
+                    <h1 className="text-3xl font-black text-white mb-1">¡Orden Registrada!</h1>
+                    <p className="text-slate-300 font-semibold text-base mb-1">{createdOrderDetails.vehiculo}</p>
+                    <p className="text-2xl font-black text-blue-400 tracking-widest mb-6">{createdOrderDetails.patente}</p>
+
+                    {/* Tracking value proposition */}
+                    <div className="w-full rounded-2xl bg-slate-800 border border-slate-700 px-5 py-4 mb-5 text-left">
+                        <p className="text-xs font-black tracking-widest text-green-400 uppercase mb-2">✨ Servicio Premium del Taller</p>
+                        <p className="text-sm text-slate-200 font-semibold leading-relaxed">
+                            Envíale al cliente el <span className="text-white font-black">tracking en vivo</span> de su reparación. Sabrá exactamente en qué etapa está su auto, sin necesidad de llamar.
+                        </p>
+                        <p className="text-xs text-slate-400 mt-2">
+                            Más transparencia = más confianza = más clientes que vuelven.
+                        </p>
+                    </div>
+
+                    {/* WhatsApp CTA */}
+                    {whatsappUrl ? (
+                        <a
+                            href={whatsappUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full flex items-center justify-center gap-3 rounded-2xl bg-green-500 hover:bg-green-400 active:scale-95 transition-all px-6 py-5 text-lg font-black text-white shadow-lg shadow-green-900/40 mb-2"
+                        >
+                            <MessageCircle className="w-6 h-6" />
+                            Compartir Tracking con el Cliente
+                        </a>
+                    ) : (
+                        <div className="w-full rounded-2xl bg-slate-700 border border-slate-600 px-6 py-4 text-slate-300 text-sm mb-2 text-center">
+                            Sin número de WhatsApp — no se puede enviar el tracking.
+                        </div>
+                    )}
+
+                    {whatsappUrl && (
+                        <p className="text-xs text-slate-400 mb-6">
+                            Evita llamadas preguntando por el auto.{' '}
+                            <span className="text-green-400 font-semibold">Envíale el seguimiento ahora.</span>
+                        </p>
+                    )}
+
+                    {/* Secondary actions */}
+                    <div className="w-full flex flex-col sm:flex-row gap-3">
+                        <button
+                            onClick={() => router.push('/admin/ordenes')}
+                            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-700 border border-slate-600 px-4 py-3 font-semibold text-slate-200 hover:bg-slate-600 transition-colors"
+                        >
+                            <ClipboardCheck className="w-4 h-4" />
+                            Ir a Órdenes
+                        </button>
+                        <button
+                            onClick={limpiar}
+                            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white hover:bg-blue-500 transition-colors"
+                        >
+                            Nueva Recepción
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+
+    // Renderizado del Checklist (solo si el módulo está activo)
     if (step === 'checklist' && createdOrderId) {
+        // Si el taller no tiene el módulo checklist activo, saltamos directo al éxito
+        if (!hasChecklist) {
+            return (
+                <div className="mx-auto max-w-lg px-4 py-10 flex flex-col items-center">
+                    <div className="w-full rounded-3xl bg-slate-900 border border-slate-700 shadow-2xl px-6 py-8 flex flex-col items-center text-center">
+                        <div className="w-16 h-16 bg-green-500/20 border-2 border-green-500 rounded-full flex items-center justify-center mb-4">
+                            <CheckCircle2 className="w-8 h-8 text-green-400" />
+                        </div>
+                        <h2 className="text-2xl font-black text-white mb-2">¡Orden registrada con éxito!</h2>
+                        <p className="text-slate-400 text-sm mb-6">El vehículo fue recibido. El checklist no está habilitado para este taller.</p>
+                        <button
+                            onClick={limpiar}
+                            className="w-full rounded-xl bg-blue-600 px-4 py-3 font-bold text-white hover:bg-blue-500 transition-colors"
+                        >
+                            Nueva Recepción
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="mx-auto max-w-2xl px-4 py-8">
                 <div className="mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
@@ -889,26 +1101,17 @@ function RecepcionContent() {
                     <ChecklistForm
                         orderId={createdOrderId}
                         onClose={async () => {
-                            // Limpiar caché de React Query localmente de forma asíncrona pero rápida
                             queryClient.invalidateQueries({ queryKey: ['orders'] });
                             queryClient.invalidateQueries({ queryKey: ['dashboard_orders'] });
-
-                            limpiar(); // Clear form
-
-                            // Como inyectamos la orden en caché (arriba en setQueryData), usamos el router 
-                            // de Next.js para un SPA soft-redirect. La caché pervivirá y la tabla de órdenes
-                            // pintará instantáneamente el nuevo vehículo.
-                            if (user?.role === 'taller_admin') {
-                                router.push('/admin/ordenes');
-                            } else {
-                                router.push('/admin');
-                            }
+                            setStep('success');
+                            window.scrollTo(0, 0);
                         }}
                     />
                 </div>
             </div>
         );
     }
+
 
     // Renderizado original (Formulario)
     return (
@@ -945,7 +1148,7 @@ function RecepcionContent() {
                         <label className="text-sm font-semibold text-slate-200">Patente</label>
                         <input
                             value={patente}
-                            onChange={(e) => setPatente(normalizePatente(e.target.value))}
+                            onChange={(e) => { setPatente(normalizePatente(e.target.value)); setValidationErrors(p => ({...p, patente: false})); }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     e.preventDefault();
@@ -953,7 +1156,9 @@ function RecepcionContent() {
                                 }
                             }}
                             placeholder="AA-BB-11"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 md:py-4 text-center font-mono text-xl md:text-2xl font-bold uppercase tracking-widest text-white"
+                            className={`mt-2 w-full rounded-xl border bg-slate-800/50 px-4 py-3 md:py-4 text-center font-mono text-xl md:text-2xl font-bold uppercase tracking-widest text-white ${
+                                validationErrors['patente'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                            }`}
                             maxLength={6}
                         />
                         <div className="mt-2 text-xs text-slate-400">Ejemplos: PROFE1, BBBB10, TEST01</div>
@@ -983,27 +1188,33 @@ function RecepcionContent() {
                         <label className="text-sm font-semibold text-slate-200">Marca</label>
                         <input
                             value={marca}
-                            onChange={(e) => setMarca(e.target.value)}
+                            onChange={(e) => { setMarca(e.target.value); setValidationErrors(p => ({...p, marca: false})); }}
                             placeholder="Ej: Toyota, Chevrolet"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
+                            className={`mt-2 w-full rounded-xl border bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-500 ${
+                                validationErrors['marca'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                            }`}
                         />
                     </div>
                     <div>
                         <label className="text-sm font-semibold text-slate-200">Modelo</label>
                         <input
                             value={modelo}
-                            onChange={(e) => setModelo(e.target.value)}
+                            onChange={(e) => { setModelo(e.target.value); setValidationErrors(p => ({...p, modelo: false})); }}
                             placeholder="Ej: Corolla, Sail"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
+                            className={`mt-2 w-full rounded-xl border bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-500 ${
+                                validationErrors['modelo'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                            }`}
                         />
                     </div>
                     <div>
                         <label className="text-sm font-semibold text-slate-200">Año</label>
                         <input
                             value={anio}
-                            onChange={(e) => setAnio(e.target.value)}
+                            onChange={(e) => { setAnio(e.target.value); setValidationErrors(p => ({...p, anio: false})); }}
                             placeholder="Ej: 2020"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
+                            className={`mt-2 w-full rounded-xl border bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-500 ${
+                                validationErrors['anio'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                            }`}
                         />
                     </div>
                     <div>
@@ -1012,7 +1223,7 @@ function RecepcionContent() {
                             value={motor}
                             onChange={(e) => setMotor(e.target.value)}
                             placeholder="Ej: 1.4, 1.6 Twin Cam"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
+                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
                         />
                     </div>
                     <div>
@@ -1021,7 +1232,7 @@ function RecepcionContent() {
                             value={vehiculoColor}
                             onChange={(e) => setVehiculoColor(e.target.value)}
                             placeholder="Ej: Rojo, Blanco, Gris"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
+                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
                         />
                     </div>
                 </div>
@@ -1062,7 +1273,7 @@ function RecepcionContent() {
                             value={clienteNombre}
                             onChange={(e) => setClienteNombre(e.target.value)}
                             placeholder="Nombre del cliente"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
+                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
                         />
                     </div>
                     <div>
@@ -1072,13 +1283,13 @@ function RecepcionContent() {
                             onChange={(e) => setClienteRut(e.target.value)}
                             onKeyDown={handleRutKeyDown}
                             onBlur={() => buscarPorRut()}
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
+                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
                             placeholder="12.345.678-9"
                         />
                         <div className="mt-1 text-xs text-slate-500 text-right">Presiona Enter para buscar</div>
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">WhatsApp</label>
+                        <label className="text-sm font-semibold text-slate-200">WhatsApp <span className="text-red-400">*</span></label>
                         <div className="relative mt-2">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                                 <span className="text-slate-400">+56</span>
@@ -1086,23 +1297,21 @@ function RecepcionContent() {
                             <input
                                 value={clienteWhatsapp}
                                 onChange={(e) => {
-                                    // Extract only digits
                                     let numeros = e.target.value.replace(/[^0-9]/g, '');
-
-                                    // If user pastes a number starting with 56 or 569, strip it
                                     if (numeros.startsWith('56')) {
                                         numeros = numeros.slice(2);
                                     }
-
-                                    // Ensure it doesn't exceed 9 digits (9 + 8 digits = 9 digits total)
                                     setClienteWhatsapp(numeros.slice(0, 9));
+                                    setValidationErrors(p => ({...p, whatsapp: false}));
                                 }}
                                 inputMode="numeric"
                                 placeholder="912345678"
-                                className="w-full rounded-xl border border-slate-700 bg-slate-800/50 py-3 pl-12 pr-4 text-white"
+                                className={`w-full rounded-xl border bg-slate-800/50 py-3 pl-12 pr-4 text-white ${
+                                    validationErrors['whatsapp'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                                }`}
                             />
                         </div>
-                        <div className="mt-2 text-xs text-slate-400">Ingresa tu número de 9 dígitos empezando con 9 (ej: 912345678).</div>
+                        <div className="mt-2 text-xs text-slate-400">Obligatorio para enviar el tracking al cliente.</div>
                     </div>
                     <div>
                         <label className="text-sm font-semibold text-slate-200">Email (Opcional)</label>
@@ -1111,7 +1320,7 @@ function RecepcionContent() {
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="cliente@email.com"
                             type="email"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-gray-500"
+                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
                         />
                     </div>
                 </div>
@@ -1121,18 +1330,21 @@ function RecepcionContent() {
                 <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">SERVICIOS</div>
 
                 <div className="mb-4 flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        onClick={() => (kmEnabled ? desactivarServicioKm() : activarServicioKm())}
-                        className={
-                            kmEnabled
-                                ? 'rounded-full border border-blue-500 bg-blue-600/30 px-3 py-2 text-sm font-semibold text-blue-100'
-                                : 'rounded-full border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700'
-                        }
-                    >
-                        🔘 KM
-                    </button>
-                    {serviciosFrecuentesDB.slice(0, showAllServices ? undefined : 5).map((s) => (
+                    {/* Botón KM: solo visible si el admin habilitó km_recepcion en Perfil Taller */}
+                    {kmHabilitadoPorTaller && (
+                        <button
+                            type="button"
+                            onClick={() => (kmEnabled ? desactivarServicioKm() : activarServicioKm())}
+                            className={
+                                kmEnabled
+                                    ? 'rounded-full border border-blue-500 bg-blue-600/30 px-3 py-2 text-sm font-semibold text-blue-100'
+                                    : 'rounded-full border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700'
+                            }
+                        >
+                            🔘 KM
+                        </button>
+                    )}
+                    {serviciosFrecuentesDB.slice(0, showAllServices ? undefined : 8).map((s) => (
                         <button
                             key={s.descripcion}
                             type="button"
@@ -1142,13 +1354,13 @@ function RecepcionContent() {
                             🔘 {s.descripcion}
                         </button>
                     ))}
-                    {serviciosFrecuentesDB.length > 5 && (
+                    {serviciosFrecuentesDB.length > 8 && (
                         <button
                             type="button"
                             onClick={() => setShowAllServices(!showAllServices)}
                             className="rounded-full border border-dashed border-slate-500 bg-slate-800/60 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700 hover:border-slate-400 transition-colors"
                         >
-                            {showAllServices ? 'Ver menos' : `+${serviciosFrecuentesDB.length - 5} más`}
+                            {showAllServices ? 'Ver menos' : `+${serviciosFrecuentesDB.length - 8} más`}
                         </button>
                     )}
                 </div>
@@ -1246,6 +1458,13 @@ function RecepcionContent() {
                     </button>
                 </div>
             </div>
+
+            {hasInventario && (
+                <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
+                    <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">📦 MATERIALES Y REPUESTOS (Opcional)</div>
+                    <BuscadorInventario onChange={setRepuestosOrden} />
+                </div>
+            )}
 
             <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
                 <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">DETALLES DEL VEHÍCULO</div>
@@ -1345,52 +1564,44 @@ function RecepcionContent() {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-3 pb-10 md:flex-row md:justify-end">
+            {/* ── Action buttons ── */}
+            <div className="flex flex-col gap-3 pb-10">
+                {/* Primary CTA */}
                 <button
                     type="button"
                     onClick={handleNextStep}
                     disabled={isGuardando}
-                    className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2"
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-4 text-lg font-bold text-white hover:bg-blue-500 active:scale-95 transition-all disabled:opacity-60"
                 >
-                    {isGuardando ? 'Procesando...' : (
-                        <>
-                            Siguiente
-                            <ArrowRight className="w-4 h-4" />
-                        </>
+                    {isGuardando ? (
+                        <><Loader2 className="h-5 w-5 animate-spin" />Procesando...</>
+                    ) : (
+                        <>Siguiente: Checklist <ArrowRight className="w-5 h-5" /></>
                     )}
                 </button>
+
+                {/* Skip Checklist shortcut */}
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (!validateForm()) return;
+                        setShowSkipModal(true);
+                    }}
+                    disabled={isGuardando}
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all px-5 py-4 text-base font-black text-slate-900 shadow-md shadow-amber-900/30 disabled:opacity-60"
+                >
+                    <ShieldCheck className="w-5 h-5" />
+                    ⚡ Crear orden sin Checklist
+                </button>
+
+                {/* Clear */}
                 <button
                     type="button"
                     onClick={limpiar}
-                    className="rounded-xl border border-slate-700 bg-slate-800/60 px-5 py-3 font-semibold text-slate-200 hover:bg-slate-700"
+                    className="text-center text-xs text-slate-500 hover:text-slate-300 py-1 transition-colors"
                 >
-                    🗑️ Limpiar
+                    🗑️ Limpiar formulario
                 </button>
-            </div>
-
-            {/* Floating Action Button (FAB) (Top-level z-index) */}
-            <div className={`fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-900/95 p-4 backdrop-blur-md lg:hidden ${successMsg || step === 'checklist' ? 'hidden' : ''}`}>
-                <div className="mx-auto max-w-2xl">
-                    <button
-                        onClick={handleNextStep}
-                        disabled={isGuardando}
-                        className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 px-6 py-4 text-lg font-bold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isGuardando ? (
-                            <>
-                                <Loader2 className="h-6 w-6 animate-spin" />
-                                Procesando...
-                            </>
-                        ) : (
-                            <>
-                                <span className="flex items-center gap-2">
-                                    Siguiente: Checklist
-                                    <ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
-                                </span>
-                            </>
-                        )}
-                    </button>
-                </div>
             </div>
 
             {/* Debt Alert Modal */}
@@ -1406,6 +1617,66 @@ function RecepcionContent() {
                     debtOrders={debtData.debtOrders}
                     lastVisit={debtData.lastVisit}
                 />
+            )}
+
+            {/* Skip Checklist Modal */}
+            {showSkipModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+                    <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                                <ShieldCheck className="w-5 h-5 text-amber-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-black text-white">Confirmar identidad</h3>
+                                <p className="text-xs text-slate-400">Ingresa tu contraseña para omitir el checklist</p>
+                            </div>
+                        </div>
+
+                        <p className="text-sm text-slate-400 mb-4 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
+                            ⚠️ Esto quedará registrado. Solo omite si el cliente no puede esperar la inspección.
+                        </p>
+
+                        <div className="relative mb-4">
+                            <input
+                                type={showSkipPassword ? 'text' : 'password'}
+                                value={skipPassword}
+                                onChange={(e) => setSkipPassword(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSkipChecklist()}
+                                placeholder="Tu contraseña personal"
+                                className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 pr-12 text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                                autoFocus
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowSkipPassword(v => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                            >
+                                <EyeOff className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => { setShowSkipModal(false); setSkipPassword(''); }}
+                                className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 font-semibold text-slate-300 hover:bg-slate-700 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSkipChecklist}
+                                disabled={isVerifyingPassword || !skipPassword}
+                                className="flex-1 rounded-xl bg-amber-500 px-4 py-3 font-bold text-slate-900 hover:bg-amber-400 disabled:opacity-50 transition-colors"
+                            >
+                                {isVerifyingPassword ? (
+                                    <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                                ) : 'Confirmar y Crear'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

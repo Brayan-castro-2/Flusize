@@ -1,9 +1,0 @@
-app/(dashboard)/admin/ordenes/[id]/clean/page.tsx(223,18): error TS2345: Argument of type 'OrdenDB | null' is not assignable to parameter of type 'SetStateAction<OrdenDB | null>'.
-  Type 'OrdenDB' is not assignable to type 'SetStateAction<OrdenDB | null>'.
-    Property 'taller_id' is missing in type 'import("C:/Users/FLUSIZE/Documents/GitHub/Flusize/lib/local-storage-service").OrdenDB' but required in type 'import("C:/Users/FLUSIZE/Documents/GitHub/Flusize/lib/supabase").OrdenDB'.
-app/(dashboard)/admin/ordenes/[id]/clean/page.tsx(226,25): error TS2345: Argument of type 'VehiculoDB | null' is not assignable to parameter of type 'SetStateAction<VehiculoDB | null>'.
-  Type 'VehiculoDB' is not assignable to type 'SetStateAction<VehiculoDB | null>'.
-    Property 'taller_id' is missing in type 'import("C:/Users/FLUSIZE/Documents/GitHub/Flusize/lib/local-storage-service").VehiculoDB' but required in type 'import("C:/Users/FLUSIZE/Documents/GitHub/Flusize/lib/supabase").VehiculoDB'.
-app/(dashboard)/admin/ordenes/[id]/clean/page.tsx(255,35): error TS2345: Argument of type 'OrdenDB' is not assignable to parameter of type 'SetStateAction<OrdenDB | null>'.
-  Property 'taller_id' is missing in type 'import("C:/Users/FLUSIZE/Documents/GitHub/Flusize/lib/local-storage-service").OrdenDB' but required in type 'import("C:/Users/FLUSIZE/Documents/GitHub/Flusize/lib/supabase").OrdenDB'.
-app/(dashboard)/admin/usuarios/[id]/page.tsx(5,30): error TS2724: '"@/lib/storage-adapter"' has no exported member named 'obtenerOrdenesPorUsuario'. Did you mean 'obtenerOrdenPorId'?

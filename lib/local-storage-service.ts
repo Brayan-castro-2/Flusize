@@ -25,6 +25,9 @@ export interface ClienteDB {
     notas?: string | null;
     fecha_creacion?: string;
     taller_id?: string; // Added for V3 compatibility
+    alias?: string | null;
+    notas_internas?: string | null;
+    nivel_alerta?: 'VERDE' | 'AMARILLO' | 'ROJO' | null;
 }
 
 export interface ClienteWithStats extends ClienteDB {
@@ -68,6 +71,7 @@ export interface OrdenDB {
     fecha_lista?: string | null;
     fecha_completada?: string | null;
     fecha_actualizacion?: string;
+    eta_entrega?: string | null;
 
     precio_total: number;
     metodo_pago?: string | null;

@@ -69,6 +69,14 @@ interface TrackingData {
     } | null;
     checklistFotos: string[];
     revisado: boolean;
+    tipo_orden?: string;
+    eta_entrega?: string | null;
+    repuestos?: {
+        nombre: string;
+        cantidad: number;
+        precio_unitario: number;
+        subtotal: number;
+    }[];
 }
 
 // ─────────────────────────────────────────
@@ -94,7 +102,7 @@ async function fetchTracking(id: string): Promise<TrackingData | null> {
         .from('ordenes')
         .select(`
       id, numero_orden, estado, descripcion_problema, descripcion_ingreso,
-      fecha_ingreso, fotos_urls, patente_vehiculo,
+      fecha_ingreso, fotos_urls, patente_vehiculo, tipo_orden, eta_entrega,
       vehiculos:vehiculos!vehiculo_local_id ( marca, modelo, patente, ano ),
       talleres ( nombre, telefono, direccion, latitud, longitud )
     `)
@@ -127,6 +135,21 @@ async function fetchTracking(id: string): Promise<TrackingData | null> {
         ...extractUrls(checklist?.fotos_salida),
     ];
 
+    const { data: repData } = await supabase
+        .from('orden_repuestos')
+        .select(`
+            cantidad, precio_unitario, subtotal,
+            producto:productos!orden_repuestos_producto_id_fkey (nombre)
+        `)
+        .eq('orden_id', id);
+
+    const repuestos = repData?.map((r: any) => ({
+        nombre: r.producto?.nombre || 'Repuesto',
+        cantidad: r.cantidad,
+        precio_unitario: r.precio_unitario,
+        subtotal: r.subtotal
+    })) || [];
+
     const orderFotos: string[] = Array.isArray(d.fotos_urls) ? d.fotos_urls.filter(Boolean) : [];
 
     return {
@@ -153,6 +176,7 @@ async function fetchTracking(id: string): Promise<TrackingData | null> {
         } : null,
         checklistFotos,
         revisado: !!checklist?.revisado_por_mecanico_at,
+        repuestos,
     };
 }
 
@@ -558,6 +582,28 @@ function DetailsModal({ data, onClose }: { data: TrackingData, onClose: () => vo
                         </div>
                     </div>
 
+                    {/* Repuestos / Materiales */}
+                    {data.repuestos && data.repuestos.length > 0 && (
+                        <div className="mt-4">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Materiales Utilizados</p>
+                            <div className="space-y-2">
+                                {data.repuestos.map((item, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
+                                                <PackageCheck className="w-3.5 h-3.5 text-blue-600" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-bold text-slate-700 truncate leading-none mb-1.5">{item.nombre}</p>
+                                                <p className="text-[10px] uppercase font-bold text-slate-500 leading-none">Cant: {item.cantidad}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Ficha Técnica GetAPI */}
                     {data.vehiculo && (
                         <div className="mt-4">
@@ -668,6 +714,62 @@ const SkeletonTracking = () => (
         </div>
     </div>
 );
+
+// ─────────────────────────────────────────
+// RENTAL ACTIVE CARD (PORTAL ARRENDATARIO)
+// ─────────────────────────────────────────
+function RentalActiveCard({ data, waLink }: { data: TrackingData, waLink: string | null }) {
+    return (
+        <div className="px-5 py-4">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-2">
+                <div className="relative h-48 bg-slate-100">
+                    {data.fotos_urls && data.fotos_urls.length > 0 ? (
+                        <img src={data.fotos_urls[0]} alt="Vehículo" className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                            <Car className="w-12 h-12 mb-2 opacity-50" />
+                            <span className="text-xs font-semibold">Sin foto de entrega</span>
+                        </div>
+                    )}
+                    <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-white flex items-center gap-2 text-xs font-bold shadow-xl">
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                        {data.tipo_orden === 'arriendo' ? 'Arriendo en Curso' : 'Venta Concretada'}
+                    </div>
+                </div>
+                
+                <div className="p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <p className="font-mono font-black text-2xl text-slate-800 tracking-tight">{data.vehiculo?.patente || data.patente_vehiculo}</p>
+                            <p className="text-sm font-medium text-slate-500">{data.vehiculo?.marca} {data.vehiculo?.modelo}</p>
+                        </div>
+                    </div>
+                    
+                    {data.tipo_orden === 'arriendo' && (
+                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between mt-2">
+                            <div>
+                                <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Fecha Salida</p>
+                                <p className="text-sm font-bold text-slate-700">{data.fecha_ingreso ? new Date(data.fecha_ingreso).toLocaleDateString('es-CL') : 'N/A'}</p>
+                            </div>
+                            <div className="w-px h-8 bg-slate-200" />
+                            <div className="text-right">
+                                <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Retorno Esperado</p>
+                                <p className="text-sm font-bold text-slate-700">{data.eta_entrega ? new Date(data.eta_entrega).toLocaleDateString('es-CL') : 'Sin fecha'}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {data.tipo_orden === 'arriendo' && waLink && (
+                        <a href={waLink} target="_blank" rel="noopener noreferrer" className="mt-4 flex items-center justify-center w-full gap-2 py-3.5 bg-red-50 text-red-600 rounded-xl font-bold border border-red-100 hover:bg-red-100 transition-colors shadow-sm">
+                            <AlertCircle className="w-5 h-5" />
+                            Asistencia en Ruta (SOS)
+                        </a>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 // ─────────────────────────────────────────
 // PAGE
@@ -784,34 +886,44 @@ export default function TrackingPage() {
             </div>
         );
     }
+    const phone = data.taller?.telefono?.replace(/\D/g, '') || '';
+    const waMsg = encodeURIComponent(data.tipo_orden === 'arriendo'
+        ? `SOS Arriendo: Asistencia en ruta, patente ${data.vehiculo?.patente || data.patente_vehiculo}`
+        : `Hola, consulto por la orden #${data.numero_orden}`);
+    const waLink = phone ? `https://wa.me/${phone}?text=${waMsg}` : null;
+
     return (
         <div className="min-h-screen bg-slate-50">
             <div className="max-w-md mx-auto relative pb-10">
 
                 <TrackingHeader data={data} onBack={() => window.history.back()} />
 
-                <div className="h-px bg-slate-200 mx-5" role="separator" />
+                {data.tipo_orden === 'arriendo' || data.tipo_orden === 'venta' ? (
+                    <RentalActiveCard data={data} waLink={waLink} />
+                ) : (
+                    <>
+                        <div className="py-2">
+                            <StatusTimeline data={data} />
+                        </div>
 
-                <div className="py-2">
-                    <StatusTimeline data={data} />
-                </div>
+                        <div className="h-px bg-slate-200 mx-5" role="separator" />
 
-                <div className="h-px bg-slate-200 mx-5" role="separator" />
-
-                <div className="pt-6 pb-2">
-                    <LiveActionCard
-                        fotos={data.fotos_urls}
-                        onOpenFotos={() => {
-                            if (data.fotos_urls.length > 0) {
-                                setPhotoIdx(0);
-                                setGalleryOpen(true);
-                            } else {
-                                alert("Aún no se han subido fotos de inspección.");
-                            }
-                        }}
-                        onOpenDetails={() => setDetailsOpen(true)}
-                    />
-                </div>
+                        <div className="pt-6 pb-2">
+                            <LiveActionCard
+                                fotos={data.fotos_urls}
+                                onOpenFotos={() => {
+                                    if (data.fotos_urls.length > 0) {
+                                        setPhotoIdx(0);
+                                        setGalleryOpen(true);
+                                    } else {
+                                        alert("Aún no se han subido fotos de inspección.");
+                                    }
+                                }}
+                                onOpenDetails={() => setDetailsOpen(true)}
+                            />
+                        </div>
+                    </>
+                )}
 
                 <div className="py-2">
                     <UpsellCard

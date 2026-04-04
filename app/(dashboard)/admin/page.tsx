@@ -84,7 +84,7 @@ const cleanMoney = (val: string | number | undefined | null): number => {
 };
 
 export default function AdminPage() {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const router = useRouter();
     const { data: allOrders = [], isLoading: isLoadingOrders } = useDashboardOrders();
     const { data: gananciaHistorica = 0, isLoading: isLoadingGanancia } = useGananciaHistorica();
@@ -103,8 +103,7 @@ export default function AdminPage() {
     }, [user, router]);
 
     const isLoading = isLoadingOrders || isLoadingOther || isLoadingGanancia;
-    const canViewPrices = user?.role === 'superadmin' || user?.role === 'taller_admin' || user?.role === 'flusize_admin';
-
+    const canViewPrices = hasPermission('financials.view_totals');
     const todaysOrders = useMemo(() => {
         const hoy = new Date();
         const hoyStr = hoy.toISOString().split('T')[0]; // "YYYY-MM-DD" en UTC
@@ -240,7 +239,7 @@ export default function AdminPage() {
                                             <DollarSign className="w-5 h-5 text-[#FF4D00]" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-gray-400">Taller Steelmonkey</p>
+                                            <p className="text-sm font-medium text-gray-400">{user?.workshopName || 'Taller General'}</p>
                                             <p className="text-xs font-bold text-[#FF4D00] uppercase tracking-wider">Ganancia Histórica Total</p>
                                         </div>
                                     </div>

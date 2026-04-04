@@ -28,6 +28,7 @@ export interface AuthUser {
     logoUrl?: string;
     modulos: TallerModulos;
     plan: string;
+    permissions: Record<string, boolean>;
 }
 
 interface AuthContextType {
@@ -35,6 +36,7 @@ interface AuthContextType {
     isLoading: boolean;
     logout: () => Promise<void>;
     refetchUser: () => Promise<void>;
+    hasPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,6 +64,7 @@ function buildUserFromSession(authUser: any): AuthUser {
         tallerId: authUser.user_metadata?.taller_id,
         modulos: { ...DEFAULT_MODULOS },
         plan: DEFAULT_PLAN,
+        permissions: {}, // Por defecto vacío, se llena en background
     };
 }
 
@@ -140,10 +143,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
             }
 
+            // Consultar permisos RBAC
+            let userPermissions: Record<string, boolean> = {};
+            if (!abortController.signal.aborted && finalRole) {
+                const { data: rawPermisos } = await supabase
+                    .from('permisos_rol')
+                    .select('permiso, concedido')
+                    .eq('rol', finalRole);
+
+                if (rawPermisos) {
+                    rawPermisos.forEach(p => {
+                        if (p.permiso) {
+                            userPermissions[p.permiso] = p.concedido ?? false;
+                        }
+                    });
+                }
+            }
+
             if (abortController.signal.aborted) return;
 
-            // Actualizar usuario con datos completos (sin afectar isLoading)
-            setUser({
+            const finalUserObj = {
                 id: authUser.id,
                 email: authUser.email || '',
                 name: perfil?.nombre_completo || authUser.user_metadata?.nombre_completo || authUser.email?.split('@')[0] || 'Usuario',
@@ -154,7 +173,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 logoUrl,
                 modulos,
                 plan,
-            });
+                permissions: userPermissions,
+            };
+
+            // Actualizar usuario con datos completos (sin afectar isLoading)
+            setUser(finalUserObj);
+
+            // Redirección inteligente post-login basada en el Plan Real
+            if (typeof window !== 'undefined' && (window.location.pathname === '/login' || window.location.pathname === '/')) {
+                const userPlanStr = (plan || 'DIGITAL').toUpperCase();
+                const isPremiumOrPro = userPlanStr === 'PRO' || userPlanStr === 'PREMIUM' || userPlanStr === 'SIZE';
+                const esAdmin = ['superadmin', 'admin', 'flusize_admin'].includes(finalRole);
+                
+                if (isPremiumOrPro || esAdmin) {
+                    router.push('/admin'); // Plan de pago o Admins globales van al Dashboard Operativo
+                } else {
+                    router.push('/recepcion'); // Plan Gratis/Digital va a Recepción o Perfil publico
+                }
+            }
+
         } catch (e) {
             if (!abortController.signal.aborted) {
                 console.warn('[AuthContext] Background enrichment error:', e);
@@ -208,11 +245,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setIsLoading(false);
                 enrichUserInBackground(session.user);
 
-
-                if (typeof window !== 'undefined' &&
-                    (window.location.pathname === '/login' || window.location.pathname === '/')) {
-                    router.push('/admin/ordenes');
-                }
+                // La redirección ahora es manejada exclusivamente por enrichUserInBackground 
+                // para garantizar que exista el registro real del plan de pago.
             } else if (event === 'SIGNED_OUT') {
                 setUser(null);
                 setIsLoading(false);
@@ -255,8 +289,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
 
+    const hasPermission = useCallback((permission: string) => {
+        // Los admins globales o dueños tienen todo activo por diseño inicial 
+        // a menos que sus permisos se bloqueen. Pero superadmin/admin tienen all.
+        if (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'flusize_admin') return true;
+        // Si no hay perfil mapeado aún o no trae permisos, asumimos false provisionalmente
+        if (!user?.permissions) return false;
+        
+        return !!user.permissions[permission];
+    }, [user]);
+
     return (
-        <AuthContext.Provider value={{ user, isLoading, logout, refetchUser }}>
+        <AuthContext.Provider value={{ user, isLoading, logout, refetchUser, hasPermission }}>
             {children}
         </AuthContext.Provider>
     );

@@ -42,6 +42,7 @@ export interface GetAPIVehicleResponse {
     anio: string;
     motor?: string;
     color?: string;
+    vin?: string;
     tipo?: string;
     combustible?: string;
     transmision?: string;
@@ -107,6 +108,7 @@ export async function consultarPatenteGetAPI(patente: string): Promise<GetAPIVeh
                 anio: vehiculo.year.toString(),
                 motor: vehiculo.engine,
                 color: vehiculo.color,
+                vin: vehiculo.vinNumber,
                 tipo: vehiculo.model.typeVehicle.name,
                 combustible: vehiculo.fuel,
                 transmision: vehiculo.transmission,

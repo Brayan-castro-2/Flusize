@@ -25,9 +25,10 @@ import {
 } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
 import { crearCliente, actualizarCliente, crearVehiculo, ClienteWithStats } from '@/lib/storage-adapter';
-import { Loader2, Plus, Phone, Mail, FileText, Calendar, ExternalLink, Car, Search, MessageCircle, TrendingUp, Wallet, User, Building2 } from 'lucide-react';
+import { Loader2, Plus, Phone, Mail, FileText, Calendar, ExternalLink, Car, Search, MessageCircle, TrendingUp, Wallet, User, Building2, Wrench } from 'lucide-react';
 import { consultarPatenteGetAPI, isGetAPIConfigured } from '@/lib/getapi-service';
 import { buscarVehiculoPorPatente } from '@/lib/storage-adapter';
+import { supabase } from '@/lib/supabase';
 
 interface ClienteModalProps {
     isOpen: boolean;
@@ -74,6 +75,10 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
     const [isSearching, setIsSearching] = useState(false);
     const [searchStatus, setSearchStatus] = useState('');
     const [optimisticVehicles, setOptimisticVehicles] = useState<any[]>([]);
+
+    // Arriendos State
+    const [arriendos, setArriendos] = useState<any[]>([]);
+    const [loadingArriendos, setLoadingArriendos] = useState(false);
 
 
 
@@ -198,6 +203,22 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
             setIsSubmitting(false);
         }
     };
+
+    // Efecto para Arriendos
+    useEffect(() => {
+        if (isOpen && cliente?.id && activeTab === 'historial') {
+            const fetchArriendos = async () => {
+                setLoadingArriendos(true);
+                const { data } = await supabase
+                    .from('flota')
+                    .select('patente, marca, modelo, estado, fecha_salida, fecha_retorno')
+                    .eq('cliente_id', cliente.id);
+                if (data) setArriendos(data);
+                setLoadingArriendos(false);
+            };
+            fetchArriendos();
+        }
+    }, [isOpen, cliente?.id, activeTab]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -486,56 +507,105 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
 
                         </TabsContent>
 
-                        <TabsContent value="historial" className="py-2">
-                            {history.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500 border border-dashed border-slate-800 rounded-xl">
-                                    <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                                    <p>No hay órdenes registradas para este cliente.</p>
-                                </div>
-                            ) : (
-                                <div className="rounded-xl border border-slate-800 overflow-hidden">
-                                    <Table>
-                                        <TableHeader className="bg-slate-900">
-                                            <TableRow className="border-slate-800">
-                                                <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Fecha</TableHead>
-                                                <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Vehículo</TableHead>
-                                                <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Servicio</TableHead>
-                                                <TableHead className="text-right text-slate-400 text-xs uppercase tracking-wider">Total</TableHead>
-                                                <TableHead className="text-right text-slate-400 text-xs uppercase tracking-wider">Ver</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {history.map((order: any) => (
-                                                <TableRow key={order.id} className="hover:bg-slate-900/50 border-slate-800/50">
-                                                    <TableCell className="font-mono text-xs text-slate-400">{formatDate(order.fecha_ingreso)}</TableCell>
-                                                    <TableCell>
-                                                        <div className="text-xs font-semibold text-slate-200">{order.vehiculo_str}</div>
-                                                    </TableCell>
-                                                    <TableCell className="text-xs text-slate-400 max-w-[140px] truncate" title={order.descripcion_ingreso}>
-                                                        {order.descripcion_ingreso || 'Mantención General'}
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-mono text-emerald-400 font-bold">
-                                                        {formatCurrency(order.precio_total)}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                onClose();
-                                                                router.push(`/admin/ordenes/editar/${order.id}`);
-                                                            }}
-                                                            className="h-8 w-8 p-0 hover:bg-blue-500/10 hover:text-blue-400 rounded-lg"
-                                                        >
-                                                            <ExternalLink className="w-4 h-4" />
-                                                        </Button>
-                                                    </TableCell>
+                        <TabsContent value="historial" className="py-2 space-y-6">
+                            
+                            {/* SECCIÓN ARRIENDOS (Solo visible si hay arriendos) */}
+                            {arriendos.length > 0 && (
+                                <div className="space-y-3">
+                                    <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                                        <Car className="w-4 h-4 text-cyan-400" /> Historial de Arriendos
+                                    </h3>
+                                    <div className="rounded-xl border border-blue-900/50 bg-blue-950/20 overflow-hidden">
+                                        <Table>
+                                            <TableHeader className="bg-slate-900">
+                                                <TableRow className="border-slate-800">
+                                                    <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Vehículo</TableHead>
+                                                    <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Salida</TableHead>
+                                                    <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Retorno</TableHead>
+                                                    <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Estado Actual</TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {arriendos.map((arr, i) => (
+                                                    <TableRow key={i} className="hover:bg-slate-900/50 border-slate-800/50">
+                                                        <TableCell>
+                                                            <div className="font-mono font-bold text-slate-200">{arr.patente}</div>
+                                                            <div className="text-xs text-slate-400">{arr.marca} {arr.modelo}</div>
+                                                        </TableCell>
+                                                        <TableCell className="text-xs text-slate-300">
+                                                            {arr.fecha_salida ? arr.fecha_salida : 'N/A'}
+                                                        </TableCell>
+                                                        <TableCell className="text-xs text-slate-300">
+                                                            {arr.fecha_retorno ? arr.fecha_retorno : 'N/A'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${arr.estado === 'Arrendado' ? 'bg-blue-500/20 text-blue-300' : 'bg-slate-700 text-slate-300'}`}>
+                                                                {arr.estado}
+                                                            </span>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 </div>
                             )}
+
+                            {/* SECCIÓN ÓRDENES DE TRABAJO */}
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                                    <Wrench className="w-4 h-4 text-emerald-400" /> Órdenes de Trabajo
+                                </h3>
+                                {history.length === 0 ? (
+                                    <div className="text-center py-10 text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                                        <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                                        <p>No hay órdenes registradas para este cliente.</p>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-xl border border-slate-800 overflow-hidden">
+                                        <Table>
+                                            <TableHeader className="bg-slate-900">
+                                                <TableRow className="border-slate-800">
+                                                    <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Fecha</TableHead>
+                                                    <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Vehículo</TableHead>
+                                                    <TableHead className="text-slate-400 text-xs uppercase tracking-wider">Servicio</TableHead>
+                                                    <TableHead className="text-right text-slate-400 text-xs uppercase tracking-wider">Total</TableHead>
+                                                    <TableHead className="text-right text-slate-400 text-xs uppercase tracking-wider">Ver</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {history.map((order: any) => (
+                                                    <TableRow key={order.id} className="hover:bg-slate-900/50 border-slate-800/50">
+                                                        <TableCell className="font-mono text-xs text-slate-400">{formatDate(order.fecha_ingreso)}</TableCell>
+                                                        <TableCell>
+                                                            <div className="text-xs font-semibold text-slate-200">{order.vehiculo_str}</div>
+                                                        </TableCell>
+                                                        <TableCell className="text-xs text-slate-400 max-w-[140px] truncate" title={order.descripcion_ingreso}>
+                                                            {order.descripcion_ingreso || 'Mantención General'}
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-mono text-emerald-400 font-bold">
+                                                            {formatCurrency(order.precio_total)}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    onClose();
+                                                                    router.push(`/admin/ordenes/editar/${order.id}`);
+                                                                }}
+                                                                className="h-8 w-8 p-0 hover:bg-blue-500/10 hover:text-blue-400 rounded-lg"
+                                                            >
+                                                                <ExternalLink className="w-4 h-4" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
+                            </div>
                         </TabsContent>
 
                         <TabsContent value="vehiculos" className="py-2">

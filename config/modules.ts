@@ -34,6 +34,8 @@ export interface TallerModulos {
   inventario: boolean;
   checklist: boolean;
   fiscal: boolean;
+  flota: boolean;
+  contratos: boolean;
 }
 
 export const DEFAULT_MODULOS: TallerModulos = {
@@ -42,6 +44,8 @@ export const DEFAULT_MODULOS: TallerModulos = {
   inventario: false,
   checklist: false,
   fiscal: false,
+  flota: false,
+  contratos: false,
 };
 
 export const MODULOS_INFO: Array<{
@@ -55,4 +59,6 @@ export const MODULOS_INFO: Array<{
     { key: 'inventario', label: 'Control de Inventario', emoji: '📦', descripcion: 'Gestión de repuestos y stock' },
     { key: 'checklist', label: 'Checklist de Ingreso', emoji: '✅', descripcion: 'Formulario de inspección al ingreso' },
     { key: 'fiscal', label: 'Módulo Fiscal (IVA/Boletas)', emoji: '🧾', descripcion: 'Emisión de boletas y documentos fiscales' },
+    { key: 'flota', label: 'Gestión de Flota', emoji: '🚗', descripcion: 'Administración de unidades propias: ciclo adquisición → venta/arriendo' },
+    { key: 'contratos', label: 'Contratos Digitales', emoji: '✍️', descripcion: 'Firma electrónica de contratos de compraventa y arriendo' },
   ];

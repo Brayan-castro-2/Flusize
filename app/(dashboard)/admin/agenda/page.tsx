@@ -11,6 +11,7 @@ import { NewBadge } from '@/components/ui/new-badge';
 import { FEATURE_FLAGS } from '@/config/modules';
 import { AppointmentModal } from '@/components/agenda/appointment-modal';
 import { useAuth } from '@/contexts/auth-context';
+import ModuleGuard from '@/components/guards/ModuleGuard';
 
 const DAYS_OF_WEEK = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8 AM to 8 PM
@@ -124,6 +125,7 @@ export default function AgendaPage() {
     };
 
     return (
+        <ModuleGuard moduleName="agenda" toastMessage="El módulo de Agenda no está activado para este taller.">
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between w-full mb-4">
@@ -333,5 +335,6 @@ export default function AgendaPage() {
                 userId={user?.id}
             />
         </div>
+        </ModuleGuard>
     );
 }

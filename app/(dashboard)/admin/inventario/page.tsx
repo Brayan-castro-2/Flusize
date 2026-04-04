@@ -2,14 +2,18 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Download, Plus, Search, Filter, RefreshCw, ChevronDown, Trash2, Minus, AlertTriangle, MapPin, Settings } from 'lucide-react';
+import { Download, Plus, Search, Filter, RefreshCw, ChevronDown, Trash2, Minus, AlertTriangle, MapPin, Settings, ShieldAlert, BarChart2, Package, X, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { supabase } from '@/lib/supabase';
 import FeatureGuard from '@/components/FeatureGuard';
+import ModuleGuard from '@/components/guards/ModuleGuard';
 
 import AddItemModal from '@/components/inventario/add-item-modal';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import { toPng } from 'html-to-image';
 
 // --- INLINE STUBS FOR MISSING COMPONENTS TO AVOID ERRORS ---
 function QCModal(props: any) { return null; }
@@ -28,6 +32,7 @@ interface Material {
     unidad_medida?: string;
     descripcion?: string | null;
     nombre?: string | null;
+    categoria?: string | null;
 }
 
 interface InventoryMovement {
@@ -47,21 +52,26 @@ interface InventoryMovement {
 }
 
 export default function InventoryPage() {
-    return (
-        <FeatureGuard 
-            moduleName="inventario" 
-            fallback={
-                <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-slate-100 shadow-sm mt-8">
-                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
-                        <AlertTriangle className="w-8 h-8" />
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-800 mb-2">Módulo de Inventario</h2>
-                    <p className="text-slate-500 max-w-md mb-6">Este módulo requiere un plan superior o activación manual. Contacta a soporte para habilitarlo en tu taller.</p>
+    const { hasPermission, isLoading } = useAuth();
+    
+    if (isLoading) return null;
+    
+    if (!hasPermission('inventario.ver')) {
+        return (
+            <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-slate-100 shadow-sm mt-8">
+                <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-4">
+                    <ShieldAlert className="w-8 h-8" />
                 </div>
-            }
-        >
+                <h2 className="text-xl font-bold text-slate-800 mb-2">Acceso Denegado</h2>
+                <p className="text-slate-500 max-w-md">No tienes permisos para ver el inventario. Contacta al administrador del taller.</p>
+            </div>
+        );
+    }
+
+    return (
+        <ModuleGuard moduleName="inventario" toastMessage="El módulo de Inventario no está activado para este taller.">
             <InventoryContent />
-        </FeatureGuard>
+        </ModuleGuard>
     );
 }
 
@@ -83,10 +93,24 @@ function InventoryContent() {
     const [abcDropdownOpen, setAbcDropdownOpen] = useState(false);
     const [stockStatusDropdownOpen, setStockStatusDropdownOpen] = useState(false);
 
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const [canDelete, setCanDelete] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, itemId: null as string | null });
     const [showDeleted, setShowDeleted] = useState(false);
+
+    const [showTour, setShowTour] = useState(false);
+
+    useEffect(() => {
+        const tourSeen = localStorage.getItem('flusize_inventory_tour_seen');
+        if (!tourSeen) {
+            setShowTour(true);
+        }
+    }, []);
+
+    const dismissTour = () => {
+        localStorage.setItem('flusize_inventory_tour_seen', 'true');
+        setShowTour(false);
+    };
 
     const [qcModal, setQcModal] = useState({ isOpen: false, item: null as InventoryMovement | null });
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -166,10 +190,9 @@ function InventoryContent() {
     useEffect(() => {
         if (user?.tallerId) {
             fetchItems();
-            // Basic RBAC Simulation for Delete based on AuthContext Role
-            setCanDelete(user.role === 'admin' || user.role === 'superadmin' || user.role === 'taller_admin');
+            setCanDelete(hasPermission('inventario.eliminar'));
         }
-    }, [user?.tallerId, statusFilter, abcFilter, stockStatusFilter, showDeleted, searchTerm]);
+    }, [user?.tallerId, statusFilter, abcFilter, stockStatusFilter, showDeleted, searchTerm, hasPermission]);
 
     const handleConfirmDelete = async () => {
         if (!deleteModal.itemId || !user?.tallerId) return;
@@ -193,8 +216,76 @@ function InventoryContent() {
         }
     };
 
-    const handleExport = async () => {
-        toast.info("Función de exportación en desarrollo");
+    const handleExportExcel = () => {
+        if (items.length === 0) {
+            toast.error("No hay datos para exportar");
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+        const wsData = [
+            ['Fecha', 'Código SKU', 'Producto', 'Categoría', 'Stock Actual', 'Uni.', 'Cambio', 'Tipo', 'Doc/Guía', 'Nota'],
+            ...items.map(item => [
+                new Date(item.fecha).toLocaleDateString("es-CL"),
+                item.codigo_producto,
+                item.productos?.nombre || '',
+                item.productos?.categoria || '',
+                item.productos?.stock_actual || 0,
+                item.productos?.unidad_medida || 'Unidad',
+                item.cantidad,
+                item.tipo_movimiento,
+                item.nro_guia_despacho || '',
+                item.nota || ''
+            ])
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, 'Movimientos');
+        XLSX.writeFile(wb, `Flusize-Inventario-${new Date().toISOString().split('T')[0]}.xlsx`);
+        toast.success("Excel descargado correctamente");
+    };
+
+    const handleExportPDF = async () => {
+        const el = document.getElementById('inventory-table-container');
+        if (!el || items.length === 0) {
+            toast.error("No se puede generar el PDF en este momento");
+            return;
+        }
+
+        toast.info("Generando PDF...");
+        try {
+            // Create a temporary container for a clean PDF view
+            const printClone = el.cloneNode(true) as HTMLElement;
+            // Remove action columns and buttons from clone
+            const actionElements = printClone.querySelectorAll('th:last-child, td:last-child, button');
+            actionElements.forEach(e => e.remove());
+
+            document.body.appendChild(printClone);
+            printClone.style.cssText = `position:fixed;left:0;top:0;z-index:9999;width:1000px;background:#fff;padding:40px;border:1px solid #eee;`;
+            
+            // Add a header to the PDF
+            const pdfHeader = document.createElement('div');
+            pdfHeader.innerHTML = `
+                <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">Reporte de Inventario - Flusize</h1>
+                <p style="font-size: 14px; color: #666; margin-bottom: 24px;">Fecha de emisión: ${new Date().toLocaleString('es-CL')}</p>
+            `;
+            printClone.insertBefore(pdfHeader, printClone.firstChild);
+
+            await new Promise(r => setTimeout(r, 500));
+            const dataUrl = await toPng(printClone, { backgroundColor: '#ffffff', pixelRatio: 2 });
+            
+            document.body.removeChild(printClone);
+
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 190;
+            const imgHeight = (printClone.offsetHeight * imgWidth) / printClone.offsetWidth;
+            
+            pdf.addImage(dataUrl, 'PNG', 10, 10, imgWidth, Math.min(imgHeight, 280));
+            pdf.save(`Flusize-Inventario-${new Date().toISOString().split('T')[0]}.pdf`);
+            toast.success("PDF generado");
+        } catch (e: any) {
+            console.error(e);
+            toast.error("Error al generar PDF");
+        }
     };
 
     const getStatusColor = (status: string) => {
@@ -234,19 +325,78 @@ function InventoryContent() {
                 </div>
                 <div className="flex gap-3 flex-wrap md:flex-nowrap">
                     <button
-                        onClick={handleExport}
-                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+                        onClick={() => router.push('/admin/inventario/reportes')}
+                        className="relative flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100 transition-colors shadow-sm"
                     >
-                        <Download className="h-4 w-4" />
-                        Exportar
+                        <BarChart2 className="h-4 w-4" />
+                        Reportes
+                        {showTour && (
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                            </span>
+                        )}
                     </button>
-                    <button
-                        onClick={() => { setModalMode('ENTRADA'); setIsModalOpen(true); }}
-                        className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Entrada
-                    </button>
+                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        <button
+                            onClick={handleExportExcel}
+                            className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-white transition-all"
+                            title="Exportar a Excel"
+                        >
+                            <Download className="h-3.5 w-3.5 text-emerald-600" />
+                            Excel
+                        </button>
+                        <div className="w-px h-4 bg-slate-300 self-center mx-1"></div>
+                        <button
+                            onClick={handleExportPDF}
+                            className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-white transition-all"
+                            title="Generar PDF"
+                        >
+                            <FileText className="h-3.5 w-3.5 text-red-500" />
+                            PDF
+                        </button>
+                    </div>
+                    
+                    <div className="relative">
+                        <button
+                            onClick={() => { setModalMode('ENTRADA'); setIsModalOpen(true); }}
+                            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Entrada
+                        </button>
+
+                        {showTour && (
+                            <div className="absolute right-0 top-full mt-3 w-64 md:w-72 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+                                {/* Flecha */}
+                                <div className="absolute -top-2 right-6 w-4 h-4 bg-slate-800 rotate-45 border-l border-t border-slate-700 hidden md:block"></div>
+                                {/* Contenedor */}
+                                <div className="relative bg-slate-800 text-white p-4 rounded-xl shadow-2xl border border-slate-700 pointer-events-auto">
+                                    <div className="flex items-start gap-3">
+                                        <div className="bg-emerald-500/20 text-emerald-400 p-2 rounded-lg shrink-0 mt-0.5">
+                                            <Package className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-sm mb-1 text-white">¡Bienvenido al Inventario!</h4>
+                                            <p className="text-xs text-slate-300 mb-3 leading-relaxed">
+                                                Comienza registrando las entradas de repuestos y materiales para armar tu catálogo.
+                                            </p>
+                                            <button 
+                                                onClick={dismissTour}
+                                                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-2 px-3 rounded-lg w-full transition-colors flex items-center justify-center gap-1 shadow-sm shadow-emerald-900"
+                                            >
+                                                ¡Entendido!
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button onClick={dismissTour} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-white rounded-md hover:bg-slate-700 transition-colors">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     <button
                         onClick={() => { setModalMode('SALIDA'); setIsModalOpen(true); }}
                         className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 transition-colors shadow-sm"
@@ -384,7 +534,7 @@ function InventoryContent() {
             </div>
 
             {/* Data Table */}
-            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm mx-4 sm:mx-0">
+            <div id="inventory-table-container" className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm mx-4 sm:mx-0">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 text-[11px] uppercase text-slate-500 border-b border-slate-200 font-bold tracking-wider">

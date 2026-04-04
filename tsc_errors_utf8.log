@@ -1,0 +1,34 @@
+﻿_archive/test_servicios.ts(2,25): error TS2307: Cannot find module 'dotenv' or its corresponding type declarations.
+app/(dashboard)/admin/inventario/reportes/page.tsx(239,33): error TS2322: Type '(value: number | undefined, name: string) => [string, string]' is not assignable to type 'Formatter<number, string>'.
+  Types of parameters 'name' and 'name' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+app/(dashboard)/admin/inventario/reportes/page.tsx(246,56): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ gasto: string; ingresos: string; ganancia: string; }'.
+app/(dashboard)/admin/rentacar/page.tsx(110,22): error TS2322: Type '{ children: Element; componentId: string; fallbackClassName: string; }' is not assignable to type 'IntrinsicAttributes & ModuleGuardProps'.
+  Property 'componentId' does not exist on type 'IntrinsicAttributes & ModuleGuardProps'.
+app/[slug]/page.tsx(159,23): error TS2339: Property 'horario' does not exist on type 'WorkshopData'.
+app/[slug]/page.tsx(163,41): error TS2339: Property 'horario' does not exist on type 'WorkshopData'.
+app/[slug]/page.tsx(325,122): error TS2339: Property 'longitud' does not exist on type 'WorkshopData'.
+app/[slug]/page.tsx(325,153): error TS2339: Property 'latitud' does not exist on type 'WorkshopData'.
+app/[slug]/page.tsx(325,184): error TS2339: Property 'longitud' does not exist on type 'WorkshopData'.
+app/[slug]/page.tsx(325,215): error TS2339: Property 'latitud' does not exist on type 'WorkshopData'.
+app/[slug]/page.tsx(340,53): error TS2339: Property 'horario' does not exist on type 'WorkshopData'.
+contexts/auth-context.tsx(8,7): error TS2739: Type '{ agenda: false; tracking: false; inventario: false; checklist: false; fiscal: false; }' is missing the following properties from type 'TallerModulos': flota, contratos
+flusize_exports/InventoryPageClean.tsx(7,26): error TS2307: Cannot find module './add-item-modal' or its corresponding type declarations.
+flusize_exports/InventoryPageClean.tsx(8,21): error TS2307: Cannot find module '@/components/qc-modal' or its corresponding type declarations.
+flusize_exports/InventoryPageClean.tsx(9,54): error TS2307: Cannot find module '@/components/date-range-picker' or its corresponding type declarations.
+flusize_exports/InventoryPageClean.tsx(10,29): error TS2307: Cannot find module '@/components/language-provider' or its corresponding type declarations.
+flusize_exports/InventoryPageClean.tsx(11,26): error TS2307: Cannot find module '@/components/toast' or its corresponding type declarations.
+flusize_exports/InventoryPageClean.tsx(12,28): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+flusize_exports/InventoryPageClean.tsx(13,32): error TS2307: Cannot find module '@/components/delete-confirm-modal' or its corresponding type declarations.
+flusize_exports/InventoryPageClean.tsx(14,35): error TS2307: Cannot find module '@/components/material-settings-modal' or its corresponding type declarations.
+flusize_exports/InventoryPageClean.tsx(194,52): error TS2307: Cannot find module '@/lib/excel-export' or its corresponding type declarations.
+flusize_exports/InventoryPageClean.tsx(315,36): error TS7006: Parameter 'range' implicitly has an 'any' type.
+flusize_exports/ReportsViewClean.tsx(13,26): error TS2307: Cannot find module '@/components/toast' or its corresponding type declarations.
+flusize_exports/ReportsViewClean.tsx(14,29): error TS2307: Cannot find module '@/components/language-provider' or its corresponding type declarations.
+flusize_exports/UsersPageClean.tsx(5,28): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+flusize_exports/UsersPageClean.tsx(6,27): error TS2307: Cannot find module './edit-user-modal' or its corresponding type declarations.
+flusize_exports/UsersPageClean.tsx(7,32): error TS2307: Cannot find module '@/components/delete-confirm-modal' or its corresponding type declarations.
+flusize_exports/UsersPageClean.tsx(8,26): error TS2307: Cannot find module '@/components/confirm-modal' or its corresponding type declarations.
+flusize_exports/UsersPageClean.tsx(9,26): error TS2307: Cannot find module '@/components/toast' or its corresponding type declarations.
+flusize_exports/UsersPageClean.tsx(10,29): error TS2307: Cannot find module '@/components/language-provider' or its corresponding type declarations.

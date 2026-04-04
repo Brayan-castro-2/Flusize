@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
         const { data: talleres, error } = await supabaseAdmin
             .from('talleres')
-            .select('id, nombre, email, telefono, plan_suscripcion, activo, creado_en, slug, ciudad, dueno_nombre')
+            .select('id, nombre, email, telefono, plan_suscripcion, activo, creado_en, slug, ciudad, dueno_nombre, modulos_activos')
             .order('creado_en', { ascending: false });
 
         if (error) throw error;
@@ -66,11 +66,12 @@ export async function PATCH(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
 
     const body = await req.json();
-    const { tallerId, activo, plan_suscripcion } = body;
+    const { tallerId, activo, plan_suscripcion, modulos_activos } = body;
 
     const updates: Record<string, any> = {};
     if (activo !== undefined) updates.activo = activo;
     if (plan_suscripcion !== undefined) updates.plan_suscripcion = plan_suscripcion;
+    if (modulos_activos !== undefined) updates.modulos_activos = modulos_activos;
 
     const { error } = await supabaseAdmin.from('talleres').update(updates).eq('id', tallerId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

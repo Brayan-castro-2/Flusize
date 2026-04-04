@@ -18,12 +18,15 @@ type Taller = {
     slug: string | null;
     totalUsuarios: number;
     totalOrdenes: number;
+    modulos_activos: Record<string, boolean>;
 };
 
 const PLANES: Record<string, { label: string; color: string; emoji: string }> = {
     GRATIS: { label: 'Gratis', emoji: '🆓', color: 'bg-slate-800 text-slate-300 border-slate-700' },
+    DIGITAL: { label: 'Digital', emoji: '🌐', color: 'bg-cyan-950 text-cyan-300 border-cyan-800' },
     PRO: { label: 'Pro', emoji: '⚡', color: 'bg-blue-950 text-blue-300 border-blue-800' },
     PREMIUM: { label: 'Premium', emoji: '👑', color: 'bg-violet-950 text-violet-300 border-violet-800' },
+    SIZE: { label: 'Size', emoji: '🏢', color: 'bg-amber-950 text-amber-300 border-amber-800' },
 };
 
 // Importar Mapa dinámicamente (SSR OFF)
@@ -43,6 +46,7 @@ export default function GodModePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
     const [editPlanTaller, setEditPlanTaller] = useState<Taller | null>(null);
+    const [editModulosTaller, setEditModulosTaller] = useState<Taller | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err' } | null>(null);
     const [successData, setSuccessData] = useState<{ nombre: string; slug: string; userCreated: boolean; email?: string; password?: string } | null>(null);
@@ -110,6 +114,26 @@ export default function GodModePage() {
         }
     };
 
+    const handleUpdateModulos = async (tallerId: string, newModulos: Record<string, boolean>) => {
+        setActionLoading(tallerId + '_modulos');
+        try {
+            const token = await getAuthToken();
+            const res = await fetch('/api/godmode/talleres', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ tallerId, modulos_activos: newModulos }),
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+            setTalleres(prev => prev.map(t => t.id === tallerId ? { ...t, modulos_activos: newModulos } : t));
+            showToast(`Módulos actualizados con éxito.`);
+            setEditModulosTaller(null);
+        } catch (err: any) {
+            showToast(err.message, 'err');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     const handleCopyLink = (taller: Taller) => {
         if (!taller.email) {
             showToast('El taller no tiene email de contacto.', 'err');
@@ -153,12 +177,20 @@ export default function GodModePage() {
                         <h2 className="text-4xl font-black text-white tracking-tight">Panel de Talleres</h2>
                         <p className="text-slate-500 mt-1 text-sm">Gestión completa de todos los tenants de Flusize</p>
                     </div>
-                    <button
-                        onClick={() => setModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-500 hover:to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-violet-500/30 transition-all hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap text-sm"
-                    >
-                        <span className="text-xl leading-none">+</span> Registrar Taller
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <a
+                            href="/superadmin/tracking-stats"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold rounded-xl transition-all text-sm whitespace-nowrap"
+                        >
+                            📡 Tracking Stats
+                        </a>
+                        <button
+                            onClick={() => setModalOpen(true)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-500 hover:to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-violet-500/30 transition-all hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap text-sm"
+                        >
+                            <span className="text-xl leading-none">+</span> Registrar Taller
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats */}
@@ -297,6 +329,13 @@ export default function GodModePage() {
                                                 {/* Acciones */}
                                                 <td className="px-5 py-4">
                                                     <div className="flex items-center gap-2">
+                                                        {/* Botón editar módulos */}
+                                                        <button
+                                                            onClick={() => setEditModulosTaller(taller)}
+                                                            className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all flex items-center gap-1"
+                                                        >
+                                                            <span>🧩</span> Módulos
+                                                        </button>
                                                         {/* Botón editar plan */}
                                                         <div className="relative">
                                                             <button
@@ -428,6 +467,64 @@ export default function GodModePage() {
                                 className="text-slate-600 hover:text-slate-400 text-xs transition-colors"
                             >
                                 Volver al God Mode →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Editar Módulos */}
+            {editModulosTaller && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setEditModulosTaller(null); }}>
+                    <div className="bg-[#0D1528] border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl shadow-violet-900/20 overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-800 shrink-0">
+                            <div>
+                                <h2 className="text-white font-black text-xl flex items-center gap-2">🧩 Gestor de Módulos</h2>
+                                <p className="text-slate-500 text-xs mt-0.5">Control "A la carta" para <span className="font-bold text-violet-400">{editModulosTaller.nombre}</span></p>
+                            </div>
+                            <button onClick={() => setEditModulosTaller(null)} className="text-slate-500 hover:text-slate-300 text-2xl transition-colors">×</button>
+                        </div>
+                        <div className="p-6 overflow-y-auto space-y-4">
+                            <div className="bg-blue-900/20 border border-blue-800/40 rounded-xl p-3 flex gap-3 text-xs text-blue-300">
+                                <span>ℹ️</span>
+                                <p>Este panel puentea el <strong>Plan de Suscripción</strong>. Si activas un módulo aquí, el taller tendrá acceso a la ruta independientemente de lo que fije su plan nominal (ej. Flota para un plan Digital).</p>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                {Object.entries(DEFAULT_MODULOS).map(([moduloName, defaultValue]) => {
+                                    const modInfo = MODULOS_INFO?.[moduloName] || { name: moduloName, icon: '📦', desc: 'Módulo del sistema' };
+                                    const isActive = editModulosTaller.modulos_activos?.[moduloName] ?? false; // Valor real guardado en DB
+                                    return (
+                                        <div key={moduloName} className="flex items-center justify-between bg-slate-900/50 border border-slate-800 rounded-xl p-3 hover:bg-slate-900 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-base">{modInfo.icon}</div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-white capitalize">{modInfo.name || moduloName}</p>
+                                                    <p className="text-[10px] text-slate-500">{modInfo.desc}</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const updatedList = { ...editModulosTaller.modulos_activos, [moduloName]: !isActive };
+                                                    setEditModulosTaller({ ...editModulosTaller, modulos_activos: updatedList });
+                                                }}
+                                                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${isActive ? 'bg-violet-600' : 'bg-slate-700'}`}
+                                            >
+                                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow ${isActive ? 'left-[22px]' : 'left-1'}`} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-3 shrink-0">
+                            <button onClick={() => setEditModulosTaller(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-400 hover:text-white transition-colors">Cancelar</button>
+                            <button
+                                onClick={() => handleUpdateModulos(editModulosTaller.id, editModulosTaller.modulos_activos || {})}
+                                disabled={actionLoading === editModulosTaller.id + '_modulos'}
+                                className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-violet-500/30 transition-all disabled:opacity-50"
+                            >
+                                {actionLoading === editModulosTaller.id + '_modulos' ? 'Guardando...' : 'Guardar Módulos'}
                             </button>
                         </div>
                     </div>
@@ -585,8 +682,10 @@ function AsistenteRegistroTaller({
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 font-bold appearance-none"
                                     style={{ color: '#ffffff', backgroundColor: '#0f172a' }}>
                                     <option value="GRATIS" className="bg-slate-900 text-white">🆓 Gratis</option>
+                                    <option value="DIGITAL" className="bg-slate-900 text-white">🌐 Digital</option>
                                     <option value="PRO" className="bg-slate-900 text-white">⚡ Pro</option>
                                     <option value="PREMIUM" className="bg-slate-900 text-white">👑 Premium</option>
+                                    <option value="SIZE" className="bg-slate-900 text-white">🏢 Size</option>
                                 </select>
                             </div>
                             <div>

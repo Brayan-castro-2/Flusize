@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
+import { normalizePlan, planCanAccess } from '@/lib/plan-config';
 import {
     ClipboardList,
     LayoutDashboard,
@@ -13,6 +14,8 @@ import {
     Calendar,
     X,
     Settings,
+    Car,
+    FileSignature,
 } from 'lucide-react';
 import { NewBadge } from '@/components/ui/new-badge';
 import { FEATURE_FLAGS } from '@/config/modules';
@@ -21,10 +24,10 @@ interface NavItem {
     href: string;
     label: string;
     icon: React.ReactNode;
-    roles: ('taller_admin' | 'mecanico' | 'superadmin' | 'admin')[];
+    permissions?: string[];
+    roles?: ('taller_admin' | 'mecanico' | 'superadmin' | 'admin')[];
     showBadge?: boolean;
-    /** Si está definido, el item solo se muestra si ese módulo está activo en el taller */
-    module?: 'agenda' | 'tracking' | 'inventario' | 'checklist' | 'fiscal';
+    module?: 'agenda' | 'tracking' | 'inventario' | 'checklist' | 'fiscal' | 'clientes' | 'cotizaciones' | 'analytics' | 'public_profile' | 'flota' | 'contratos';
 }
 
 const navItems: NavItem[] = [
@@ -32,52 +35,79 @@ const navItems: NavItem[] = [
         href: '/recepcion',
         label: 'Recepción',
         icon: <ClipboardList className="w-5 h-5" />,
+        // Recepción usualmente es abierta para mecánicos, pero si tienen acceso a órdenes la usan.
         roles: ['mecanico', 'taller_admin', 'superadmin', 'admin'],
     },
     {
         href: '/admin',
         label: 'Dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
-        // FASE 27: Solo el superadmin (Dueño del taller) puede ver las métricas financieras
-        roles: ['superadmin'],
+        permissions: ['financials.view_totals'],
+        roles: ['superadmin'], // Fallback legacy
     },
     {
         href: '/admin/ordenes',
         label: 'Órdenes',
         icon: <FileText className="w-5 h-5" />,
+        permissions: ['ordenes.ver_todas', 'ordenes.editar', 'ordenes.crear'],
         roles: ['taller_admin', 'superadmin', 'mecanico', 'admin'],
     },
     {
         href: '/admin/agenda',
         label: 'Agenda',
         icon: <Calendar className="w-5 h-5" />,
-        roles: ['taller_admin', 'superadmin', 'admin'],
-        showBadge: true,
+        roles: ['taller_admin', 'superadmin', 'admin'], // Agenda no tiene granular aún
         module: 'agenda',
     },
     {
         href: '/admin/usuarios',
         label: 'Usuarios',
         icon: <Users className="w-5 h-5" />,
+        permissions: ['usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'roles.crear'],
         roles: ['taller_admin', 'superadmin', 'admin'],
     },
     {
         href: '/admin/clientes',
         label: 'Gestión Clientes',
         icon: <Users className="w-5 h-5" />,
+        permissions: ['clientes.ver', 'clientes.editar'],
         roles: ['taller_admin', 'superadmin', 'admin'],
         showBadge: false,
+    },
+    {
+        href: '/admin/inventario',
+        label: 'Inventario',
+        icon: <FileText className="w-5 h-5" />,
+        permissions: ['inventario.ver'],
+        roles: ['taller_admin', 'superadmin', 'admin'],
+        showBadge: true,
+        module: 'inventario',
     },
     {
         href: '/admin/perfil',
         label: 'Perfil Taller',
         icon: <Settings className="w-5 h-5" />,
+        permissions: ['perfil.editar'],
         roles: ['superadmin', 'taller_admin'],
+    },
+    {
+        href: '/admin/flota',
+        label: 'Gestión de Flota',
+        icon: <Car className="w-5 h-5" />,
+        roles: ['taller_admin', 'superadmin', 'admin'],
+        module: 'flota',
+        showBadge: true,
+    },
+    {
+        href: '/admin/contratos',
+        label: 'Contratos Digitales',
+        icon: <FileSignature className="w-5 h-5" />,
+        roles: ['taller_admin', 'superadmin', 'admin'],
     },
 ];
 
 export function Sidebar() {
-    const { user, isLoading } = useAuth();
+    const { user, isLoading, hasPermission } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -99,22 +129,35 @@ export function Sidebar() {
     const filteredItems = navItems.filter(item => {
         if (!user) return false;
 
-        // 1. FASE 75: Bloqueo de Plan Gratis
-        // Si el plan es Gratis, solo puede ver Perfil Taller
-        if (user.plan === 'Gratis' && item.href !== '/admin/perfil' && item.href !== '/recepcion') {
-            // Permitimos recepción solo si tiene permisos legacy, pero el prompt dice 
-            // "Perfil del Taller sea el único accesible por defecto para el estado Gratis"
-            // Por seguridad, bloqueamos todo excepto Perfil Taller.
-            if (item.href !== '/admin/perfil') return false;
+        // 1. Verificar rol/permisos (RBAC con fallback legacy)
+        let hasAccess = false;
+        if (item.permissions && item.permissions.length > 0) {
+            hasAccess = item.permissions.some(perm => hasPermission(perm));
+            // Si el RBAC aún no está configurado, usamos el fallback de roles
+            if (!hasAccess && item.roles && item.roles.includes(user.role as any)) {
+                hasAccess = true;
+            }
+        } else if (item.roles && item.roles.includes(user.role as any)) {
+            hasAccess = true;
         }
 
-        // 2. Verificar rol
-        if (!item.roles.includes(user.role as any)) return false;
+        if (!hasAccess) return false;
 
-        // 3. Verificar módulo activo en el taller (si aplica)
-        if (item.module && user.modulos) {
-            return user.modulos[item.module] === true;
+        // 2. Verificar Módulos A La Carta (GodMode) / Plan Comercial
+        if (item.module) {
+            const isModuleActive = (user.modulos as any)?.[item.module];
+            
+            // Si el god mode lo desactivó explícitamente:
+            if (isModuleActive === false) return false;
+
+            // Si el god mode lo activó, puentea el plan comercial
+            if (isModuleActive === true) return true;
         }
+
+        // 3. Fallback: Verificar Plan Comercial Clásico
+        const planStr = normalizePlan(user.plan);
+        if (!planCanAccess(planStr, item.href)) return false;
+
         return true;
     });
 
@@ -150,6 +193,7 @@ export function Sidebar() {
                                 >
                                     {item.icon}
                                     <span className="font-medium">{item.label}</span>
+                                    {item.showBadge && <NewBadge />}
                                 </Link>
                             );
                         })

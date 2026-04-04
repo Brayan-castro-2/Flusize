@@ -21,6 +21,8 @@ export type FlusiizeModule =
     | 'analytics'
     | 'public_profile'
     | 'tracking'
+    | 'flota'
+    | 'contratos'
     | string; // allow arbitrary sub-features
 
 // ──────────────────────────────────────────────────────────────
@@ -31,13 +33,15 @@ export const DEFAULT_MODULES_JSON: ModulosJson = {
     recepcion:      { activo: true  },
     ordenes:        { activo: true  },
     checklist:      { activo: true  },
-    inventario:     { activo: false },
+    inventario:     { activo: true  },
     cotizaciones:   { activo: false },
     agenda:         { activo: false },
     clientes:       { activo: true, mini_crm: false },
     analytics:      { activo: false },
     public_profile: { activo: false },
     tracking:       { activo: false },
+    flota:          { activo: false },
+    contratos:      { activo: false },
 };
 
 /** Full-access JSON given to superadmins */
@@ -84,8 +88,8 @@ export function useFlusizeFeatures(): UseFlusizeFeaturesResult {
         async function fetchModulos() {
             if (authLoading) return;
 
-            // Superadmin / flusize_admin → unrestricted access
-            if (!user || !user.tallerId || ['superadmin', 'flusize_admin'].includes(user.role)) {
+            // flusize_admin → unrestricted access
+            if (!user || !user.tallerId || ['flusize_admin'].includes(user.role)) {
                 setModulosJson(ALL_ON_JSON);
                 setIsLoading(false);
                 return;

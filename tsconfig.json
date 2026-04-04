@@ -25,6 +25,39 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@modules/*": [
+        "./modules/*"
+      ],
+      "@shared/*": [
+        "./shared/*"
+      ],
+      "@flota/*": [
+        "./modules/flota/*"
+      ],
+      "@inventario/*": [
+        "./modules/inventario/*"
+      ],
+      "@ordenes/*": [
+        "./modules/ordenes/*"
+      ],
+      "@clientes/*": [
+        "./modules/clientes/*"
+      ],
+      "@contratos/*": [
+        "./modules/contratos/*"
+      ],
+      "@recepcion/*": [
+        "./modules/recepcion/*"
+      ],
+      "@agenda/*": [
+        "./modules/agenda/*"
+      ],
+      "@auth/*": [
+        "./modules/auth/*"
+      ],
+      "@tracking/*": [
+        "./modules/tracking/*"
       ]
     }
   },

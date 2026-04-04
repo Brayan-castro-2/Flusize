@@ -34,6 +34,7 @@ import type { OrdenDB as OrderDB, VehiculoDB, PerfilDB } from '@/lib/storage-ada
 import Link from 'next/link';
 import ChecklistForm from '@/components/ordenes/checklist-form';
 import { OrderWorkflowActions } from '@/components/ordenes/order-workflow-actions';
+import { BuscadorInventario, type CartItem as RepuestoItem } from '@/components/inventario/buscador-inventario';
 
 import {
     obtenerOrdenPorId,
@@ -61,6 +62,11 @@ function OrderEditContent() {
     const [checklistData, setChecklistData] = useState<any>(null);
     const [isLoadingChecklist, setIsLoadingChecklist] = useState(false);
     const [selectedClienteId, setSelectedClienteId] = useState<string | null>(null);
+
+    // Estado Repuestos
+    const [repuestosOrden, setRepuestosOrden] = useState<RepuestoItem[]>([]);
+    const [repuestosOriginales, setRepuestosOriginales] = useState<RepuestoItem[]>([]);
+    const [totalRepuestos, setTotalRepuestos] = useState(0);
 
     const checklistRef = useRef<HTMLDivElement>(null);
 
@@ -177,7 +183,6 @@ function OrderEditContent() {
 
                     setEstado(ordenData.estado || 'pendiente');
                     setAsignadoA(ordenData.asignado_a || '');
-                    setAsignadoA(ordenData.asignado_a || '');
                     setDetalleTrabajos(ordenData.detalle_trabajos || '');
 
                     // ✅ FIX: Priorizar datos del objeto cliente (relación Supabase)
@@ -198,6 +203,35 @@ function OrderEditContent() {
 
                     if (kmMatch) setKmIngreso(kmMatch[1]);
                     if (kmSalidaMatch) setKmSalida(kmSalidaMatch[1]);
+
+                    let totalRepuestosInicial = 0;
+                    // Cargar repuestos asociados (con fetch independiente a Supabase)
+                    try {
+                        const { data: repData, error: repError } = await supabase
+                            .from('orden_repuestos')
+                            .select(`
+                                id, orden_id, producto_id, repuesto_id, cantidad, precio_unitario, subtotal,
+                                producto:productos!orden_repuestos_producto_id_fkey (id, nombre, codigo, stock_actual)
+                            `)
+                            .eq('orden_id', ordenData.id);
+
+                        if (!repError && repData) {
+                            const repuestosMapped: RepuestoItem[] = repData.map((r: any) => ({
+                                id: r.producto_id || r.repuesto_id,
+                                nombre: r.producto?.nombre || 'Repuesto Desconocido',
+                                codigo: r.producto?.codigo || 'N/A',
+                                stock_actual: (r.producto?.stock_actual || 0) + r.cantidad, // Simulamos stock sumando lo que ya tiene la orden para permitir editar
+                                precio_venta: r.precio_unitario,
+                                cantidad: r.cantidad,
+                                dbId: r.id // Guardamos DB ID para luego identificar si hay que borrarlo
+                            }));
+                            setRepuestosOrden(repuestosMapped);
+                            setRepuestosOriginales(JSON.parse(JSON.stringify(repuestosMapped))); // Deep copy
+                            totalRepuestosInicial = repuestosMapped.reduce((acc, current) => acc + (current.precio_venta * current.cantidad), 0);
+                        }
+                    } catch (e) {
+                        console.error('Error cargando orden_repuestos', e);
+                    }
 
                     if (ordenData.patente_vehiculo) {
                         const veh = await buscarVehiculoPorPatente(ordenData.patente_vehiculo);
@@ -221,9 +255,9 @@ function OrderEditContent() {
                         // isAvanzado = false
                         if ((ordenData.iva || 0) > 0) {
                             setCalcularIva(true);
-                            setPrecioFinal(formatPrecio(ordenData.subtotal || Math.round(ordenData.precio_total! / 1.19)));
+                            setPrecioFinal(formatPrecio(Math.max(0, (ordenData.subtotal || Math.round(ordenData.precio_total! / 1.19)) - totalRepuestosInicial)));
                         } else {
-                            setPrecioFinal(formatPrecio(ordenData.precio_total || 0));
+                            setPrecioFinal(formatPrecio(Math.max(0, (ordenData.precio_total || 0) - totalRepuestosInicial)));
                         }
                     }
                 }
@@ -274,15 +308,21 @@ function OrderEditContent() {
         }, 100);
     };
 
-    // Calcular Subtotal e IVA dinámicamente
+    // Calcular Subtotal e IVA dinámicamente incluyendo REPUESTOS
     useEffect(() => {
-        if (!isAvanzado) return;
-        const sub = cotizacionItems.reduce((acc, curr) => acc + (Number(curr.monto) || 0), 0);
-        const calcIva = calcularIva ? Math.round(sub * 0.19) : 0;
-        setSubtotalAvanzado(sub);
-        setIvaAvanzado(calcIva);
-        setPrecioFinal(formatPrecio(sub + calcIva));
-    }, [cotizacionItems, calcularIva, isAvanzado]);
+        const sumaReps = repuestosOrden.reduce((acc, curr) => acc + (curr.precio_venta * curr.cantidad), 0);
+        setTotalRepuestos(sumaReps);
+
+        if (isAvanzado) {
+            const sub = cotizacionItems.reduce((acc, curr) => acc + (Number(curr.monto) || 0), 0) + sumaReps;
+            const calcIva = calcularIva ? Math.round(sub * 0.19) : 0;
+            setSubtotalAvanzado(sub);
+            setIvaAvanzado(calcIva);
+            setPrecioFinal(formatPrecio(sub + calcIva));
+        } else {
+            // Si es manual, añadimos los repuestos visualmente (la baseNeto es lo que ingresó el usuario, más repuestos)
+        }
+    }, [cotizacionItems, calcularIva, isAvanzado, repuestosOrden]);
 
     // Exportaciones (Imprimir y Ticket)
     const handlePrint = () => {
@@ -327,9 +367,12 @@ function OrderEditContent() {
         }
 
         const baseNeto = parsePrecio(precioFinal);
-        const finalIva = calcularIva && !isAvanzado ? Math.round(baseNeto * 0.19) : (isAvanzado ? ivaAvanzado : 0);
-        const stotal = isAvanzado ? subtotalAvanzado : baseNeto;
-        const precio = isAvanzado ? (subtotalAvanzado + ivaAvanzado) : (calcularIva ? baseNeto + finalIva : baseNeto);
+        
+        let stotal = isAvanzado ? subtotalAvanzado : baseNeto;
+        if (!isAvanzado) stotal += totalRepuestos; // Agregamos los repuestos al stotal si es manual
+        
+        const finalIva = calcularIva ? Math.round(stotal * 0.19) : (isAvanzado ? ivaAvanzado : 0);
+        const precio = isAvanzado ? (stotal + finalIva) : (stotal + finalIva); // En manual también se suma IVA si está toggleado
 
         if (precio < 0) {
             alert('El precio no puede ser negativo');
@@ -398,8 +441,75 @@ function OrderEditContent() {
                     console.log('🔗 Patente reasignada al nuevo cliente ID:', selectedClienteId);
                 }
             }
+
+            // 🟢 LÓGICA DE INVENTARIO (REPUESTOS)
+            if (user?.tallerId) {
+                const { supabase } = await import('@/lib/supabase');
+                
+                // Determinar eliminados
+                const repuestosEliminados = repuestosOriginales.filter(ro => !repuestosOrden.some(rn => rn.id === ro.id));
+                // Determinar nuevos
+                const repuestosNuevos = repuestosOrden.filter(rn => !repuestosOriginales.some(ro => ro.id === rn.id));
+                // Determinar modificados (por si cambió cantidad) -> Para simplificar los borramos y recreamos
+                const repuestosCambiados = repuestosOrden.filter(rn => {
+                    const original = repuestosOriginales.find(ro => ro.id === rn.id);
+                    return original && original.cantidad !== rn.cantidad;
+                });
+
+                // Restaurar stock de eliminados o cambiados
+                const itemsAQuitarDb = [...repuestosEliminados, ...repuestosCambiados];
+                for (const item of itemsAQuitarDb) {
+                    if (item.dbId) {
+                        await supabase.from('orden_repuestos').delete().eq('id', item.dbId);
+                        
+                        await supabase.from('movimientos_inventario').insert({
+                            producto_id: item.id,
+                            taller_id: user.tallerId,
+                            tipo_movimiento: 'DEVOLUCION',
+                            cantidad: item.cantidad,
+                            nota: `Repuesto quitado al Editar Orden #${order.id}`,
+                            usuario_id: user.id
+                        });
+                        
+                        const { data: prod } = await supabase.from('productos').select('stock_actual').eq('id', item.id).single();
+                        if (prod) {
+                            await supabase.from('productos').update({ stock_actual: (prod.stock_actual || 0) + item.cantidad }).eq('id', item.id);
+                        }
+                    }
+                }
+
+                // Insertar y descontar stock de nuevos o cambiados
+                const itemsAInsertar = [...repuestosNuevos, ...repuestosCambiados];
+                for (const item of itemsAInsertar) {
+                    await supabase.from('orden_repuestos').insert({
+                        orden_id: order.id,
+                        producto_id: item.id,  // campo principal (lectura en ordenes/page.tsx)
+                        repuesto_id: item.id,  // alias legacy
+                        cantidad: item.cantidad,
+                        precio_unitario: item.precio_venta
+                    });
+
+                    await supabase.from('movimientos_inventario').insert({
+                        producto_id: item.id,
+                        taller_id: user.tallerId,
+                        tipo_movimiento: 'SALIDA',
+                        cantidad: item.cantidad,
+                        nota: `Repuesto añadido al Editar Orden #${order.id}`,
+                        usuario_id: user.id
+                    });
+
+                    const { data: prod } = await supabase.from('productos').select('stock_actual').eq('id', item.id).single();
+                    if (prod) {
+                        await supabase.from('productos').update({ stock_actual: Math.max(0, (prod.stock_actual || 0) - item.cantidad) }).eq('id', item.id);
+                    }
+                }
+                
+                // Actualizar original list to updated
+                setRepuestosOriginales(JSON.parse(JSON.stringify(repuestosOrden)));
+            }
+
         } catch (crmErr) {
-            console.error('⚠️ Error CRM:', crmErr);
+            console.error('⚠️ Error CRM / Inventario:', crmErr);
         }
 
         if (estado === 'completada' && order.estado !== 'completada') {
@@ -698,7 +808,7 @@ function OrderEditContent() {
                                     {!isAvanzado ? (
                                         <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-in fade-in duration-300">
                                             <div className="space-y-2">
-                                                <Label className="text-slate-700 font-semibold block">Subtotal (Neto / $)</Label>
+                                                <Label className="text-slate-700 font-semibold block">Mano de Obra (Neto / $)</Label>
                                                 <Input
                                                     value={precioFinal}
                                                     onChange={(e) => setPrecioFinal(e.target.value)}
@@ -719,22 +829,28 @@ function OrderEditContent() {
                                                 </button>
                                             </div>
 
-                                            {calcularIva && (
-                                                <div className="bg-slate-900 text-white p-4 rounded-xl space-y-2 shadow-md">
-                                                    <div className="flex justify-between text-sm text-slate-300 font-medium">
-                                                        <span>Subtotal Neto:</span>
-                                                        <span>${formatPrecio(parsePrecio(precioFinal))}</span>
+                                            <div className="bg-slate-900 text-white p-4 rounded-xl space-y-2 shadow-md">
+                                                <div className="flex justify-between text-sm text-slate-300 font-medium">
+                                                    <span>Mano de Obra:</span>
+                                                    <span>${formatPrecio(parsePrecio(precioFinal))}</span>
+                                                </div>
+                                                {totalRepuestos > 0 && (
+                                                    <div className="flex justify-between text-sm text-amber-300 font-medium">
+                                                        <span>Repuestos:</span>
+                                                        <span>+ ${formatPrecio(totalRepuestos)}</span>
                                                     </div>
+                                                )}
+                                                {calcularIva && (
                                                     <div className="flex justify-between text-sm text-blue-300 font-medium">
                                                         <span>IVA (19%):</span>
-                                                        <span>+ ${formatPrecio(Math.round(parsePrecio(precioFinal) * 0.19))}</span>
+                                                        <span>+ ${formatPrecio(Math.round((parsePrecio(precioFinal) + totalRepuestos) * 0.19))}</span>
                                                     </div>
-                                                    <div className="flex justify-between text-xl font-bold border-t border-slate-700 pt-3 mt-3">
-                                                        <span>Total a Pagar:</span>
-                                                        <span className="text-green-400">${formatPrecio(parsePrecio(precioFinal) + Math.round(parsePrecio(precioFinal) * 0.19))}</span>
-                                                    </div>
+                                                )}
+                                                <div className="flex justify-between text-xl font-bold border-t border-slate-700 pt-3 mt-3">
+                                                    <span>Total a Pagar:</span>
+                                                    <span className="text-green-400">${formatPrecio((parsePrecio(precioFinal) + totalRepuestos) + (calcularIva ? Math.round((parsePrecio(precioFinal) + totalRepuestos) * 0.19) : 0))}</span>
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4 duration-300 shadow-sm">
@@ -810,7 +926,7 @@ function OrderEditContent() {
 
                                             <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3 mt-4 shadow-md">
                                                 <div className="flex justify-between text-base font-medium text-slate-300">
-                                                    <span>Subtotal Neto:</span>
+                                                    <span>Subtotal (Servicios + Rep.):</span>
                                                     <span>${formatPrecio(subtotalAvanzado)}</span>
                                                 </div>
                                                 {calcularIva && (
@@ -828,7 +944,29 @@ function OrderEditContent() {
                                     )}
                                 </div>
 
-                                <div className="space-y-4 pt-6 mt-4">
+                                {/* INICIO SECCIÓN REPUESTOS */}
+                                <div className="space-y-4 pt-6 mt-4 border-t border-slate-200">
+                                    <Label className="text-slate-800 font-semibold block">📦 Materiales y Repuestos</Label>
+                                    
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+                                        <BuscadorInventario 
+                                            initialItems={repuestosOriginales}
+                                            onChange={(items) => {
+                                                setRepuestosOrden(items);
+                                            }} 
+                                        />
+                                    </div>
+                                    
+                                    {repuestosOrden.length > 0 && (
+                                        <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 mt-2 shadow-sm">
+                                            <span className="font-semibold text-slate-700">Total Materiales:</span>
+                                            <span className="font-bold text-slate-900">${formatPrecio(totalRepuestos)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                {/* FIN SECCIÓN REPUESTOS */}
+
+                                <div className="space-y-4 pt-6 mt-4 border-t border-slate-200">
                                     <div className="flex items-center justify-between">
                                         <Label className="text-slate-800 font-semibold">Distribución de Pagos</Label>
                                         <Button type="button" size="sm" onClick={() => setMetodosPago([...metodosPago, { metodo: 'efectivo', monto: 0 }])} className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg">

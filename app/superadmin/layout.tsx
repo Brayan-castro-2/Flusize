@@ -8,6 +8,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     const router = useRouter();
     const { user, isLoading } = useAuth();
 
+    const isFounder = user?.email && ['flusize@gmail.com', 'brayan.castro.2@gmail.com', 'founder@flusize.com'].includes(user.email.toLowerCase());
+
     useEffect(() => {
         // Esperar a que el auth termine de cargar
         if (isLoading) return;
@@ -18,11 +20,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             return;
         }
 
-        // Solo flusize_admin puede entrar (NO superadmin de talleres)
-        if (user.role !== 'flusize_admin') {
+        // Solo founders pueden entrar
+        if (!isFounder) {
             router.replace(user.role === 'mecanico' ? '/recepcion' : '/admin/ordenes');
         }
-    }, [user, isLoading, router]);
+    }, [user, isLoading, router, isFounder]);
 
     // Cargando auth
     if (isLoading) {
@@ -37,7 +39,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     }
 
     // Sin usuario o no autorizado → no renderizar nada (useEffect ya redirige)
-    if (!user || user.role !== 'flusize_admin') {
+    if (!user || !isFounder) {
         return (
             <div className="min-h-screen bg-[#0B1121] flex items-center justify-center">
                 <div className="text-center p-8 bg-red-950/40 border border-red-500/30 rounded-2xl max-w-sm">

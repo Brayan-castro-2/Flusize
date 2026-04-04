@@ -32,3 +32,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# archivo histórico — no es código fuente
+/_archive/
+
+# archivos de datos de negocio (Excel, CSV grandes)
+*.xlsx
+*.xls
+flusize_exports/
+imagenes/
+video/
+skills_list.txt

@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Plus, CheckCircle, Play, ShieldCheck, CheckSquare } from 'lucide-react';
+import { Play, CheckCircle, Camera, CheckSquare, Plus } from 'lucide-react';
 
 interface OrderWorkflowActionsProps {
     order: {
@@ -11,6 +11,7 @@ interface OrderWorkflowActionsProps {
     checklist: any;
     onOpenChecklist: (orderId: string, mode: 'checklist' | 'readonly_ingreso' | 'salida') => void;
     onUpdateStatus: (orderId: string, newStatus: string) => void;
+    onOpenBitacora?: (orderId: string) => void;
     isLoading?: boolean;
 }
 
@@ -19,59 +20,29 @@ export function OrderWorkflowActions({
     checklist,
     onOpenChecklist,
     onUpdateStatus,
+    onOpenBitacora,
     isLoading
 }: OrderWorkflowActionsProps) {
     if (!order) return null;
 
-    if (!checklist) {
-        return (
-            <div className="flex flex-col items-center w-full sm:w-auto animate-in fade-in duration-300">
-                <div className="bg-blue-50/50 border border-blue-500/20 p-4 rounded-xl mb-4 max-w-sm text-left flex gap-3 items-start shadow-sm">
-                    <ShieldCheck className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                    <p className="text-sm text-blue-900 leading-relaxed">
-                        <span className="font-bold text-blue-700 block mb-1">💡 Tip para el taller:</span>
-                        Usa el checklist para subir fotos de cómo llegó el vehículo (rayones, luces rotas). Esto respalda tu trabajo y evita reclamos injustos del cliente.
-                    </p>
-                </div>
-                <Button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenChecklist(String(order.id), 'checklist');
-                    }}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 w-full"
-                    disabled={isLoading}
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Agregar Ítem
-                </Button>
-            </div>
-        );
-    }
-
-    const isSalidaConfirmed = !!checklist.confirmado_salida_en;
-
+    const isSalidaConfirmed = checklist && !!checklist.confirmado_salida_en;
     const isEnProceso = order.estado === 'en_proceso';
     const isPendiente = order.estado === 'pendiente';
+    const isCompletada = order.estado === 'completada';
 
     return (
-        <div className="text-center space-y-2 w-full sm:w-auto">
-            {isSalidaConfirmed && (
-                <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Salida Revisada
-                </div>
-            )}
-
+        <div className="w-full flex flex-wrap gap-2 items-center">
+            {/* 1. Primary: Estado de Proceso */}
             {isPendiente && (
                 <Button
                     onClick={(e) => {
                         e.stopPropagation();
                         onUpdateStatus(String(order.id), 'en_proceso');
                     }}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white w-full sm:w-auto mb-2 animate-pulse"
+                    className="bg-blue-600 hover:bg-blue-500 text-white sm:w-auto md:px-6 shadow-md shadow-blue-600/20 h-12 text-base font-bold animate-in zoom-in duration-300"
                     disabled={isLoading}
                 >
-                    <Play className="w-4 h-4 mr-2" />
+                    <Play className="w-5 h-5 mr-2 fill-current" />
                     Empezar Reparación
                 </Button>
             )}
@@ -82,27 +53,69 @@ export function OrderWorkflowActions({
                         e.stopPropagation();
                         onUpdateStatus(String(order.id), 'completada');
                     }}
-                    className="bg-blue-600 hover:bg-blue-500 text-white w-full sm:w-auto mb-2"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white sm:w-auto md:px-5 h-12 text-base font-bold shadow-md shadow-emerald-600/20"
                     disabled={isLoading}
                 >
-                    <CheckCircle className="w-4 h-4 mr-2" />
+                    <CheckCircle className="w-5 h-5 mr-2" />
                     Terminar Trabajo
                 </Button>
             )}
 
-            {!isEnProceso && !isPendiente && (
+            {/* 2. Checklist de Ingreso */}
+            {!isSalidaConfirmed && (
+                <Button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenChecklist(String(order.id), 'checklist');
+                    }}
+                    variant="outline"
+                    className="border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 sm:w-auto h-12 font-semibold"
+                    disabled={isLoading}
+                >
+                    <CheckSquare className="w-5 h-5 mr-2 text-slate-500" />
+                    Checklist Ingreso
+                </Button>
+            )}
+
+            {/* 3. Añadir Avance a la Bitácora */}
+            {(isPendiente || isEnProceso || isCompletada) && onOpenBitacora && (
+                <Button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenBitacora(String(order.id));
+                    }}
+                    variant="outline"
+                    className="border-violet-300 bg-violet-50 dark:bg-violet-950/20 dark:border-violet-700 hover:bg-violet-100 text-violet-700 dark:text-violet-300 sm:w-auto h-12 font-semibold"
+                    disabled={isLoading}
+                >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Añadir Avance
+                </Button>
+            )}
+
+            {/* Checklist Final */}
+            {(!isEnProceso && !isPendiente && !isSalidaConfirmed) && (
                 <Button
                     onClick={(e) => {
                         e.stopPropagation();
                         onOpenChecklist(String(order.id), 'salida');
                     }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white w-full sm:w-auto"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white sm:w-auto h-12 font-semibold"
                     disabled={isLoading}
                 >
-                    <CheckSquare className="w-4 h-4 mr-2" />
-                    Checklist Salida / Entrega
+                    <CheckSquare className="w-5 h-5 mr-2" />
+                    Checklist Final Entrega
                 </Button>
+            )}
+
+            {isSalidaConfirmed && (
+                <div className="flex items-center gap-2 text-emerald-600 text-sm font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-400/10 px-4 py-3 rounded-xl border border-emerald-200 dark:border-emerald-400/20">
+                    <CheckCircle className="w-5 h-5" />
+                    Salida Confirmada
+                </div>
             )}
         </div>
     );
 }
+
+

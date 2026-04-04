@@ -1,6 +1,8 @@
 'use client';
 import { useState, useRef, useEffect, Suspense } from 'react';
-import { Search, MapPin, Loader2, Wrench, Star, Calendar, Filter, User, ChevronUp, ChevronDown, Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Search, MapPin, Loader2, Wrench, Star, Calendar, Filter, User, ChevronUp, ChevronDown, Bell, CheckCircle2, AlertTriangle, ChevronLeft, X, MessageCircle, Locate } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Workshop } from '@/lib/mockData';
@@ -46,6 +48,15 @@ function MapViewContent() {
 
     // Bottom sheet state for mobile
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+    const [showSOSMenu, setShowSOSMenu] = useState(false);
+    const [activeCategory, setActiveCategory] = useState<string>('todos');
+
+    const categories = [
+        { label: 'Mecánica', icon: '🛠️', filter: 'mecan' },
+        { label: 'Vulcas', icon: '🚗', filter: 'vulca' },
+        { label: 'Cerrajeros', icon: '🔑', filter: 'cerraj' },
+        { label: 'Detailing', icon: '✨', filter: 'detail' },
+    ];
 
     useEffect(() => {
         const fetchTalleres = async () => {
@@ -168,20 +179,49 @@ function MapViewContent() {
 
         setIsSearching(true);
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ', Puerto Montt, Chile')}`);
-            const data = await response.json();
+            const query = searchQuery.toLowerCase().trim();
+            
+            // Search in local workshops instead of Nominatim
+            const foundWorkshop = allWorkshops.find(shop => 
+                shop.name.toLowerCase().includes(query) || 
+                shop.location.toLowerCase().includes(query) ||
+                shop.slug?.toLowerCase().includes(query) ||
+                shop.specialties.some(s => s.toLowerCase().includes(query))
+            );
 
-            if (data && data.length > 0) {
-                const { lat, lon } = data[0];
-                const latNum = parseFloat(lat);
-                const lngNum = parseFloat(lon);
-
+            if (foundWorkshop) {
+                setSelectedWorkshop(foundWorkshop);
+                setIsSheetExpanded(true);
                 if (mapRef.current) {
-                    mapRef.current.flyToLocation(latNum, lngNum, 15);
+                    mapRef.current.flyToLocation(
+                        foundWorkshop.coordinates.lat, 
+                        foundWorkshop.coordinates.lng, 
+                        17
+                    );
+                }
+                sileo.success({ 
+                    title: 'Taller encontrado', 
+                    description: `Mostrando detalles de ${foundWorkshop.name}` 
+                });
+            } else {
+                // FALLBACK: If not a workshop name, try searching for location (legacy behavior but improved)
+                const geoQuery = encodeURIComponent(`${searchQuery}, Puerto Montt, Los Lagos, Chile`);
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${geoQuery}&limit=1`);
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    const { lat, lon } = data[0];
+                    if (mapRef.current) {
+                        mapRef.current.flyToLocation(parseFloat(lat), parseFloat(lon), 16);
+                    }
+                    sileo.info({ title: 'Ubicación encontrada', description: 'Mostrando resultados cercanos a esta área.' });
+                } else {
+                    sileo.info({ title: 'Sin resultados', description: 'No encontramos talleres con ese nombre o ubicación.' });
                 }
             }
         } catch (error) {
-            console.error("Error searching location:", error);
+            console.error("Error searching:", error);
+            sileo.error({ title: 'Error de búsqueda', description: 'No pudimos procesar la solicitud.' });
         } finally {
             setIsSearching(false);
         }
@@ -196,273 +236,263 @@ function MapViewContent() {
                     workshops={workshops}
                     selectedId={selectedWorkshop?.id ? String(selectedWorkshop.id) : undefined}
                     onSelect={(id: string | number) => {
-                        const shop = workshops.find(s => s.id === id);
-                        setSelectedWorkshop(shop || null);
-                        setIsSheetExpanded(true); // Auto-expand sheet when selecting a pin on mobile
+                        const shop = workshops.find(s => String(s.id) === String(id));
+                        if (shop) {
+                            setSelectedWorkshop(shop);
+                            setIsSheetExpanded(true);
+                            if (mapRef.current) {
+                                mapRef.current.flyToLocation(shop.coordinates.lat, shop.coordinates.lng, 17);
+                            }
+                        }
                     }}
                 />
             </div>
 
-            {/* Emergency Banner */}
-            {isEmergency && (
-                <div className="absolute top-[80px] md:top-[100px] left-1/2 -translate-x-1/2 z-[600] w-[90%] max-w-lg">
-                    <div className="bg-red-600 text-white p-4 rounded-2xl shadow-[0_15px_40px_rgba(220,38,38,0.4)] flex items-center gap-4 animate-bounce-subtle border-b-4 border-red-800">
-                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-                            <AlertTriangle className="w-7 h-7" />
+            {/* 2. Floating Top Bar Area */}
+            <div className="absolute top-4 left-0 right-0 z-[500] px-4 md:px-6 space-y-4">
+                <div className="max-w-xl mx-auto md:mx-0 flex items-center gap-3">
+                    {/* Back Button */}
+                    <button
+                        onClick={() => router.push('/')}
+                        className="w-12 h-12 bg-white/95 backdrop-blur-xl shadow-[0_15px_35px_rgba(0,0,0,0.06)] rounded-3xl flex items-center justify-center border border-white/50 hover:bg-white hover:scale-105 active:scale-95 transition-all outline-none shrink-0"
+                    >
+                        <ChevronLeft className="text-slate-700 w-6 h-6" />
+                    </button>
+
+                    {/* Search Bar - Slim Version */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="flex-1 bg-white/95 backdrop-blur-xl shadow-[0_15px_35px_rgba(0,0,0,0.06)] rounded-3xl flex items-center px-4 h-12 border-none transition-all focus-within:ring-2 focus-within:ring-blue-500/30"
+                    >
+                        <Search className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Buscar talleres, servicios..."
+                            className="bg-transparent flex-1 w-full outline-none text-[13px] font-bold text-slate-800 placeholder:text-slate-400"
+                        />
+                        {isSearching && <Loader2 className="w-4 h-4 animate-spin text-blue-600 shrink-0 ml-2" />}
+                    </form>
+
+                    {/* User Profile */}
+                    <button
+                        onClick={() => router.push('/mi-garage')}
+                        className="w-12 h-12 bg-white shadow-[0_15px_35px_rgba(0,0,0,0.06)] rounded-full flex items-center justify-center border border-white/50 hover:bg-slate-50 transition-all shrink-0"
+                    >
+                        <User className="w-5 h-5 text-slate-700" />
+                    </button>
+                </div>
+
+                {/* 3. Filtros Rápidos (Pills) con Scroll Horizontal */}
+                <div className="max-w-xl mx-auto md:mx-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
+                    {/* Botón "Todos" para limpiar filtros */}
+                    <button
+                        onClick={() => {
+                            setWorkshops(allWorkshops);
+                            setActiveCategory('todos');
+                        }}
+                        className={`whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-black transition-all active:scale-95 border ${
+                            activeCategory === 'todos' 
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20' 
+                            : 'bg-white/95 backdrop-blur-xl text-slate-900 border-none shadow-[0_15px_25px_rgba(0,0,0,0.04)]'
+                        }`}
+                    >
+                        <span>🌐</span>
+                        <span>Todos</span>
+                    </button>
+
+                    {categories.map((cat, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => {
+                                if (activeCategory === cat.filter) {
+                                    setWorkshops(allWorkshops);
+                                    setActiveCategory('todos');
+                                    return;
+                                }
+
+                                const filterStr = cat.filter.toLowerCase();
+                                const filtered = allWorkshops.filter(shop =>
+                                    shop.specialties && Array.isArray(shop.specialties) && 
+                                    shop.specialties.some(s => s.toLowerCase().includes(filterStr))
+                                );
+                                
+                                setWorkshops(filtered);
+                                setActiveCategory(cat.filter);
+                                sileo.info({ title: `Filtrando: ${cat.label}`, description: `${filtered.length} talleres encontrados.` });
+                            }}
+                            className={`whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-black transition-all active:scale-95 border ${
+                                activeCategory === cat.filter 
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20' 
+                                : 'bg-white/95 backdrop-blur-xl text-slate-900 border-none shadow-[0_15px_25px_rgba(0,0,0,0.04)]'
+                            }`}
+                        >
+                            <span className="text-base">{cat.icon}</span>
+                            <span>{cat.label}</span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* 3.1 Workshop Info Card (Moved from LeafletMap) */}
+                <div className="hidden md:block transition-all duration-300">
+                    <div className="bg-white/95 backdrop-blur-xl px-4 py-3 rounded-3xl shadow-[0_15px_35px_rgba(0,0,0,0.06)] border border-white/50 flex items-center gap-3 w-fit">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center shadow-[0_8px_15px_rgba(37,99,235,0.2)] shrink-0">
+                            <Wrench className="w-5 h-5 text-white" />
                         </div>
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-widest opacity-80">Asistencia Activa</p>
-                            <p className="text-sm font-bold">Localizando talleres para: <span className="underline">{filterParam || 'Emergencia'}</span></p>
+                        <div className="flex flex-col">
+                            <span className="font-black text-slate-800 text-sm leading-none mb-0.5">
+                                {workshops.length} Talleres
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Cerca de ti</span>
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
 
-            {/* 2. Floating Top Bar */}
-            <div className="absolute top-4 left-4 right-4 md:top-6 md:left-6 md:right-auto md:w-[460px] z-[500] flex items-center gap-2">
-                {/* Back Button */}
+            {/* 4. BOTONES FLOTANTES IZQUIERDA (SOS Y UBICACIÓN) */}
+            <div className={`absolute bottom-[30vh] md:bottom-10 right-4 z-[500] flex flex-col items-end gap-3 transition-all duration-500 ${selectedWorkshop ? 'translate-y-[-20vh] md:translate-y-0' : ''}`}>
+                {/* Geolocation Button */}
                 <button
-                    onClick={() => router.push('/')}
-                    className="w-14 h-14 bg-white/95 backdrop-blur-md shadow-lg shadow-slate-200/50 rounded-2xl flex items-center justify-center border border-slate-100 hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all outline-none shrink-0 focus:ring-2 focus:ring-blue-500/50"
-                    aria-label="Volver al inicio"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    const { latitude, longitude } = position.coords;
+                                    if (mapRef.current) {
+                                        mapRef.current.flyToLocation(latitude, longitude, 16);
+                                    }
+                                }
+                            );
+                        }
+                    }}
+                    className="w-14 h-14 bg-white text-blue-600 shadow-[0_15px_35px_rgba(0,0,0,0.1)] hover:bg-white hover:scale-105 flex items-center justify-center rounded-3xl transition-all active:scale-95 group border border-slate-100"
+                    title="Mi ubicación"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-700 w-6 h-6"><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></svg>
+                    <Locate className="w-6 h-6 group-hover:scale-110 transition-transform" />
                 </button>
 
-                {/* Search Bar */}
-                <form
-                    onSubmit={handleSearch}
-                    className="flex-1 bg-white/95 backdrop-blur-md shadow-lg shadow-slate-200/50 rounded-2xl flex items-center px-4 h-14 border border-slate-100 transition-all hover:shadow-xl focus-within:ring-2 focus-within:ring-blue-500/50"
-                >
-                    <Search className="w-5 h-5 text-slate-400 mr-3 shrink-0" />
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Buscar talleres, servicios..."
-                        className="bg-transparent flex-1 w-full outline-none text-sm font-semibold text-slate-800 placeholder:text-slate-400"
-                    />
-                    {isSearching ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-600 shrink-0 ml-2" />
-                    ) : (
-                        <button type="button" className="p-1 rounded-full hover:bg-slate-100 transition-colors ml-1 shrink-0">
-                            <Filter className="w-4 h-4 text-slate-400" />
-                        </button>
-                    )}
-                </form>
-
-                {/* Controles Derechos */}
-                <div className="flex items-center justify-end gap-2 shrink-0">
-                    {/* Campanita */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <button className="w-14 h-14 bg-white/95 backdrop-blur-md shadow-lg shadow-slate-200/50 rounded-full flex items-center justify-center border border-slate-100 hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all outline-none relative focus:ring-2 focus:ring-blue-500/50">
-                                <Bell className="w-6 h-6 text-slate-700" />
-                                {notifEstado && (
-                                    <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
-                                )}
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-xl border-slate-100 z-50">
-                            <DropdownMenuLabel className="font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-2 inline-flex items-center gap-1.5 px-2">
-                                <Bell className="w-3 h-3" />
-                                Notificaciones
-                            </DropdownMenuLabel>
-                            {notifEstado ? (
-                                <div className="p-3 bg-gradient-to-tr from-blue-50 to-cyan-50 rounded-xl border border-blue-100 mb-1">
-                                    <p className="text-[11px] text-blue-800/70 font-bold uppercase tracking-wide mb-1">Tu orden activa está:</p>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                                        <p className="text-sm font-black text-blue-700 uppercase tracking-tight">{notifEstado.replace('_', ' ')}</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="py-6 px-4 flex flex-col items-center text-center">
-                                    <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center mb-2">
-                                        <CheckCircle2 className="w-4 h-4 text-slate-300" />
-                                    </div>
-                                    <p className="text-xs font-semibold text-slate-500">Estás al día</p>
-                                    <p className="text-[10px] font-medium text-slate-400 mt-0.5">No hay actualizaciones recientes.</p>
-                                </div>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {/* Profile Button to /mi-garage */}
+                <div className="relative">
+                    <AnimatePresence>
+                        {showSOSMenu && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8, x: -20 }}
+                                animate={{ opacity: 1, scale: 1, x: 0 }}
+                                exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                                className="absolute bottom-0 right-20 bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-4 shadow-[0_25px_60px_rgba(220,38,38,0.15)] border border-red-50 mb-0 w-56 space-y-2 z-[501]"
+                            >
+                                <p className="text-[10px] font-black text-red-500 uppercase tracking-widest px-3 mb-2">Asistencia VIP 24/7</p>
+                                <button className="w-full text-left px-4 py-3 rounded-2xl text-slate-700 text-xs font-bold hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                    <span className="text-lg">🚜</span>
+                                    Grúa 24/7
+                                </button>
+                                <button className="w-full text-left px-4 py-3 rounded-2xl text-slate-700 text-xs font-bold hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                    <span className="text-lg">🔑</span>
+                                    Cerrajeros Móvil
+                                </button>
+                                <button className="w-full text-left px-4 py-3 rounded-2xl text-slate-700 text-xs font-bold hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                    <span className="text-lg">🚗</span>
+                                    Vulca a Domicilio
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    
                     <button
-                        onClick={() => router.push('/mi-garage')}
-                        className="w-14 h-14 bg-white/95 backdrop-blur-md shadow-lg shadow-slate-200/50 rounded-full flex items-center justify-center border border-slate-100 hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                        aria-label="Mi Garage"
+                        onClick={() => setShowSOSMenu(!showSOSMenu)}
+                        className="w-16 h-16 bg-red-600 text-white shadow-[0_20px_40px_rgba(220,38,38,0.3)] hover:bg-red-700 rounded-[2rem] flex items-center justify-center transition-all active:scale-95 group relative border-4 border-white"
                     >
-                        <User className="w-6 h-6 text-slate-700" />
+                        <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-25" />
+                        <AlertTriangle className="w-8 h-8 group-hover:scale-110 transition-transform relative z-10" />
                     </button>
                 </div>
             </div>
 
-            {/* 3. Floating Bottom Sheet (Mobile) / Side Panel (Desktop) */}
-            <div
-                className={`
-                    absolute left-0 right-0 z-40 bg-white shadow-[0_-8px_30px_rgb(0,0,0,0.12)] border-t border-slate-100
-                    md:top-24 md:left-6 md:bottom-6 md:right-auto md:w-[400px] md:rounded-3xl md:border md:shadow-2xl
-                    flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
-                    rounded-t-3xl
-                    ${isSheetExpanded ? 'bottom-0 h-[85vh] md:h-auto' : 'bottom-0 h-[22vh] md:h-auto'}
-                `}
-            >
-                {/* Drag Handle & Header */}
-                <div
-                    className="flex flex-col shrink-0 md:cursor-auto cursor-pointer"
-                    onClick={() => setIsSheetExpanded(!isSheetExpanded)}
-                >
-                    {/* Handle Pill */}
-                    <div className="md:hidden w-full pt-3 pb-2 flex justify-center items-center">
-                        <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
-                    </div>
-
-                    {/* Title */}
-                    <div className="px-6 py-3 flex justify-between items-center">
-                        <div className="flex flex-col">
-                            <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-                                <Wrench className="w-5 h-5 text-blue-600" />
-                                {isEmergency ? 'Auxilio Cercano' : 'Talleres Premium'}
-                            </h2>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                {loading ? 'Buscando...' : `${workshops.length} Cerca de ti`}
-                            </p>
-                        </div>
-
-                        <button className="md:hidden w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 hover:bg-slate-100 border border-slate-200">
-                            {isSheetExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Content Area */}
-                <div className={`flex-1 overflow-y-auto px-4 sm:px-6 pb-20 md:pb-6 space-y-4 ${!isSheetExpanded ? 'hidden md:block mt-4' : 'block mt-2'}`}>
-                    {loading ? (
-                        <div className="flex-1 flex flex-col items-center justify-center py-12">
-                            <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
-                            <p className="text-sm font-semibold text-slate-500">Cargando mapa...</p>
-                        </div>
-                    ) : (
-                        <>
-                            {workshops.length === 0 && (
-                                <div className="py-12 px-6 text-center">
-                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                                        <Search className="w-8 h-8 text-slate-300" />
-                                    </div>
-                                    <p className="text-slate-800 font-black text-sm mb-1 uppercase tracking-tight">Sin resultados exactos</p>
-                                    <p className="text-xs text-slate-500 font-bold mb-6">No hay talleres especializados en {filterParam} en esta zona específica.</p>
-                                    <button
-                                        onClick={() => setWorkshops(allWorkshops)}
-                                        className="text-blue-600 text-[10px] font-black uppercase tracking-widest bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-100 transition-colors"
-                                    >
-                                        Ver todos los talleres
-                                    </button>
-                                </div>
-                            )}
-                            {workshops.map((shop) => (
-                                <div
-                                    key={shop.id}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedWorkshop(shop);
-                                        if (mapRef.current) {
-                                            mapRef.current.flyToLocation(shop.coordinates.lat, shop.coordinates.lng, 16);
-                                        }
-                                        const profileSlug = shop.slug?.startsWith('steelmonkey') ? 'steelmonkey' : (shop.slug || shop.id);
-                                        router.push(`/${profileSlug}`);
-                                    }}
-                                    className={`
-                                        group relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300
-                                        border-2 
-                                        ${selectedWorkshop?.id === shop.id
-                                            ? 'border-blue-500 shadow-md transform scale-[1.02]'
-                                            : 'border-slate-100 hover:border-blue-200 hover:shadow-sm'}
-                                    `}
-                                >
-                                    <div className="p-3">
-                                        <div className="flex gap-4">
-                                            {/* Image */}
-                                            <div className="w-24 h-24 flex-shrink-0 relative rounded-xl overflow-hidden shadow-sm">
-                                                <img
-                                                    src={shop.image}
-                                                    alt={shop.name}
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                />
-                                                <div className="absolute top-1.5 left-1.5 bg-white backdrop-blur-md px-1.5 py-0.5 rounded-md text-[10px] font-black text-slate-800 flex items-center gap-1 shadow-sm border border-white/50">
-                                                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                                    {shop.rating}
-                                                </div>
-                                            </div>
-
-                                            {/* Info */}
-                                            <div className="flex-1 flex flex-col justify-center min-w-0 py-1">
-                                                <h3 className="text-base font-black text-slate-800 leading-tight group-hover:text-blue-600 transition-colors truncate mb-1">
-                                                    {shop.name}
-                                                </h3>
-                                                <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mb-2 truncate">
-                                                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                                    <span className="truncate">{shop.location}</span>
-                                                </p>
-
-                                                {/* Tags */}
-                                                <div className="flex flex-wrap gap-1">
-                                                    {shop.specialties.slice(0, 2).map((s, i) => (
-                                                        <span key={i} className="text-[9px] uppercase tracking-wider font-bold bg-slate-100/80 text-slate-600 px-2 py-1 rounded-md">
-                                                            {s}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        className={`
-                                            px-4 py-3 border-t flex justify-between items-center transition-colors
-                                            ${selectedWorkshop?.id === shop.id ? 'bg-blue-50 border-blue-100' : 'bg-slate-50/50 border-slate-100 group-hover:bg-slate-100/80'}
-                                        `}
-                                    >
-                                        <div className="flex items-center gap-1.5">
-                                            {!shop.slug?.startsWith('steelmonkey') && (
-                                                <>
-                                                    <div className={`w-2 h-2 rounded-full ${shop.availableSlots > 0 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${shop.availableSlots > 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                                        {shop.availableSlots > 0 ? `${shop.availableSlots} Cupos` : 'Sin Cupo'}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                        <div className="text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                            Ver Perfil →
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {/* Promo Banner / Action Add-on - Hidden on mobile unless sheet expanded, normally desktop */}
-            <div className={`hidden md:block absolute bottom-6 right-6 z-40 bg-slate-900 text-white p-5 rounded-3xl shadow-2xl max-w-sm border border-slate-700`}>
-                <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center shrink-0 shadow-inner border border-white/5">
-                        <Wrench className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <div>
-                        <h3 className="font-black text-sm mb-1 text-slate-50">Gestiona tu Taller</h3>
-                        <p className="text-xs text-slate-400 mb-4 leading-relaxed font-medium">Únete a Flusize y obtén más visibilidad para tu negocio local instantáneamente.</p>
-                        <button
-                            onClick={() => router.push('/registro-taller')}
-                            className="bg-white text-slate-900 text-xs font-black uppercase tracking-wider px-4 py-2.5 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.2)] hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all active:scale-95 w-full flex justify-center items-center"
+            {/* 5. BOTTOM SHEET (EL RADAR) */}
+            <AnimatePresence>
+                {selectedWorkshop && (
+                    <motion.div
+                        initial={{ y: "100%" }}
+                        animate={{ y: isSheetExpanded ? 0 : "75%" }}
+                        transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+                        className="absolute bottom-0 left-0 right-0 z-[600] md:left-6 md:bottom-6 md:right-auto md:w-[420px] bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] shadow-[0_-15px_60px_rgba(0,0,0,0.1)] border-t border-slate-100 md:border overflow-hidden flex flex-col max-h-[85vh]"
+                    >
+                        {/* Drag indicator (Mobile only) */}
+                        <div 
+                            className="md:hidden w-full h-8 flex items-center justify-center cursor-pointer"
+                            onClick={() => setIsSheetExpanded(!isSheetExpanded)}
                         >
-                            Registrar Mi Taller
-                        </button>
-                    </div>
-                </div>
-            </div>
+                            <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+                        </div>
+
+                        {/* FOTO TALLER CABECERA (Solo expanded) */}
+                        <div className="relative h-48 md:h-56 shrink-0">
+                            <img
+                                src={selectedWorkshop.image}
+                                alt={selectedWorkshop.name}
+                                className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                            <button 
+                                onClick={() => setSelectedWorkshop(null)}
+                                className="absolute top-4 right-4 w-8 h-8 bg-black/30 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <div className="absolute bottom-4 left-6 right-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-lg border border-blue-400">
+                                        <CheckCircle2 className="w-3 h-3" /> Taller Verificado
+                                    </div>
+                                    <div className="bg-white/20 backdrop-blur-md text-white text-[9px] font-black px-2.5 py-1 rounded-lg border border-white/20">
+                                        ⭐ {selectedWorkshop.rating}
+                                    </div>
+                                </div>
+                                <h3 className="text-2xl font-black text-white leading-tight tracking-tight">{selectedWorkshop.name}</h3>
+                            </div>
+                        </div>
+
+                        {/* INFO & ACCIONES */}
+                        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                            <div className="flex items-start gap-3">
+                                <MapPin className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                                <p className="text-[13px] font-bold text-slate-600 leading-snug">{selectedWorkshop.location}</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Especialidades</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedWorkshop.specialties.map((s, i) => (
+                                        <span key={i} className="px-3 py-1.5 bg-slate-50 text-slate-700 text-[11px] font-black rounded-xl border border-slate-100 uppercase tracking-tighter">
+                                            {s}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="h-px bg-slate-100" />
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <Button className="h-14 rounded-3xl bg-emerald-500 text-white hover:bg-emerald-600 border-none font-black text-xs shadow-[0_10px_20px_rgba(16,185,129,0.2)]">
+                                    <MessageCircle className="w-5 h-5 mr-2" /> WhatsApp
+                                </Button>
+                                <Button className="h-14 rounded-3xl bg-blue-500 text-white hover:bg-blue-600 border-none font-black text-xs shadow-[0_10px_20px_rgba(59,130,246,0.2)]">
+                                    <Bell className="w-5 h-5 mr-2" /> Llamar
+                                </Button>
+                            </div>
+
+                            <Button 
+                                onClick={() => router.push(`/${selectedWorkshop.slug || selectedWorkshop.id}`)}
+                                className="w-full h-16 rounded-[2.5rem] bg-slate-900 text-white hover:bg-black font-black text-sm shadow-[0_20px_40px_rgba(0,0,0,0.15)] tracking-tight transition-all active:scale-[0.98]"
+                            >
+                                Agendar Cita en Taller
+                            </Button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

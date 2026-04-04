@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { normalizePlan, planCanAccess } from '@/lib/plan-config'
 
 export async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
@@ -36,13 +37,14 @@ export async function middleware(request: NextRequest) {
 
     // --- REGLAS DE REDIRECCIÓN ESTRICTA ---
     const isAuthRoute = url.pathname === '/login' || url.pathname === '/validando-sesion' || url.pathname === '/'
-    const isAdminRoute = url.pathname.startsWith('/admin')
+    const isAdminRoute = url.pathname.startsWith('/admin') || url.pathname.startsWith('/recepcion')
     const isGarageRoute = url.pathname.startsWith('/mi-garage')
-    const isSuperAdminRoute = url.pathname.startsWith('/super-admin')
+    const isSuperAdminRoute = url.pathname.startsWith('/superadmin') || url.pathname.startsWith('/super-admin')
 
     const FOUNDER_EMAILS = [
         'flusize@gmail.com',
-        'brayan.castro.2@gmail.com'
+        'brayan.castro.2@gmail.com',
+        'founder@flusize.com'
     ];
     const isFounder = user && user.email && FOUNDER_EMAILS.includes(user.email.toLowerCase());
 
@@ -53,16 +55,20 @@ export async function middleware(request: NextRequest) {
     }
 
     // --- REGLA ESPECIAL PARA SUPERADMIN (FUNDERS) ---
-    // Si es founder, siempre puede entrar a super-admin
-    if (user && isSuperAdminRoute && !isFounder) {
-        url.pathname = '/mi-garage' // Redirigir a garage si no es founder
-        return NextResponse.redirect(url)
+    // Si es founder, siempre puede entrar a superadmin (Early Return)
+    if (user && isSuperAdminRoute) {
+        if (!isFounder) {
+            url.pathname = '/recepcion' // Redirigir a recepcion si no es founder
+            return NextResponse.redirect(url)
+        }
+        // Early return si es founder entrando a /superadmin
+        return supabaseResponse
     }
 
     // 2. Usuario con cuenta decidiendo a dónde ir (o entrando de un link)
     if (user && isAuthRoute) {
         if (isFounder) {
-            url.pathname = '/super-admin'
+            url.pathname = '/superadmin'
             return NextResponse.redirect(url)
         }
 
@@ -76,13 +82,9 @@ export async function middleware(request: NextRequest) {
         if (perfil) {
             const plan = (perfil as any).talleres?.plan_suscripcion || 'Gratis'
 
-            // Existe en perfiles de Taller
+            // Existe en perfiles de Taller → landing siempre en /recepcion
             if (['taller_admin', 'admin', 'superadmin', 'mecanico'].includes(perfil.rol)) {
-                if (plan === 'Gratis') {
-                    url.pathname = '/admin/perfil'
-                } else {
-                    url.pathname = '/admin/ordenes'
-                }
+                url.pathname = '/recepcion'
                 return NextResponse.redirect(url)
             } else {
                 // Es rol cliente u otro
@@ -101,7 +103,7 @@ export async function middleware(request: NextRequest) {
     if (user && isAdminRoute) {
         const { data: perfil } = await supabase
             .from('perfiles')
-            .select('rol, talleres(plan_suscripcion)')
+            .select('rol, taller_id, talleres(plan_suscripcion, modulos_activos)')
             .eq('id', user.id)
             .single()
 
@@ -111,12 +113,41 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(url)
         }
 
-        const userPlan = (perfil as any).talleres?.plan_suscripcion || 'GRATIS'
-        const isAllowedFreeRoute = url.pathname === '/admin/perfil' || url.pathname === '/admin/perfil/'
+        let userPlan = (perfil as any).talleres?.plan_suscripcion
+        let userModulos = (perfil as any).talleres?.modulos_activos || {}
 
-        if (userPlan === 'GRATIS' && !url.pathname.startsWith('/admin/perfil')) {
-            // Bloqueo estricto FASE 75
-            console.log('🚫 Bloqueo Middleware FASE 75: Plan Gratis intentando acceder a', url.pathname)
+        // --- FALLBACK PARA CUENTAS DONDE taller_id ESTÁ SOLO EN METADATA ---
+        if (!userPlan && user.user_metadata?.taller_id) {
+            const { data: tallerFb } = await supabase
+                .from('talleres')
+                .select('plan_suscripcion, modulos_activos')
+                .eq('id', user.user_metadata.taller_id)
+                .single()
+            if (tallerFb) {
+                userPlan = tallerFb.plan_suscripcion
+                userModulos = tallerFb.modulos_activos || {}
+            }
+        }
+        userPlan = userPlan || 'Gratis'
+
+        const plan = normalizePlan(userPlan);
+
+        const isFlusize = isFounder || perfil.rol === 'flusize_admin';
+
+        // Mapeo dinámico para módulos a la carta (ej. un plan Premium que compra Flota)
+        let hasAclModulo = false;
+        const rootPath = url.pathname;
+        if (rootPath.startsWith('/admin/flota') && userModulos['flota'] === true) hasAclModulo = true;
+        if (rootPath.startsWith('/admin/contratos') && userModulos['contratos'] === true) hasAclModulo = true;
+        if (rootPath.startsWith('/admin/inventario') && userModulos['inventario'] === true) hasAclModulo = true;
+        if (rootPath.startsWith('/admin/clientes') && userModulos['clientes'] === true) hasAclModulo = true;
+        if (rootPath.startsWith('/admin/citas') && userModulos['agenda'] === true) hasAclModulo = true;
+        if (rootPath.startsWith('/admin/agenda') && userModulos['agenda'] === true) hasAclModulo = true;
+        if (rootPath.startsWith('/recepcion') && userModulos['recepcion'] === true) hasAclModulo = true;
+        if (rootPath.startsWith('/admin/ordenes') && userModulos['ordenes'] === true) hasAclModulo = true;
+
+        if (!isFlusize && !planCanAccess(plan, url.pathname) && !hasAclModulo) {
+            console.log(`🚫 [Plan Guard] Plan "${plan}" no puede acceder a ${url.pathname} → redirigiendo a /admin/perfil`)
             url.pathname = '/admin/perfil'
             return NextResponse.redirect(url)
         }
@@ -127,7 +158,7 @@ export async function middleware(request: NextRequest) {
         const { data: perfil } = await supabase.from('perfiles').select('rol').eq('id', user.id).single()
         if (perfil && ['taller_admin', 'admin', 'superadmin', 'mecanico'].includes(perfil.rol)) {
             // Es admin/taller. No debería estar en garage de clientes
-            url.pathname = '/admin/ordenes'
+            url.pathname = '/recepcion'
             return NextResponse.redirect(url)
         }
     }

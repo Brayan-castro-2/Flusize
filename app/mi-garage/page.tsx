@@ -381,7 +381,7 @@ function ModalAgregarVehiculo({ isOpen, onClose, onSuccess, userId, userEmail, u
                                             setPatente(e.target.value.toUpperCase());
                                             if (discovered) setDiscovered(false);
                                         }}
-                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 font-mono text-lg font-bold tracking-widest focus:ring-2 focus:ring-blue-500/20 outline-none transition-all uppercase"
+                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 font-mono text-lg font-bold text-slate-900 tracking-widest focus:ring-2 focus:ring-blue-500/20 outline-none transition-all uppercase"
                                     />
                                     {searching && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -417,7 +417,7 @@ function ModalAgregarVehiculo({ isOpen, onClose, onSuccess, userId, userEmail, u
                                         placeholder="Ej: Toyota"
                                         value={marca}
                                         onChange={(e) => setMarca(e.target.value)}
-                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
                                     />
                                 </div>
                                 <div>
@@ -427,7 +427,7 @@ function ModalAgregarVehiculo({ isOpen, onClose, onSuccess, userId, userEmail, u
                                         placeholder="Ej: Yaris"
                                         value={modelo}
                                         onChange={(e) => setModelo(e.target.value)}
-                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
                                     />
                                 </div>
                             </div>
@@ -441,7 +441,7 @@ function ModalAgregarVehiculo({ isOpen, onClose, onSuccess, userId, userEmail, u
                                     max={new Date().getFullYear() + 1}
                                     value={ano}
                                     onChange={(e) => setAno(e.target.value)}
-                                    className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                                    className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
                                 />
                             </div>
 
@@ -511,39 +511,41 @@ const SkeletonGarage = () => (
 
 function VehicleCard({ v }: { v: VehiculoData }) {
     return (
-        <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-5 flex flex-col gap-4">
-            <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-[14px] bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                    <Car className="w-7 h-7 text-slate-700" />
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Automóvil Activo</p>
-                    <h3 className="text-lg font-bold text-slate-800 leading-tight truncate">
-                        {v.marca && v.modelo ? `${v.marca} ${v.modelo}` : 'Vehículo'}
-                        {v.ano && <span className="text-slate-400 font-normal"> {v.ano}</span>}
+        <div className="bg-white rounded-[1.25rem] shadow-md border border-slate-100 p-5 flex flex-col gap-4">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h3 className="text-xl font-bold text-slate-800 leading-tight">
+                        {v.marca || 'Marca'} {v.modelo || 'Modelo'}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1.5">
-                        <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md tracking-widest">
-                            {v.patente}
-                        </span>
-                        <span className="text-xs text-slate-400 font-medium flex items-center">
-                            • {v.kilometraje?.toLocaleString('es-CL')} km
-                        </span>
-                    </div>
+                    {v.ano && <p className="text-slate-500 text-sm">{v.ano}</p>}
+                </div>
+                {/* Patente Badge estilo real */}
+                <div className="bg-white border-[1.5px] border-slate-300 shadow-sm rounded-lg flex flex-col items-center justify-center px-3 py-1 scale-90 origin-top-right">
+                    <span className="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-0.5">CHILE</span>
+                    <span className="font-mono text-[17px] font-black text-slate-800 tracking-widest leading-none">
+                        {v.patente}
+                    </span>
                 </div>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-[20px] border border-slate-100/50">
-                <div className="flex justify-between items-center mb-2">
-                    <span className="text-[11px] font-bold text-slate-400 flex items-center uppercase tracking-widest"><Activity className="w-3.5 h-3.5 mr-1.5 text-blue-500" /> Estado General</span>
-                    <span className="text-xs font-black text-emerald-600">85% — Óptimo</span>
+            <div className="h-px w-full bg-slate-100 my-0.5" />
+
+            {/* Health Indicator (Semáforo/Barra) */}
+            <div className="flex flex-col gap-2.5">
+                <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5 text-emerald-500" /> Estado de Salud
+                    </span>
+                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md uppercase tracking-wider">
+                        Al día
+                    </span>
                 </div>
-                <div className="h-2 bg-slate-200/50 rounded-full overflow-hidden">
+                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                     <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: '85%' }}
-                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                        animate={{ width: '90%' }}
+                        transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+                        className="h-full bg-emerald-500 rounded-full"
                     />
                 </div>
             </div>
@@ -927,94 +929,52 @@ export default function MiGaragePage() {
     const vActivo = vehiculos.length > 0 ? vehiculos[0] : null;
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] pb-10">
-            {/* ── HEADER FINANCIERO ── */}
+        <div className="min-h-screen bg-gray-50 pb-10">
+            {/* ── HEADER B2C ── */}
             <motion.header
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.4 }}
-                className="bg-white border-b border-slate-100 shadow-sm sticky top-0 z-30"
+                className="bg-gray-50 pt-8 pb-4 sticky top-0 z-30"
             >
-                <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Link href="/conductores/mapa" className="w-9 h-9 border border-slate-200 rounded-full bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors shadow-sm active:scale-95 shrink-0">
-                            <ChevronLeft className="w-5 h-5 text-slate-600" />
-                        </Link>
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shrink-0">
-                            <span className="text-white font-black text-sm">F</span>
-                        </div>
-                        <div className="flex flex-col justify-center">
-                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none mb-0.5">Mi Garage</p>
-                            <p className="text-sm font-black text-slate-800 leading-none">Tu Vehículo</p>
-                        </div>
+                <div className="max-w-md mx-auto px-5 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+                            ¡Hola {user?.name?.split(' ')[0] || 'Conductor'}! 👋
+                        </h1>
+                        <p className="text-sm font-medium text-slate-500 mt-0.5">Bienvenido a tu historial digital</p>
                     </div>
 
                     {/* CONTROLES DERECHOS (CAMPANITA + PERFIL) */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                         {/* BOTÓN AGREGAR VEHÍCULO RÁPIDO */}
                         {vehiculos.length > 0 && (
                             <button
                                 onClick={() => setShowAddModal(true)}
                                 title="Agregar vehículo"
-                                className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 hover:bg-blue-100 transition-colors shadow-sm active:scale-90"
+                                className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm active:scale-95 text-slate-700"
                             >
-                                <Plus className="w-5 h-5 text-blue-600" />
+                                <Plus className="w-5 h-5" />
                             </button>
                         )}
-
-                        {/* CAMPANITA NOTIFICACIONES */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center border border-slate-200 hover:bg-slate-100 transition-colors outline-none relative focus:ring-2 focus:ring-[#0066FF]/50 shadow-sm">
-                                    <Bell className="w-4 h-4 text-slate-600" />
-                                    {notifEstado && (
-                                        <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-slate-50 rounded-full animate-pulse"></span>
-                                    )}
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-xl border-slate-100">
-                                <DropdownMenuLabel className="font-bold text-[10px] uppercase tracking-widest text-slate-400 mb-2 inline-flex items-center gap-1.5 px-2">
-                                    <Bell className="w-3 h-3" />
-                                    Notificaciones
-                                </DropdownMenuLabel>
-                                {notifEstado ? (
-                                    <div className="p-3 bg-gradient-to-tr from-blue-50 to-cyan-50 rounded-xl border border-blue-100 mb-1">
-                                        <p className="text-[11px] text-blue-800/70 font-bold uppercase tracking-wide mb-1">Tu orden activa está:</p>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                                            <p className="text-sm font-black text-blue-700 uppercase tracking-tight">{notifEstado.replace('_', ' ')}</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="py-6 px-4 flex flex-col items-center text-center">
-                                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center mb-2">
-                                            <CheckCircle2 className="w-4 h-4 text-slate-300" />
-                                        </div>
-                                        <p className="text-xs font-semibold text-slate-500">Estás al día</p>
-                                        <p className="text-[10px] font-medium text-slate-400 mt-0.5">No hay actualizaciones recientes.</p>
-                                    </div>
-                                )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
 
                         {/* PERFIL */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <button className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 hover:bg-slate-200 transition-colors outline-none focus:ring-2 focus:ring-[#0066FF]/50 shadow-sm shrink-0">
-                                    <User className="w-4 h-4 text-slate-600" />
+                                <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 hover:bg-slate-50 transition-colors outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-sm shrink-0">
+                                    <User className="w-5 h-5 text-slate-600" />
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56 rounded-2xl shadow-xl border-slate-100 p-1">
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none text-slate-800">{user?.name || 'Cliente'}</p>
+                                        <p className="text-sm font-bold leading-none text-slate-800">{user?.name || 'Cliente'}</p>
                                         <p className="text-xs leading-none text-slate-500">{user?.email}</p>
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer" onClick={(e) => {
+                                <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer rounded-xl font-medium" onClick={(e) => {
                                     e.preventDefault();
-                                    console.log('Boton cerrar sesion clickeado!');
                                     logout();
                                 }}>
                                     <LogOut className="mr-2 h-4 w-4" />
@@ -1024,88 +984,103 @@ export default function MiGaragePage() {
                         </DropdownMenu>
                     </div>
                 </div>
+
+                {/* BOTÓN EXPLORAR MAPA (LOOP VIRAL) */}
+                <div className="max-w-md mx-auto px-5 mt-5">
+                    <Link href="/conductores/mapa" className="relative block group">
+                        <div className="w-full flex items-center justify-between bg-white border border-blue-100 p-3.5 rounded-2xl shadow-sm hover:border-blue-300 hover:shadow-md transition-all active:scale-[0.98]">
+                            <div className="flex items-center gap-3.5">
+                                <div className="text-2xl filter drop-shadow-sm">🗺️</div>
+                                <div className="text-left text-slate-800">
+                                    <span className="font-black block text-[15px] tracking-tight">Explorar Mapa</span>
+                                    <span className="text-[11px] text-slate-500 font-bold max-w-[200px] block leading-snug mt-0.5 group-hover:text-slate-600 transition-colors">Encuentra talleres, vulcas y servicios confiables cerca de ti.</span>
+                                </div>
+                            </div>
+                            <div className="w-10 h-10 rounded-[14px] bg-blue-50 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white text-blue-600 transition-colors shadow-sm">
+                                <ArrowRight className="w-5 h-5" />
+                            </div>
+                        </div>
+                        {/* Tooltip / Dot Badge animate-pulse */}
+                        <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-slate-50 shadow-sm" />
+                    </Link>
+                </div>
             </motion.header>
 
-            <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+            <main className="max-w-md mx-auto px-5 py-6 space-y-8">
+
+                {/* ── HERO BANNER B2C ── */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-6 shadow-xl shadow-blue-900/10 text-white"
+                >
+                    {/* Elementos decorativos de fondo */}
+                    <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-indigo-500/30 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="relative z-10 space-y-3.5">
+                        <h2 className="text-2xl font-black tracking-tight leading-[1.15]">
+                            Tu Historial Automotriz<br/>en un Solo Lugar
+                        </h2>
+                        <p className="text-[13px] text-blue-100 font-medium leading-relaxed opacity-95">
+                            Mantén el control de tus reparaciones, mantenciones e inspecciones. Sin importar a qué taller o vulca vayas, si usan Flusize, tu historial viaja contigo. Di adiós a los papeles perdidos.
+                        </p>
+                        
+                        {/* CTA Viral */}
+                        <div className="mt-5 bg-black/15 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                            <p className="text-xs font-bold text-white flex items-start gap-2.5 leading-relaxed">
+                                <span className="text-xl leading-none block shrink-0">🛡️</span>
+                                <span>La transparencia no debería ser opcional. Exígele a tu taller que use Flusize.</span>
+                            </p>
+                        </div>
+                    </div>
+                </motion.div>
 
                 {vehiculos.length === 0 && ordenesRecientes.length === 0 ? (
                     <EmptyGarageState onAddClick={() => setShowAddModal(true)} />
                 ) : (
-                    <>
-                        {/* ── INVERSIÓN TOTAL ── */}
-                        <motion.div
-                            initial="hidden"
-                            animate="visible"
-                            variants={{
-                                hidden: { opacity: 0, y: 30 },
-                                visible: {
-                                    opacity: 1,
-                                    y: 0,
-                                    transition: {
-                                        duration: 0.6,
-                                        staggerChildren: 0.12,
-                                        ease: "easeOut"
-                                    }
-                                }
-                            }}
-                            className="space-y-6"
-                        >
-                            {/* ── INVERSIÓN TOTAL ── */}
+                    <div className="space-y-8">
+                        {/* ── INVERSIÓN ANUAL (GRÁFICO RESTAURADO) ── */}
+                        {inversionAnual.total > 0 && (
                             <motion.section
-                                variants={{
-                                    hidden: { opacity: 0, y: 20 },
-                                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-                                }}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
                             >
-                                <InversionChart data={inversionAnual} />
+                                <h2 className="text-xl font-black text-slate-800 mb-4 tracking-tight">Tu Inversión (12 Meses)</h2>
+                                <div className="bg-white rounded-[1.25rem] shadow-sm border border-slate-100 p-5">
+                                    <InversionChart data={inversionAnual} />
+                                </div>
                             </motion.section>
+                        )}
 
-                            {/* ── VEHÍCULOS (HORIZONTAL CARD) ── */}
-                            {vActivo && (
-                                <motion.section
-                                    variants={{
-                                        hidden: { opacity: 0, y: 20 },
-                                        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-                                    }}
-                                >
-                                    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Mi Vehículo</h2>
-                                    <VehicleCard v={vActivo} />
-                                </motion.section>
-                            )}
+                        {/* ── TUS VEHÍCULOS ── */}
+                        <motion.section
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                        >
+                            <h2 className="text-xl font-black text-slate-800 mb-4 tracking-tight">Tus Vehículos</h2>
+                            <div className="space-y-4">
+                                {vehiculos.map(v => <VehicleCard key={v.id} v={v} />)}
+                            </div>
+                        </motion.section>
 
-                            {/* ── FICHA TÉCNICA (GRID) ── */}
-                            {vActivo && (
-                                <motion.section
-                                    variants={{
-                                        hidden: { opacity: 0, y: 20 },
-                                        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-                                    }}
-                                >
-                                    <div className="flex items-center justify-between mb-3 ml-1">
-                                        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ficha Técnica</h2>
-                                    </div>
-                                    <TechnicalGrid v={vActivo} />
-                                </motion.section>
-                            )}
-
-                            {/* ── HISTORIAL "BANCARIO" ── */}
-                            {ordenesRecientes.length > 0 && (
-                                <motion.section
-                                    variants={{
-                                        hidden: { opacity: 0, y: 20 },
-                                        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-                                    }}
-                                >
-                                    <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Movimientos Recientes</h2>
-                                    <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-4">
-                                        {ordenesRecientes.map(o => <BankActivityItem key={o.id} orden={o} />)}
-                                    </div>
-                                </motion.section>
-                            )}
-                        </motion.div>
-                    </>
+                        {/* ── MOVIMIENTOS RECIENTES ── */}
+                        {ordenesRecientes.length > 0 && (
+                            <motion.section
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                <h2 className="text-xl font-black text-slate-800 mb-4 tracking-tight">Movimientos Recientes</h2>
+                                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-4">
+                                    {ordenesRecientes.map(o => <BankActivityItem key={o.id} orden={o} />)}
+                                </div>
+                            </motion.section>
+                        )}
+                    </div>
                 )}
-
             </main>
 
             <ModalAgregarVehiculo

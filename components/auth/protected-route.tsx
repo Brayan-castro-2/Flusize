@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
+import { sileo } from 'sileo';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -32,28 +33,50 @@ export function ProtectedRoute({ children, allowedRoles, requirePaidPlan }: Prot
                 return;
             }
 
-            const currentPath = pathname;
-            const isPremiumRoute = currentPath.startsWith('/admin') &&
-                !currentPath.startsWith('/admin/perfil') &&
-                currentPath !== '/admin/perfil';
-
-            // FASE 75: Bloqueo de Plan Gratis en rutas premium
-            const userPlan = (user?.plan || 'GRATIS').toUpperCase();
-
-            // Permitir que admins globales y superadmins omitan este bloqueo para mantenimiento
+            // MATRIZ ESTRICTA DE PERMISOS POR PLAN
+            const userPlan = (user?.plan || 'DIGITAL').toUpperCase();
             const isAdminRole = ['superadmin', 'admin', 'flusize_admin'].includes(user.role);
 
-            if (userPlan === 'GRATIS' && isPremiumRoute && !isAdminRole) {
-                console.log('🚫 ProtectedRoute: Bloqueo Plan Gratis en', currentPath);
-                setShowContent(false);
-                // Si la ruta requiere plan o es el dashboard general, redirigir a perfil
-                router.push('/admin/perfil');
-                return;
+            if (!isAdminRole) {
+                const isPlanDigital = userPlan === 'GRATIS' || userPlan === 'DIGITAL';
+                const isPlanPro = userPlan === 'PRO';
+
+                if (isPlanDigital) {
+                    const permitidasDigital = ['/admin/perfil', '/recepcion', '/admin/ordenes'];
+                    const isAllowed = permitidasDigital.some(p => pathname === p || pathname.startsWith(p + '/'));
+                    
+                    if (pathname.startsWith('/admin') && !isAllowed) {
+                        console.log('🚫 ProtectedRoute: Bloqueo Plan Digital en', pathname);
+                        setShowContent(false);
+                        sileo.info({
+                            title: 'Mejora al Plan Pro',
+                            description: 'Mejora tu plan para acceder al Dashboard de Gestión.'
+                        });
+                        router.push('/recepcion');
+                        return;
+                    }
+                }
+
+                if (isPlanPro) {
+                    const bloqueadasPro = ['/admin/inventario', '/admin/reportes'];
+                    const isBlocked = bloqueadasPro.some(p => pathname === p || pathname.startsWith(p + '/'));
+                    
+                    if (isBlocked) {
+                        console.log('🚫 ProtectedRoute: Bloqueo Plan Pro en', pathname);
+                        setShowContent(false);
+                        sileo.info({
+                            title: 'Plan Pro',
+                            description: 'Mejora al Plan Premium para acceder a Módulos Avanzados.'
+                        });
+                        router.push('/admin');
+                        return;
+                    }
+                }
             }
 
             // Verificación de Roles
             if (allowedRoles && !allowedRoles.includes(user.role as any)) {
-                console.log(`🚫 ProtectedRoute: Rol ${user.role} no autorizado para ${currentPath}`);
+                console.log(`🚫 ProtectedRoute: Rol ${user.role} no autorizado para ${pathname}`);
                 setShowContent(false);
                 if (user.role === 'mecanico') {
                     router.push('/recepcion');
