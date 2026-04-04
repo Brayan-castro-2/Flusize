@@ -122,6 +122,7 @@ function RecepcionContent() {
     const [anio, setAnio] = useState('');
     const [motor, setMotor] = useState('');
     const [vehiculoColor, setVehiculoColor] = useState('');
+    const [kilometrajeIngreso, setKilometrajeIngreso] = useState('');
 
     const [kmEnabled, setKmEnabled] = useState(false);
     const [kmActual, setKmActual] = useState('');
@@ -805,7 +806,7 @@ function RecepcionContent() {
                 vehiculo_color: vehiculoColor ? String(vehiculoColor).trim() : '-',
                 precio_total: total || undefined,
                 fotos: fotos.length ? fotos : undefined,
-                detalles_vehiculo: detallesVehiculo.trim() || undefined,
+                detalles_vehiculo: (kilometrajeIngreso ? `[KM: ${kilometrajeIngreso}]\n` : '') + detallesVehiculo.trim() || undefined,
             } as any, user?.tallerId);
 
             if (!orden) return null;
@@ -1129,23 +1130,23 @@ function RecepcionContent() {
                 <div className="mt-1 text-xs md:text-sm text-blue-100">{fechaHora}</div>
             </div>
 
-            <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
-                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">RESPONSABLES</div>
-                <label className="text-sm font-semibold text-slate-200">Mecánico Responsable</label>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">RESPONSABLES</div>
+                <label className="text-sm font-semibold text-slate-700">Mecánico Responsable</label>
                 <input
                     value={mecanico}
                     readOnly
-                    className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white"
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900"
                 />
-                <div className="mt-2 text-xs text-slate-400">Se completa automáticamente con el usuario actual (si existe).</div>
+                <div className="mt-2 text-xs text-slate-500">Se completa automáticamente con el usuario actual (si existe).</div>
             </div>
 
-            <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
-                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">VEHÍCULO</div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">VEHÍCULO</div>
 
                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">Patente</label>
+                        <label className="text-sm font-semibold text-slate-700">Patente</label>
                         <input
                             value={patente}
                             onChange={(e) => { setPatente(normalizePatente(e.target.value)); setValidationErrors(p => ({...p, patente: false})); }}
@@ -1156,12 +1157,12 @@ function RecepcionContent() {
                                 }
                             }}
                             placeholder="AA-BB-11"
-                            className={`mt-2 w-full rounded-xl border bg-slate-800/50 px-4 py-3 md:py-4 text-center font-mono text-xl md:text-2xl font-bold uppercase tracking-widest text-white ${
-                                validationErrors['patente'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                            className={`mt-2 w-full rounded-xl border bg-slate-50 px-4 py-3 md:py-4 text-center font-mono text-xl md:text-2xl font-bold uppercase tracking-widest text-slate-900 placeholder:text-slate-400 ${
+                                validationErrors['patente'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300'
                             }`}
                             maxLength={6}
                         />
-                        <div className="mt-2 text-xs text-slate-400">Ejemplos: PROFE1, BBBB10, TEST01</div>
+                        <div className="mt-2 text-xs text-slate-500">Ejemplos: PROFE1, BBBB10, TEST01</div>
                     </div>
 
                     <button
@@ -1185,61 +1186,70 @@ function RecepcionContent() {
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">Marca</label>
+                        <label className="text-sm font-semibold text-slate-700">Marca</label>
                         <input
                             value={marca}
                             onChange={(e) => { setMarca(e.target.value); setValidationErrors(p => ({...p, marca: false})); }}
                             placeholder="Ej: Toyota, Chevrolet"
-                            className={`mt-2 w-full rounded-xl border bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-500 ${
-                                validationErrors['marca'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                            className={`mt-2 w-full rounded-xl border bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 ${
+                                validationErrors['marca'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300'
                             }`}
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">Modelo</label>
+                        <label className="text-sm font-semibold text-slate-700">Modelo</label>
                         <input
                             value={modelo}
                             onChange={(e) => { setModelo(e.target.value); setValidationErrors(p => ({...p, modelo: false})); }}
                             placeholder="Ej: Corolla, Sail"
-                            className={`mt-2 w-full rounded-xl border bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-500 ${
-                                validationErrors['modelo'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                            className={`mt-2 w-full rounded-xl border bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 ${
+                                validationErrors['modelo'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300'
                             }`}
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">Año</label>
+                        <label className="text-sm font-semibold text-slate-700">Año</label>
                         <input
                             value={anio}
                             onChange={(e) => { setAnio(e.target.value); setValidationErrors(p => ({...p, anio: false})); }}
                             placeholder="Ej: 2020"
-                            className={`mt-2 w-full rounded-xl border bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-500 ${
-                                validationErrors['anio'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                            className={`mt-2 w-full rounded-xl border bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 ${
+                                validationErrors['anio'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300'
                             }`}
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">Motor</label>
+                        <label className="text-sm font-semibold text-slate-700">Motor</label>
                         <input
                             value={motor}
                             onChange={(e) => setMotor(e.target.value)}
                             placeholder="Ej: 1.4, 1.6 Twin Cam"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
+                            className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">Color</label>
+                        <label className="text-sm font-semibold text-slate-700">Color</label>
                         <input
                             value={vehiculoColor}
                             onChange={(e) => setVehiculoColor(e.target.value)}
                             placeholder="Ej: Rojo, Blanco, Gris"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
+                            className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm font-semibold text-slate-700">Kilometraje de Ingreso</label>
+                        <input
+                            value={kilometrajeIngreso}
+                            onChange={(e) => setKilometrajeIngreso(e.target.value)}
+                            placeholder="Ej: 120.500 km"
+                            className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
-                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">CLIENTE</div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">CLIENTE</div>
 
 
                 {/* ── Mini-CRM Alert Banner (requires clientes.mini_crm flag) ── */}
@@ -1268,28 +1278,28 @@ function RecepcionContent() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">Receptor (Nombre)</label>
+                        <label className="text-sm font-semibold text-slate-700">Receptor (Nombre)</label>
                         <input
                             value={clienteNombre}
                             onChange={(e) => setClienteNombre(e.target.value)}
                             placeholder="Nombre del cliente"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
+                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400"
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">RUT / DNI</label>
+                        <label className="text-sm font-semibold text-slate-700">RUT / DNI</label>
                         <input
                             value={clienteRut}
                             onChange={(e) => setClienteRut(e.target.value)}
                             onKeyDown={handleRutKeyDown}
                             onBlur={() => buscarPorRut()}
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
+                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400"
                             placeholder="12.345.678-9"
                         />
                         <div className="mt-1 text-xs text-slate-500 text-right">Presiona Enter para buscar</div>
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">WhatsApp <span className="text-red-400">*</span></label>
+                        <label className="text-sm font-semibold text-slate-700">WhatsApp <span className="text-red-400">*</span></label>
                         <div className="relative mt-2">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                                 <span className="text-slate-400">+56</span>
@@ -1306,28 +1316,28 @@ function RecepcionContent() {
                                 }}
                                 inputMode="numeric"
                                 placeholder="912345678"
-                                className={`w-full rounded-xl border bg-slate-800/50 py-3 pl-12 pr-4 text-white ${
-                                    validationErrors['whatsapp'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-700'
+                                className={`w-full rounded-xl border bg-slate-50 py-3 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 ${
+                                    validationErrors['whatsapp'] ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300'
                                 }`}
                             />
                         </div>
-                        <div className="mt-2 text-xs text-slate-400">Obligatorio para enviar el tracking al cliente.</div>
+                        <div className="mt-2 text-xs text-slate-500">Obligatorio para enviar el tracking al cliente.</div>
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-200">Email (Opcional)</label>
+                        <label className="text-sm font-semibold text-slate-700">Email (Opcional)</label>
                         <input
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="cliente@email.com"
                             type="email"
-                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder:text-slate-400"
+                            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400"
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
-                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">SERVICIOS</div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">SERVICIOS</div>
 
                 <div className="mb-4 flex flex-wrap gap-2">
                     {/* Botón KM: solo visible si el admin habilitó km_recepcion en Perfil Taller */}
@@ -1338,7 +1348,7 @@ function RecepcionContent() {
                             className={
                                 kmEnabled
                                     ? 'rounded-full border border-blue-500 bg-blue-600/30 px-3 py-2 text-sm font-semibold text-blue-100'
-                                    : 'rounded-full border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700'
+                                    : 'rounded-full border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-700'
                             }
                         >
                             🔘 KM
@@ -1349,7 +1359,7 @@ function RecepcionContent() {
                             key={s.descripcion}
                             type="button"
                             onClick={() => agregarServicioFrecuente(s.descripcion)}
-                            className="rounded-full border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
+                            className="rounded-full border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-700 transition-colors"
                         >
                             🔘 {s.descripcion}
                         </button>
@@ -1368,7 +1378,7 @@ function RecepcionContent() {
                 {kmEnabled ? (
                     <div className="mb-4 grid gap-4 rounded-xl border border-slate-700 bg-slate-800/30 p-4 md:grid-cols-2">
                         <div>
-                            <label className="text-sm font-semibold text-slate-200">KM actual</label>
+                            <label className="text-sm font-semibold text-slate-700">KM actual</label>
                             <input
                                 ref={kmActualInputRef}
                                 value={formatMilesConPunto(kmActual)}
@@ -1379,7 +1389,7 @@ function RecepcionContent() {
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-semibold text-slate-200">KM nuevo</label>
+                            <label className="text-sm font-semibold text-slate-700">KM nuevo</label>
                             <input
                                 value={formatMilesConPunto(kmNuevo)}
                                 onChange={(e) => setKmNuevo(e.target.value.replace(/[^0-9]/g, '').slice(0, 7))}
@@ -1460,24 +1470,24 @@ function RecepcionContent() {
             </div>
 
             {hasInventario && (
-                <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
-                    <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">📦 MATERIALES Y REPUESTOS (Opcional)</div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">📦 MATERIALES Y REPUESTOS (Opcional)</div>
                     <BuscadorInventario onChange={setRepuestosOrden} />
                 </div>
             )}
 
-            <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
-                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-200">DETALLES DEL VEHÍCULO</div>
-                <label className="text-sm font-semibold text-slate-200">Descripción general</label>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">DETALLES DEL VEHÍCULO</div>
+                <label className="text-sm font-semibold text-slate-700">Descripción general</label>
                 <textarea
                     value={detallesVehiculo}
                     onChange={(e) => setDetallesVehiculo(e.target.value)}
                     placeholder="Ej: ruido al encender, vibración, luces de tablero, etc."
-                    className="mt-2 min-h-[120px] w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-white"
+                    className="mt-2 min-h-[120px] w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900"
                 />
 
                 <div className="mt-5">
-                    <label className="text-sm font-semibold text-slate-200 block mb-2">Imágenes</label>
+                    <label className="text-sm font-semibold text-slate-700 block mb-2">Imágenes</label>
                     <input
                         type="file"
                         id="file-upload"
@@ -1543,7 +1553,7 @@ function RecepcionContent() {
                             <span>Tomar foto</span>
                         </label>
                     </div>
-                    {isUploading ? <div className="mt-2 text-xs text-slate-400">Subiendo imágenes...</div> : null}
+                    {isUploading ? <div className="mt-2 text-xs text-slate-500">Subiendo imágenes...</div> : null}
 
                     {fotos.length ? (
                         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -1708,3 +1718,4 @@ export default function RecepcionPage() {
         </Suspense>
     );
 }
+

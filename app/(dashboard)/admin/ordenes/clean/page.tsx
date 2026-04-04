@@ -665,8 +665,18 @@ function OrderEditContent() {
                         </div>
                         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                             <span className="text-slate-500">Vehículo</span>
-                            <span className="text-slate-900 font-medium">{vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : '-'}</span>
+                            <span className="text-slate-900 font-medium">{vehiculo ? `${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.anio || ''}`.trim() : '-'}</span>
                         </div>
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                            <span className="text-slate-500">Color</span>
+                            <span className="text-slate-900 font-medium">{(order as any).vehiculo_color || '-'}</span>
+                        </div>
+                        {order.detalles_vehiculo?.match(/\[KM:\s*([^\]]+)\]/) && (
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                                <span className="text-slate-500">Kilometraje Ingreso</span>
+                                <span className="font-medium text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg">{order.detalles_vehiculo.match(/\[KM:\s*([^\]]+)\]/)?.[1]}</span>
+                            </div>
+                        )}
 
                         {isAdmin ? (
                             <>

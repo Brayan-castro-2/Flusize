@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { consultarPatenteGetAPI } from '@/lib/getapi-service';
 import { BuscadorInventario, CartItem } from '@/components/inventario/buscador-inventario';
+import { GenerarContratoModal } from '@/components/contratos/generar-contrato-modal';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface VehiculoFlota {
@@ -236,6 +237,8 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
     });
     const [procesando, setProcesando] = useState(false);
     const [trackingLink, setTrackingLink] = useState<string | null>(null);
+    const [trackingOrdenId, setTrackingOrdenId] = useState<string | null>(null);
+    const [showGenerarContrato, setShowGenerarContrato] = useState(false);
 
     useEffect(() => {
         const fetchClientes = async () => {
@@ -410,6 +413,7 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
 
             const link = `${window.location.origin}/tracking/${ordenId}`;
             setTrackingLink(link);
+            setTrackingOrdenId(ordenId);
             setModalComercial(null);
             toast.success(`🚗 Arriendo iniciado! Contrato pendiente de firma.`);
             onUpdate();
@@ -592,14 +596,54 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
 
                             {/* Link de Tracking generado */}
                             {trackingLink && (
-                                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-2">
+                                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-3">
                                     <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">🔗 Link de Tracking Generado</p>
                                     <p className="text-xs text-slate-300 break-all font-mono">{trackingLink}</p>
-                                    <button onClick={() => { navigator.clipboard.writeText(trackingLink); toast.success('Link copiado!'); }}
-                                        className="flex items-center gap-2 text-xs text-emerald-400 font-bold hover:text-emerald-300 transition-colors">
-                                        <Copy className="w-3.5 h-3.5" /> Copiar link de arriendo
-                                    </button>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <button onClick={() => { navigator.clipboard.writeText(trackingLink); toast.success('Link copiado!'); }}
+                                            className="flex items-center gap-2 text-xs text-emerald-400 font-bold hover:text-emerald-300 transition-colors bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+                                            <Copy className="w-3.5 h-3.5" /> Copiar link
+                                        </button>
+                                        <button onClick={() => setShowGenerarContrato(true)}
+                                            className="flex items-center gap-2 text-xs text-blue-400 font-bold hover:text-blue-300 transition-colors bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">
+                                            <FileText className="w-3.5 h-3.5" /> Generar Contrato PDF
+                                        </button>
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* Botón Generar Contrato (vehículos ya vendidos/arrendados) */}
+                            {(v.estado === 'Vendido' || v.estado === 'Arrendado') && !trackingLink && (
+                                <button onClick={() => setShowGenerarContrato(true)}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-300 font-semibold text-sm transition-colors">
+                                    <FileText className="w-4 h-4" /> Generar Contrato PDF
+                                </button>
+                            )}
+
+                            {/* Modal Generar Contrato */}
+                            {showGenerarContrato && (
+                                <GenerarContratoModal
+                                    isOpen={showGenerarContrato}
+                                    onClose={() => setShowGenerarContrato(false)}
+                                    contrato={{
+                                        id: trackingOrdenId || v.id,
+                                        tipo_orden: v.destino_unidad === 'Arriendo' ? 'arriendo' : 'venta',
+                                        precio_total: v.precio_objetivo,
+                                        pie_pagado: v.precio_objetivo,
+                                        saldo_pendiente: 0,
+                                        fecha_salida: v.fecha_salida || undefined,
+                                        fecha_retorno: v.fecha_retorno || undefined,
+                                        precio_dia: v.precio_arriendo_dia || 0,
+                                        dias: v.fecha_salida && v.fecha_retorno ? Math.max(1, Math.ceil((new Date(v.fecha_retorno).getTime() - new Date(v.fecha_salida).getTime()) / 86400000)) : 0,
+                                        cliente_nombre: v.cliente_nombre,
+                                        vehiculo_marca: v.marca,
+                                        vehiculo_modelo: v.modelo,
+                                        vehiculo_color: v.color || '',
+                                        vehiculo_anio: v.anio ? String(v.anio) : '',
+                                        vehiculo_motor: v.vin || '',
+                                        vehiculo_patente: v.patente,
+                                    }}
+                                />
                             )}
 
                             {/* Timeline Inversiones */}

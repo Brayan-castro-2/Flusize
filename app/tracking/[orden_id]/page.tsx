@@ -60,6 +60,7 @@ interface TrackingData {
         traccion?: string;
         color?: string;
     } | null;
+    detalles_vehiculo: string | null;
     taller: {
         nombre: string;
         telefono: string | null;
@@ -102,7 +103,7 @@ async function fetchTracking(id: string): Promise<TrackingData | null> {
         .from('ordenes')
         .select(`
       id, numero_orden, estado, descripcion_problema, descripcion_ingreso,
-      fecha_ingreso, fotos_urls, patente_vehiculo, tipo_orden, eta_entrega,
+      fecha_ingreso, fotos_urls, patente_vehiculo, tipo_orden, eta_entrega, detalles_vehiculo,
       vehiculos:vehiculos!vehiculo_local_id ( marca, modelo, patente, ano ),
       talleres ( nombre, telefono, direccion, latitud, longitud )
     `)
@@ -161,6 +162,7 @@ async function fetchTracking(id: string): Promise<TrackingData | null> {
         fecha_ingreso: d.fecha_ingreso,
         fotos_urls: [...new Set([...orderFotos, ...checklistFotos])],
         patente_vehiculo: d.patente_vehiculo,
+        detalles_vehiculo: d.detalles_vehiculo,
         vehiculo: veh ? {
             marca: veh.marca,
             modelo: veh.modelo,
@@ -188,6 +190,9 @@ function TrackingHeader({ data, onBack }: { data: TrackingData, onBack: () => vo
     const veh = data.vehiculo;
     const nombreVehiculo = veh?.marca && veh?.modelo ? `${veh.marca} ${veh.modelo} ${veh.ano || ''}`.trim() : 'Vehículo';
     const patente = veh?.patente || data.patente_vehiculo || '—';
+    
+    const kmMatch = data.detalles_vehiculo?.match(/\[KM:\s*([^\]]+)\]/);
+    const kilometrajeIngreso = kmMatch ? kmMatch[1] : null;
 
     return (
         <header className="relative px-4 pb-6 pt-6">
@@ -216,13 +221,18 @@ function TrackingHeader({ data, onBack }: { data: TrackingData, onBack: () => vo
                 </div>
                 <div className="flex-1 min-w-0">
                     <h1 className="text-xl font-bold text-slate-800 leading-tight">{nombreVehiculo}</h1>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
                         <Badge className="bg-slate-100 text-slate-600 border-transparent font-mono text-xs tracking-wider px-3 py-1 hover:bg-slate-100 shadow-sm">
                             {patente}
                         </Badge>
                         <Badge className="bg-blue-50 text-blue-700 border-transparent text-xs px-3 py-1 hover:bg-blue-50 shadow-sm">
                             Orden #{data.numero_orden}
                         </Badge>
+                        {kilometrajeIngreso && (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs px-3 py-1 shadow-sm">
+                                {kilometrajeIngreso}
+                            </Badge>
+                        )}
                     </div>
                 </div>
             </div>
