@@ -35,6 +35,7 @@ interface ContratoVentaData {
 
     // Firma
     firma_base64?: string | null;
+    vendedor_firma_base64?: string | null;
 }
 
 interface ContratoArriendoData {
@@ -66,6 +67,7 @@ interface ContratoArriendoData {
     dias: number;
 
     firma_base64?: string | null;
+    vendedor_firma_base64?: string | null;
 }
 
 type ContratoData = ContratoVentaData | ContratoArriendoData;
@@ -83,19 +85,19 @@ function PlantillaVenta({ d }: { d: ContratoVentaData }) {
             <div className="space-y-4 text-[11px] text-slate-800 leading-relaxed">
                 <p>
                     <strong>PRIMERO.-</strong> Compraventa y Arriendo de Vehículos y Maquinaria{' '}
-                    <strong>Rentmontt SpA.</strong>, vende al Sr./Sra.{' '}
-                    <strong className="underline">{d.comprador_nombre}</strong> quien compra y acepta para sí un{' '}
-                    <strong>{d.vehiculo_marca} {d.vehiculo_modelo}</strong>, Color{' '}
-                    <strong>{d.vehiculo_color}</strong>, Año <strong>{d.vehiculo_anio}</strong>, Motor{' '}
-                    <strong>{d.vehiculo_motor || 'N/A'}</strong>, Patente Única{' '}
-                    <strong className="font-mono">{d.vehiculo_patente}</strong>.
+                    <strong>{d.vendedor_nombre}</strong>, vende al Sr./Sra.{' '}
+                    <strong className="underline">{d.comprador_nombre || '________________________'}</strong> quien compra y acepta para sí un{' '}
+                    <strong><span className="underline">{d.vehiculo_marca || '____'}</span> <span className="underline">{d.vehiculo_modelo || '____'}</span></strong>, Color{' '}
+                    <strong className="underline">{d.vehiculo_color || '____'}</strong>, Año <strong className="underline">{d.vehiculo_anio || '____'}</strong>, Motor{' '}
+                    <strong className="underline">{d.vehiculo_motor || 'N/A'}</strong>, Patente Única{' '}
+                    <strong className="font-mono underline">{d.vehiculo_patente || '____'}</strong>.
                 </p>
 
                 <p>
                     <strong>SEGUNDO.-</strong> El precio de venta es la cantidad de{' '}
-                    <strong>{cl(d.precio_total)}</strong> el cual es cancelado de la siguiente manera:{' '}
-                    Pie <strong>{cl(d.pie_pagado)}</strong> — Saldo{' '}
-                    <strong>{cl(d.saldo_pendiente)}</strong>. El saldo de precio queda representado en documentos
+                    <strong className="underline">{cl(d.precio_total)}</strong> el cual es cancelado de la siguiente manera:{' '}
+                    Pie <strong className="underline">{d.pie_pagado > 0 ? cl(d.pie_pagado) : '$__________'}</strong> — Saldo{' '}
+                    <strong className="underline">{d.saldo_pendiente > 0 ? cl(d.saldo_pendiente) : '$__________'}</strong>. El saldo de precio queda representado en documentos
                     mercantiles a entera satisfacción del vendedor.
                 </p>
 
@@ -125,7 +127,7 @@ function PlantillaVenta({ d }: { d: ContratoVentaData }) {
                 </p>
 
                 <p>
-                    <strong>SÉPTIMO.-</strong> El comprador faculta expresamente a Rentmontt SpA. para disponer
+                    <strong>SÉPTIMO.-</strong> El comprador faculta expresamente a {d.vendedor_nombre} para disponer
                     total o parcialmente de los documentos de pago que garanticen el saldo de precio antes
                     señalado, así como para ceder, transferir, endosar o negociar dichos documentos a cualquier
                     institución financiera, banco o persona natural o jurídica, sin necesidad de notificación ni
@@ -155,27 +157,27 @@ function PlantillaArriendo({ d }: { d: ContratoArriendoData }) {
         <>
             <div className="space-y-4 text-[11px] text-slate-800 leading-relaxed">
                 <p>
-                    En <strong>{d.vendedor_ciudad}</strong>, a <strong>{d.fecha}</strong>,{' '}
-                    <strong>Rentmontt SpA.</strong> (en adelante el «Arrendador»), representado legalmente por su
-                    Gerente, RUT <strong>77.294.859-K</strong>, da en arriendo al Sr./Sra.{' '}
-                    <strong className="underline">{d.comprador_nombre}</strong>, RUT{' '}
-                    <strong>{d.comprador_rut}</strong>, domiciliado en{' '}
-                    <strong>{d.comprador_domicilio || '___________________________'}</strong>, teléfono{' '}
-                    <strong>{d.comprador_telefono || '_______________'}</strong> (en adelante el «Arrendatario»),
-                    el vehículo <strong>{d.vehiculo_marca} {d.vehiculo_modelo}</strong>, Patente{' '}
-                    <strong className="font-mono">{d.vehiculo_patente}</strong>, Color{' '}
-                    <strong>{d.vehiculo_color}</strong>.
+                    En <strong>{d.vendedor_ciudad}</strong>, a <strong className="underline">{d.fecha}</strong>,{' '}
+                    <strong>{d.vendedor_nombre}</strong> (en adelante el «Arrendador»), representado legalmente por su
+                    Gerente, RUT <strong>{d.vendedor_rut}</strong>, da en arriendo al Sr./Sra.{' '}
+                    <strong className="underline">{d.comprador_nombre || '________________________'}</strong>, RUT{' '}
+                    <strong className="underline">{d.comprador_rut || '__________'}</strong>, domiciliado en{' '}
+                    <strong className="underline">{d.comprador_domicilio || '___________________________'}</strong>, teléfono{' '}
+                    <strong className="underline">{d.comprador_telefono || '_______________'}</strong> (en adelante el «Arrendatario»),
+                    el vehículo <strong><span className="underline">{d.vehiculo_marca || '____'}</span> <span className="underline">{d.vehiculo_modelo || '____'}</span></strong>, Patente{' '}
+                    <strong className="font-mono underline">{d.vehiculo_patente || '____'}</strong>, Color{' '}
+                    <strong className="underline">{d.vehiculo_color || '____'}</strong>.
                 </p>
 
                 <p>
                     <strong>PRIMERO.-</strong> El plazo del arriendo será desde el{' '}
-                    <strong>{d.fecha_salida}</strong> hasta el <strong>{d.fecha_retorno}</strong>, por un total
-                    de <strong>{d.dias} día(s)</strong>.
+                    <strong className="underline">{d.fecha_salida || '__________'}</strong> hasta el <strong className="underline">{d.fecha_retorno || '__________'}</strong>, por un total
+                    de <strong className="underline">{d.dias || '___'} día(s)</strong>.
                 </p>
 
                 <p>
                     <strong>SEGUNDO.-</strong> El valor total del arriendo es de{' '}
-                    <strong>{cl(d.precio_total)}</strong> (equivalente a {cl(d.precio_dia)} por día), pagadero
+                    <strong className="underline">{d.precio_total > 0 ? cl(d.precio_total) : '$__________'}</strong> (equivalente a <strong className="underline">{d.precio_dia > 0 ? cl(d.precio_dia) : '$__________'}</strong> por día), pagadero
                     en su totalidad al momento de la firma del presente contrato o según acuerdo entre las partes.
                 </p>
 
@@ -227,13 +229,13 @@ export const ContratoDocumento = forwardRef<HTMLDivElement, { data: ContratoData
             <div
                 ref={ref}
                 id="contrato-pdf"
-                className="bg-white text-slate-900 font-sans"
+                className="bg-white text-slate-900"
                 style={{
                     width: '794px',
                     minHeight: '1123px',
                     padding: '48px 56px',
                     boxSizing: 'border-box',
-                    fontFamily: 'Arial, Helvetica, sans-serif',
+                    fontFamily: 'Georgia, "Times New Roman", serif',
                 }}
             >
                 {/* ── ENCABEZADO ────────────────────────────────────────── */}
@@ -242,8 +244,8 @@ export const ContratoDocumento = forwardRef<HTMLDivElement, { data: ContratoData
                         <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">
                             RentMontt
                         </h1>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Rentmontt SpA.</p>
-                        <p className="text-[10px] text-slate-500">RUT: 77.294.859-K</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">{d.vendedor_nombre}</p>
+                        <p className="text-[10px] text-slate-500">RUT: {d.vendedor_rut}</p>
                     </div>
                     <div className="text-right">
                         <p className="text-[10px] text-slate-500">{d.vendedor_email}</p>
@@ -261,24 +263,56 @@ export const ContratoDocumento = forwardRef<HTMLDivElement, { data: ContratoData
                 </div>
 
                 {/* ── PARTES ────────────────────────────────────────────── */}
-                <div className="grid grid-cols-2 gap-4 mb-6 text-[10px]">
-                    <div className="border border-slate-200 rounded-lg p-3">
-                        <p className="font-black text-slate-700 uppercase text-[9px] tracking-widest mb-1.5">
-                            {esVenta ? 'VENDEDOR' : 'ARRENDADOR'}
+                <div className="grid grid-cols-2 gap-4 mb-6 text-[11px]">
+                    <div className="border-2 border-slate-900 p-4">
+                        <p className="font-black text-slate-900 border-b-2 border-slate-900 pb-1 uppercase text-[10px] tracking-widest mb-3">
+                            {esVenta ? 'DATOS DEL VENDEDOR' : 'DATOS DEL ARRENDADOR'}
                         </p>
-                        <p className="font-bold">{d.vendedor_nombre}</p>
-                        <p className="text-slate-500">RUT: {d.vendedor_rut}</p>
-                        <p className="text-slate-500">{d.vendedor_ciudad}</p>
-                        <p className="text-slate-500">{d.vendedor_fono}</p>
+                        <table className="w-full">
+                            <tbody>
+                                <tr>
+                                    <td className="py-1 font-bold w-20">Nombre:</td>
+                                    <td className="py-1">{d.vendedor_nombre}</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-1 font-bold">RUT:</td>
+                                    <td className="py-1">{d.vendedor_rut}</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-1 font-bold">Dirección:</td>
+                                    <td className="py-1">{d.vendedor_ciudad}</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-1 font-bold">Teléfono:</td>
+                                    <td className="py-1">{d.vendedor_fono}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div className="border border-slate-200 rounded-lg p-3">
-                        <p className="font-black text-slate-700 uppercase text-[9px] tracking-widest mb-1.5">
-                            {esVenta ? 'COMPRADOR' : 'ARRENDATARIO'}
+                    <div className="border-2 border-slate-900 p-4">
+                        <p className="font-black text-slate-900 border-b-2 border-slate-900 pb-1 uppercase text-[10px] tracking-widest mb-3">
+                            {esVenta ? 'DATOS DEL COMPRADOR' : 'DATOS DEL ARRENDATARIO'}
                         </p>
-                        <p className="font-bold">{d.comprador_nombre}</p>
-                        <p className="text-slate-500">RUT: {d.comprador_rut || '_______________'}</p>
-                        <p className="text-slate-500">{d.comprador_domicilio || 'Domicilio: _______________'}</p>
-                        <p className="text-slate-500">{d.comprador_telefono || 'Tel: _______________'}</p>
+                        <table className="w-full">
+                            <tbody>
+                                <tr>
+                                    <td className="py-1 font-bold w-20">Nombre:</td>
+                                    <td className="py-1">{d.comprador_nombre || '________________________'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-1 font-bold">RUT:</td>
+                                    <td className="py-1">{d.comprador_rut || '_______________'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-1 font-bold">Dirección:</td>
+                                    <td className="py-1 truncate max-w-[200px]">{d.comprador_domicilio || '________________________'}</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-1 font-bold">Teléfono:</td>
+                                    <td className="py-1">{d.comprador_telefono || '_______________'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -292,7 +326,18 @@ export const ContratoDocumento = forwardRef<HTMLDivElement, { data: ContratoData
                 <div className="mt-10 grid grid-cols-2 gap-8">
                     {/* Vendedor/Arrendador */}
                     <div className="text-center space-y-1">
-                        <div className="h-16 border-b border-slate-400 mb-1" />
+                        {d.vendedor_firma_base64 ? (
+                            <div className="h-16 flex items-end justify-center mb-1 border-b border-slate-400">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={d.vendedor_firma_base64}
+                                    alt="Firma Vendedor"
+                                    className="max-h-14 max-w-full object-contain"
+                                />
+                            </div>
+                        ) : (
+                            <div className="h-16 border-b border-slate-400 mb-1" />
+                        )}
                         <p className="text-[10px] font-bold text-slate-700 uppercase">
                             {esVenta ? 'VENDEDOR' : 'ARRENDADOR'}
                         </p>
@@ -323,7 +368,7 @@ export const ContratoDocumento = forwardRef<HTMLDivElement, { data: ContratoData
 
                 {/* ── PIE DE PÁGINA ─────────────────────────────────────── */}
                 <div className="mt-8 pt-3 border-t border-slate-200 text-[9px] text-slate-400 text-center">
-                    Documento generado electrónicamente por Flusize — Rentmontt SpA. — RUT 77.294.859-K — Puerto Montt
+                    Documento generado electrónicamente por Flusize — {d.vendedor_nombre} — RUT {d.vendedor_rut} — {d.vendedor_ciudad}
                 </div>
             </div>
         );

@@ -51,6 +51,11 @@ interface VehiculoFlota {
     estado_ingreso?: string | null;
     destino_unidad?: string | null;
     precio_arriendo_dia?: number | null;
+    updated_at?: string | null;
+    ingresos_historicos?: number;
+    notas_ingreso?: string | null;
+    notas_reparacion?: string | null;
+    notas_finalizado?: string | null;
 }
 
 interface Inversion {
@@ -61,6 +66,7 @@ interface Inversion {
     fecha: string;
     tipo: 'Mecánica' | 'Pintura' | 'Documentación' | 'Externa' | 'Otro';
     proveedor: string | null;
+    created_at?: string;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -100,11 +106,17 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
 
 // ─── VehiculoCard ──────────────────────────────────────────────────────────────
 function VehiculoCard({ v, onSelect }: { v: VehiculoFlota; onSelect: () => void }) {
+    const { user } = useAuth();
+    const isEmployee = user?.role === 'mecanico' || user?.role === 'vendedor';
+
     const totalInvertido = (v.inversiones || []).reduce((s, i) => s + i.monto, 0);
     const costoRepuestos = v.costo_repuestos_ordenes || 0;
     const costoReal = v.precio_compra + totalInvertido + costoRepuestos;
-    const margen = v.precio_objetivo - costoReal;
+    const incomes = v.ingresos_historicos || 0;
+    const ingresosHistoricos = incomes > 0 ? incomes : v.precio_objetivo;
+    const margen = ingresosHistoricos - costoReal;
     const margenPct = costoReal > 0 ? ((margen / costoReal) * 100).toFixed(1) : '0';
+
     const estado = ESTADO_COLORS[v.estado] || ESTADO_COLORS['En Preparación'];
     const EstadoIcon = estado.icon;
 
@@ -145,37 +157,41 @@ function VehiculoCard({ v, onSelect }: { v: VehiculoFlota; onSelect: () => void 
                 </div>
 
                 {/* Financiero */}
-                <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-800 space-y-1.5">
-                    <div className="flex justify-between text-xs">
-                        <span className="text-slate-500">Capital Compra+Invd.</span>
-                        <span className="text-slate-300 font-mono">{cl(costoReal)}</span>
-                    </div>
-                    {v.destino_unidad === 'Arriendo' ? (
-                        <div className="flex justify-between text-xs items-center">
-                            <span className="text-slate-500">Precio Arriendo Día</span>
-                            <span className="text-cyan-400 font-mono flex items-center gap-1.5 bg-cyan-900/30 px-2 py-0.5 rounded-md border border-cyan-500/20">
-                                <CalendarDays className="w-3.5 h-3.5" /> 
-                                {cl(v.precio_arriendo_dia || 0)}
-                            </span>
+                {!isEmployee && (
+                    <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-800 space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Capital Compra+Invd.</span>
+                            <span className="text-slate-300 font-mono">{cl(costoReal)}</span>
                         </div>
-                    ) : (
-                        <>
-                            <div className="flex justify-between text-xs">
-                                <span className="text-slate-500">Precio Objetivo</span>
-                                <span className="text-slate-300 font-mono">{cl(v.precio_objetivo)}</span>
+                        {v.destino_unidad === 'Arriendo' ? (
+                            <div className="flex justify-between text-xs items-center">
+                                <span className="text-slate-500">Precio Arriendo Día</span>
+                                <span className="text-cyan-400 font-mono flex items-center gap-1.5 bg-cyan-900/30 px-2 py-0.5 rounded-md border border-cyan-500/20">
+                                    <CalendarDays className="w-3.5 h-3.5" /> 
+                                    {cl(v.precio_arriendo_dia || 0)}
+                                </span>
                             </div>
-                            <div className="flex justify-between text-sm border-t border-slate-700/50 pt-1.5 mt-1">
-                                <span className="text-slate-400 font-bold">Ganancia Est.</span>
-                                <div className="flex items-center gap-1">
-                                    {margen >= 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> : <TrendingDown className="w-3.5 h-3.5 text-red-400" />}
-                                    <span className={`font-black font-mono ${margen >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                        {cl(margen)} ({margenPct}%)
+                        ) : (
+                            <>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-slate-500">Precio Venta (Ingresos)</span>
+                                    <span className={incomes > 0 ? "text-emerald-400 font-black font-mono" : "text-slate-300 font-mono"}>
+                                        {cl(ingresosHistoricos)}
                                     </span>
                                 </div>
-                            </div>
-                        </>
-                    )}
-                </div>
+                                <div className="flex justify-between text-sm border-t border-slate-700/50 pt-1.5 mt-1">
+                                    <span className="text-slate-400 font-bold">Margen Real</span>
+                                    <div className="flex items-center gap-1">
+                                        {margen >= 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> : <TrendingDown className="w-3.5 h-3.5 text-red-400" />}
+                                        <span className={`font-black font-mono ${margen >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            {cl(margen)} ({margenPct}%)
+                                        </span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 {(v.inversiones?.length ?? 0) > 0 && (
                     <p className="text-xs text-slate-500">{v.inversiones!.length} inversión(es) registrada(s)</p>
@@ -241,6 +257,58 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
     const [trackingOrdenId, setTrackingOrdenId] = useState<string | null>(null);
     const [showNuevoContrato, setShowNuevoContrato] = useState(false);
     const [showGenerarContrato, setShowGenerarContrato] = useState(false);
+    const [showEstadoMenu, setShowEstadoMenu] = useState(false);
+    const [ingresosHistoricos, setIngresosHistoricos] = useState(0);
+
+    // ── Notas Técnicas ────────────────────────────────────────────────────────
+    const [notasIngreso, setNotasIngreso] = useState(v.notas_ingreso || '');
+    const [notasReparacion, setNotasReparacion] = useState(v.notas_reparacion || '');
+    const [notasFinalizado, setNotasFinalizado] = useState(v.notas_finalizado || '');
+    const [savingNotes, setSavingNotes] = useState<string | null>(null);
+
+    const handleSaveNote = async (etapa: 'ingreso' | 'reparacion' | 'finalizado', valor: string) => {
+        setSavingNotes(etapa);
+        const col = `notas_${etapa}`;
+        const { error } = await supabase.from('flota').update({ [col]: valor }).eq('id', v.id);
+        if (!error) {
+            toast.success(`Nota de ${etapa} guardada`);
+        } else {
+            toast.error('Error al guardar nota');
+        }
+        setSavingNotes(null);
+        onUpdate();
+    };
+
+    useEffect(() => {
+        const fetchIngresosHistoricos = async () => {
+            const { data, error } = await supabase
+                .from('contratos')
+                .select('precio_total')
+                .eq('vehiculo_patente', v.patente)
+                .eq('estado', 'firmado');
+            if (data) {
+                const total = data.reduce((acc, c) => acc + (c.precio_total || 0), 0);
+                setIngresosHistoricos(total);
+            }
+        };
+        fetchIngresosHistoricos();
+    }, [v.patente]);
+
+    // ── Actualizar Estado ─────────────────────────────────────────────────────
+    const handleUpdateEstado = async (nuevoEstado: VehiculoFlota['estado']) => {
+        setProcesando(true);
+        try {
+            const { error } = await supabase.from('flota').update({ estado: nuevoEstado }).eq('id', v.id);
+            if (error) throw error;
+            toast.success(`Estado actualizado a ${nuevoEstado}`);
+            onUpdate();
+            setShowEstadoMenu(false);
+        } catch (e: any) {
+            toast.error('Error al actualizar estado');
+        } finally {
+            setProcesando(false);
+        }
+    };
 
     useEffect(() => {
         const fetchClientes = async () => {
@@ -254,7 +322,8 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
     const totalInvertido = inversiones.reduce((s, i) => s + i.monto, 0);
     const costoRepuestos = v.costo_repuestos_ordenes || 0;
     const costoReal = v.precio_compra + totalInvertido + costoRepuestos;
-    const margen = v.precio_objetivo - costoReal;
+    const ingresoTotal = ingresosHistoricos > 0 ? ingresosHistoricos : v.precio_objetivo;
+    const margen = ingresoTotal - costoReal;
 
     const clientesFiltrados = clientes.filter(c => !busquedaCliente || c.nombre_completo.toLowerCase().includes(busquedaCliente.toLowerCase()) || (c.rut_dni || '').includes(busquedaCliente));
 
@@ -282,8 +351,10 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
     };
 
     const handleDeleteInversion = async (id: string) => {
+        if (!confirm('¿Seguro que deseas eliminar este gasto del historial del vehículo?')) return;
         await supabase.from('flota_inversiones').delete().eq('id', id);
         setInversiones(prev => prev.filter(i => i.id !== id));
+        toast.success('Gasto eliminado correctamente');
         onUpdate();
     };
 
@@ -335,10 +406,18 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
         const { data: urlData } = supabase.storage.from('flota-fotos').getPublicUrl(path);
         let newFotosArray: string[] = [];
         let col = 'fotos_ingreso';
-        if (etapaDestinoFoto === 'ingreso') { newFotosArray = [...fotosIngreso, urlData.publicUrl]; col = 'fotos_ingreso'; setFotosIngreso(newFotosArray); }
-        else if (etapaDestinoFoto === 'reparacion') { newFotosArray = [...fotosReparacion, urlData.publicUrl]; col = 'fotos_reparacion'; setFotosReparacion(newFotosArray); }
-        else if (etapaDestinoFoto === 'finalizado') { newFotosArray = [...fotosFinalizado, urlData.publicUrl]; col = 'fotos_finalizado'; setFotosFinalizado(newFotosArray); }
-        await supabase.from('flota').update({ [col]: newFotosArray }).eq('id', v.id);
+        if (etapaDestinoFoto === 'ingreso') {
+            newFotosArray = [...fotosIngreso, urlData.publicUrl]; col = 'fotos_ingreso'; setFotosIngreso(newFotosArray);
+            // Sync main 'fotos' field so card thumb / header avatar update
+            const newFotos = [...(v.fotos || []).filter(f => !fotosIngreso.includes(f)), ...newFotosArray];
+            await supabase.from('flota').update({ [col]: newFotosArray, fotos: newFotos, updated_at: new Date().toISOString() }).eq('id', v.id);
+        } else if (etapaDestinoFoto === 'reparacion') {
+            newFotosArray = [...fotosReparacion, urlData.publicUrl]; col = 'fotos_reparacion'; setFotosReparacion(newFotosArray); 
+            await supabase.from('flota').update({ [col]: newFotosArray, updated_at: new Date().toISOString() }).eq('id', v.id);
+        } else if (etapaDestinoFoto === 'finalizado') {
+            newFotosArray = [...fotosFinalizado, urlData.publicUrl]; col = 'fotos_finalizado'; setFotosFinalizado(newFotosArray);
+            await supabase.from('flota').update({ [col]: newFotosArray, updated_at: new Date().toISOString() }).eq('id', v.id);
+        }
         toast.success(`Foto añadida ✅`);
         setUploadingFoto(false);
         setEtapaDestinoFoto(null);
@@ -401,6 +480,7 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                 patente: v.patente,
                 estado: 'pendiente_firma',
                 tipo: 'arriendo',
+                precio_total: precioTotal,
                 datos_comerciales: {
                     fecha_salida: fechaSalida,
                     fecha_retorno: fechaRetorno,
@@ -462,6 +542,7 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                 patente: v.patente,
                 estado: 'pendiente_firma',
                 tipo: 'venta',
+                precio_total: precio,
                 datos_comerciales: {
                     precio_venta: precio,
                     vehiculo: `${v.marca} ${v.modelo} ${v.anio || ''}`.trim(),
@@ -512,15 +593,62 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
             <div className="bg-slate-900 border border-slate-700 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
                 {/* Header */}
                 <div className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 p-5 flex items-start justify-between shrink-0">
-                    <div>
-                        <p className="font-mono font-black text-2xl text-white tracking-widest">{v.patente}</p>
-                        <p className="text-slate-400">{v.marca} {v.modelo} {v.anio ? `• ${v.anio}` : ''}</p>
+                    <div className="flex items-center gap-4">
+                        <div className="relative group shrink-0">
+                            <div className="w-16 h-16 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden relative shadow-lg">
+                                {v.fotos && v.fotos.length > 0 ? (
+                                    <img src={v.fotos[0]} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-600"><Car className="w-8 h-8" /></div>
+                                )}
+                                <button onClick={() => { setEtapaDestinoFoto('ingreso'); fileRef.current?.click(); }}
+                                    title="Actualizar portada"
+                                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer z-10">
+                                    <Camera className="w-6 h-6 text-white" />
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <p className="font-mono font-black text-2xl text-white tracking-widest">{v.patente}</p>
+                            <p className="text-slate-400">{v.marca} {v.modelo} {v.anio ? `• ${v.anio}` : ''}</p>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${ESTADO_COLORS[v.estado]?.bg} ${ESTADO_COLORS[v.estado]?.text}`}>
-                            <CircleDot className="w-3 h-3" /> {v.estado}
+                        <div className="relative">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setShowEstadoMenu(!showEstadoMenu); }}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all hover:brightness-110 active:scale-95 shadow-lg shadow-black/20 ${ESTADO_COLORS[v.estado]?.bg} ${ESTADO_COLORS[v.estado]?.text}`}
+                            >
+                                <CircleDot className="w-3 h-3" /> 
+                                {v.estado}
+                                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showEstadoMenu ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {showEstadoMenu && (
+                                <>
+                                    <div className="fixed inset-0 z-[60]" onClick={(e) => { e.stopPropagation(); setShowEstadoMenu(false); }} />
+                                    <div className="absolute right-0 mt-2 w-52 bg-slate-800 border border-slate-700/50 rounded-2xl shadow-2xl z-[70] py-2 overflow-hidden animate-in fade-in zoom-in duration-150 backdrop-blur-xl">
+                                        <div className="px-3 pb-2 mb-1 border-b border-slate-700/50">
+                                            <p className="text-[10px] uppercase font-black text-slate-500 tracking-widest">Cambiar Estado</p>
+                                        </div>
+                                        {(['En Preparación', 'Disponible', 'Arrendado', 'Vendido'] as VehiculoFlota['estado'][]).map(est => (
+                                            <button 
+                                                key={est} 
+                                                onClick={(e) => { e.stopPropagation(); handleUpdateEstado(est); }}
+                                                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold transition-all hover:bg-slate-700 ${v.estado === est ? 'text-white bg-slate-700/50' : 'text-slate-400 hover:text-slate-200'}`}
+                                            >
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${ESTADO_COLORS[est]?.text.replace('text-', 'bg-')}`} />
+                                                    {est}
+                                                </div>
+                                                {v.estado === est && <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </div>
-                        <button onClick={onClose} className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
+                        <button onClick={onClose} className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-black/20">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -544,7 +672,7 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                 <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700">
 
                     {/* ──────────── TAB: FINANCIERO ──────────── */}
-                    {activeTab === 'financiero' && (
+                    {activeTab === 'financiero' && !isEmployee && (
                         <div className="p-5 space-y-5">
                             {/* Resumen Financiero */}
                             <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-4 border border-slate-700/50 space-y-3">
@@ -567,9 +695,9 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                                         <p className="text-lg font-black text-white font-mono">{cl(costoReal)}</p>
                                     </div>
                                     <div className="bg-slate-900/50 rounded-xl p-3 col-span-2">
-                                        <p className="text-xs text-slate-500">{v.destino_unidad === 'Arriendo' ? 'Precio por Día' : 'Precio Objetivo Venta'}</p>
+                                        <p className="text-xs text-slate-500">{v.destino_unidad === 'Arriendo' ? 'Precio por Día' : (ingresosHistoricos > 0 ? 'Ingreso por Venta (Contratos)' : 'Precio Objetivo Venta')}</p>
                                         <p className="text-lg font-black text-cyan-400 font-mono">
-                                            {v.destino_unidad === 'Arriendo' ? `${cl(v.precio_arriendo_dia || 0)}/día` : cl(v.precio_objetivo)}
+                                            {v.destino_unidad === 'Arriendo' ? `${cl(v.precio_arriendo_dia || 0)}/día` : cl(ingresosHistoricos > 0 ? ingresosHistoricos : v.precio_objetivo)}
                                         </p>
                                     </div>
                                 </div>
@@ -666,7 +794,7 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                                                                             <span>{inv.tipo}</span>
                                                                             {inv.proveedor && <><span>•</span><span>{inv.proveedor}</span></>}
                                                                             <span>•</span>
-                                                                            <span>{new Date(inv.fecha).toLocaleDateString('es-CL')}</span>
+                                                                            <span>{new Date(inv.created_at || inv.fecha).toLocaleString('es-CL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit' })}</span>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -773,33 +901,62 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUploadFoto} />
                                 <div className="space-y-3">
                                     {[
-                                        { titulo: 'Ingreso', etapa: 'ingreso' as const, arr: fotosIngreso },
-                                        { titulo: 'Reparación / Proceso', etapa: 'reparacion' as const, arr: fotosReparacion },
-                                        { titulo: 'Finalizado', etapa: 'finalizado' as const, arr: fotosFinalizado },
-                                    ].map(({ titulo, etapa, arr }) => (
-                                        <div key={etapa} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-3">
-                                            <div className="flex items-center justify-between mb-2">
+                                        { titulo: 'Ingreso', etapa: 'ingreso' as const, arr: fotosIngreso, note: notasIngreso, setNote: setNotasIngreso },
+                                        { titulo: 'Reparación / Proceso', etapa: 'reparacion' as const, arr: fotosReparacion, note: notasReparacion, setNote: setNotasReparacion },
+                                        { titulo: 'Finalizado', etapa: 'finalizado' as const, arr: fotosFinalizado, note: notasFinalizado, setNote: setNotasFinalizado },
+                                    ].map(({ titulo, etapa, arr, note, setNote }) => (
+                                        <div key={etapa} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-3 space-y-3">
+                                            <div className="flex items-center justify-between">
                                                 <p className="text-sm font-bold text-slate-300">{titulo}</p>
                                                 <button onClick={() => { setEtapaDestinoFoto(etapa); fileRef.current?.click(); }} disabled={uploadingFoto && etapaDestinoFoto === etapa}
                                                     className="text-xs flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors bg-cyan-500/10 px-2 py-1 rounded-md">
-                                                    {uploadingFoto && etapaDestinoFoto === etapa ? 'Subiendo...' : <><Plus className="w-3 h-3" /> Añadir</>}
+                                                    {uploadingFoto && etapaDestinoFoto === etapa ? 'Subiendo...' : <><Plus className="w-3 h-3" /> Añadir Foto</>}
                                                 </button>
                                             </div>
-                                            {arr.length === 0 ? (
-                                                <p className="text-xs text-slate-500 italic py-1">Sin fotos</p>
-                                            ) : (
-                                                <div className="flex gap-2 overflow-x-auto pb-1">
-                                                    {arr.map((url, i) => (
-                                                        <div key={i} className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden group">
-                                                            <img src={url} alt="" className="w-full h-full object-cover" />
-                                                            <button onClick={() => handleDeleteFoto(url, etapa)}
-                                                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center transition-opacity shadow">
-                                                                <X className="w-3 h-3 text-white" />
-                                                            </button>
+                                            
+                                            {/* Grid para fotos y notas */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {/* Sección Fotos */}
+                                                <div className="space-y-2">
+                                                    {arr.length === 0 ? (
+                                                        <p className="text-xs text-slate-500 italic py-4 bg-slate-900/30 rounded-lg text-center border border-dashed border-slate-700">Sin fotos</p>
+                                                    ) : (
+                                                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-700">
+                                                            {arr.map((url, i) => {
+                                                                const match = url.match(/\/(\d+)\.\w+(?:\?|$)/);
+                                                                const dateStr = match ? new Date(parseInt(match[1])).toLocaleString('es-CL', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
+                                                                return (
+                                                                <div key={i} className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden group border border-slate-700">
+                                                                    <img src={url} alt="" className="w-full h-full object-cover" />
+                                                                    {dateStr && <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white p-0.5 text-center truncate">{dateStr}</div>}
+                                                                    <button onClick={() => handleDeleteFoto(url, etapa)}
+                                                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center transition-opacity shadow cursor-pointer z-10">
+                                                                        <X className="w-3 h-3 text-white" />
+                                                                    </button>
+                                                                </div>
+                                                            )})}
                                                         </div>
-                                                    ))}
+                                                    )}
                                                 </div>
-                                            )}
+
+                                                {/* Sección Notas */}
+                                                <div className="relative">
+                                                    <textarea 
+                                                        value={note}
+                                                        onChange={(e) => setNote(e.target.value)}
+                                                        placeholder={`Añadir notas técnicas de ${titulo.toLowerCase()}...`}
+                                                        className="w-full h-20 bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:border-cyan-500/50 outline-none resize-none transition-all"
+                                                    />
+                                                    <button 
+                                                        onClick={() => handleSaveNote(etapa, note)}
+                                                        disabled={savingNotes === etapa}
+                                                        className="absolute bottom-2 right-2 p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-slate-400 hover:text-cyan-400 transition-all shadow-lg active:scale-95"
+                                                        title="Guardar notas"
+                                                    >
+                                                        {savingNotes === etapa ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -810,6 +967,24 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                     {/* ──────────── TAB: GESTIÓN COMERCIAL ──────────── */}
                     {activeTab === 'comercial' && (
                         <div className="p-5 space-y-5">
+                            
+                            {/* Resumen Histórico de Ingresos (Contratos Firmados) */}
+                            {!isEmployee && (
+                                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-emerald-500/20 rounded-xl">
+                                            <HandshakeIcon className="w-5 h-5 text-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-emerald-500 font-bold uppercase tracking-widest">Ingresos Históricos del Vehículo</p>
+                                            <p className="text-2xl font-black text-white">{cl(ingresosHistoricos)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-slate-400">Total en contratos firmados</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Estado Arrendado: ver info + devolución */}
                             {v.estado === 'Arrendado' && (
@@ -1061,6 +1236,9 @@ function InventarioPicker({ vehiculoId, onConfirmar, saving }: { vehiculoId: str
 
 // ─── Modal Nueva Unidad ────────────────────────────────────────────────────────
 function NuevaUnidadModal({ tallerIdProp, onClose, onCreated }: { tallerIdProp: string; onClose: () => void; onCreated: () => void }) {
+    const fileRef = useRef<HTMLInputElement>(null);
+    const [fotoFile, setFotoFile] = useState<File | null>(null);
+    const [fotoPreview, setFotoPreview] = useState<string | null>(null);
     const [form, setForm] = useState({ 
         patente: '', marca: '', modelo: '', anio: '', color: '', vin: '', 
         precio_compra: '', precio_objetivo: '', notas: '',
@@ -1093,11 +1271,18 @@ function NuevaUnidadModal({ tallerIdProp, onClose, onCreated }: { tallerIdProp: 
             setEstadoBusqueda('❌ Error al buscar');
         }
     };
+    const handleUploadFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setFotoFile(file);
+            setFotoPreview(URL.createObjectURL(file));
+        }
+    };
 
     const handleSave = async () => {
         if (!form.patente || !form.marca || !form.modelo) { toast.error('Patente, marca y modelo son obligatorios'); return; }
         setSaving(true);
-        const { error } = await supabase.from('flota').insert({
+        const { data: newV, error } = await supabase.from('flota').insert({
             taller_id: tallerIdProp,
             patente: form.patente.toUpperCase(),
             marca: form.marca,
@@ -1111,9 +1296,24 @@ function NuevaUnidadModal({ tallerIdProp, onClose, onCreated }: { tallerIdProp: 
             estado_ingreso: form.estado_ingreso || null,
             destino_unidad: form.destino_unidad || 'Venta',
             precio_arriendo_dia: form.destino_unidad === 'Arriendo' ? (Number(form.precio_arriendo_dia.replace(/\./g, '')) || null) : null
-        });
-        if (error) toast.error('Error al crear unidad: ' + error.message);
-        else { toast.success('Unidad añadida a la flota ✅'); onCreated(); onClose(); }
+        }).select('id').single();
+        if (error) {
+            toast.error('Error al crear unidad: ' + error.message);
+        } else if (newV) {
+            if (fotoFile) {
+                const ext = fotoFile.name.split('.').pop();
+                const path = `${tallerIdProp}/${newV.id}/ingreso/${Date.now()}.${ext}`;
+                const { error: upErr } = await supabase.storage.from('flota-fotos').upload(path, fotoFile, { upsert: true });
+                if (!upErr) {
+                    const { data: urlData } = supabase.storage.from('flota-fotos').getPublicUrl(path);
+                    const url = urlData.publicUrl;
+                    await supabase.from('flota').update({ fotos: [url], fotos_ingreso: [url] }).eq('id', newV.id);
+                }
+            }
+            toast.success('Unidad añadida a la flota ✅'); 
+            onCreated(); 
+            onClose(); 
+        }
         setSaving(false);
     };
 
@@ -1133,6 +1333,22 @@ function NuevaUnidadModal({ tallerIdProp, onClose, onCreated }: { tallerIdProp: 
                     <button onClick={onClose} className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
+                    <div className="flex justify-center mb-2">
+                        <div className="relative group shrink-0 cursor-pointer" onClick={() => fileRef.current?.click()}>
+                            <div className="w-20 h-20 rounded-full bg-slate-800 border-2 border-slate-700 overflow-hidden relative shadow-lg flex items-center justify-center">
+                                {fotoPreview ? (
+                                    <img src={fotoPreview} alt="Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <Camera className="w-8 h-8 text-slate-500" />
+                                )}
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <Upload className="w-6 h-6 text-white" />
+                                </div>
+                            </div>
+                            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUploadFoto} />
+                        </div>
+                    </div>
+                
                     <div className="space-y-1">
                         <Label className="text-slate-400 text-xs">Patente *</Label>
                         <div className="flex gap-2">
@@ -1205,6 +1421,7 @@ function NuevaUnidadModal({ tallerIdProp, onClose, onCreated }: { tallerIdProp: 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 function FlotaContent() {
     const { user } = useAuth();
+    const isEmployee = user?.role === 'mecanico' || user?.role === 'vendedor';
     const [vehiculos, setVehiculos] = useState<VehiculoFlota[]>([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<VehiculoFlota | null>(null);
@@ -1218,7 +1435,7 @@ function FlotaContent() {
             .from('flota')
             .select('*, inversiones:flota_inversiones(*)')
             .eq('taller_id', user.tallerId)
-            .order('created_at', { ascending: false });
+            .order('updated_at', { ascending: false, nullsFirst: false });
 
         if (!error && data) {
             // Cargar clientes mapeados
@@ -1258,10 +1475,30 @@ function FlotaContent() {
                 }
             }
             
+            // Obtener ingresos de contratos firmados
+            const { data: contratosData } = await supabase
+                .from('contratos')
+                .select('vehiculo_patente, precio_total')
+                .eq('taller_id', user.tallerId)
+                .eq('estado', 'firmado');
+
+            const ingresosPorPatente: Record<string, number> = {};
+            if (contratosData) {
+                contratosData.forEach(c => {
+                    if (c.vehiculo_patente) {
+                        if (!ingresosPorPatente[c.vehiculo_patente]) {
+                            ingresosPorPatente[c.vehiculo_patente] = 0;
+                        }
+                        ingresosPorPatente[c.vehiculo_patente] += (c.precio_total || 0);
+                    }
+                });
+            }
+
             const vehiculosEnriquecidos = (data as VehiculoFlota[]).map(v => {
                 return {
                     ...v,
                     costo_repuestos_ordenes: ordenesMontoRepuestos[v.patente] || 0,
+                    ingresos_historicos: ingresosPorPatente[v.patente] || 0,
                     cliente_nombre: v.cliente_id ? clientsDict[v.cliente_id.toString()] : undefined
                 };
             });
@@ -1283,6 +1520,7 @@ function FlotaContent() {
         disponibles: vehiculos.filter(v => v.estado === 'Disponible').length,
         enPrep: vehiculos.filter(v => v.estado === 'En Preparación').length,
         totalInvertido: vehiculos.reduce((s, v) => s + v.precio_compra + (v.costo_repuestos_ordenes || 0) + (v.inversiones || []).reduce((si, i) => si + i.monto, 0), 0),
+        ingresos: vehiculos.reduce((s, v) => s + (v.ingresos_historicos || 0), 0),
     };
 
     return (
@@ -1305,11 +1543,16 @@ function FlotaContent() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 <StatCard label="Total Unidades" value={stats.total} icon={Car} color="bg-cyan-500/20 text-cyan-400" />
                 <StatCard label="Disponibles" value={stats.disponibles} icon={CheckCircle2} color="bg-emerald-500/20 text-emerald-400" />
                 <StatCard label="En Preparación" value={stats.enPrep} icon={Clock} color="bg-amber-500/20 text-amber-400" />
-                <StatCard label="Capital Invertido" value={stats.totalInvertido.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 })} icon={DollarSign} color="bg-purple-500/20 text-purple-400" />
+                {!isEmployee && (
+                    <>
+                        <StatCard label="Capital Invertido" value={stats.totalInvertido.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 })} icon={DollarSign} color="bg-purple-500/20 text-purple-400" />
+                        <StatCard label="Ingresos Totales" value={cl(stats.ingresos)} icon={TrendingUp} color="bg-emerald-500/20 text-emerald-400" />
+                    </>
+                )}
             </div>
 
             {/* Filtros */}

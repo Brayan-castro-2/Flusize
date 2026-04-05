@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -58,6 +58,96 @@ const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
 };
 
+// Componente para mostrar contratos del cliente (Lazy loading)
+function ContratosCliente({ rut, tallerId }: { rut: string; tallerId: string }) {
+    const [contratos, setContratos] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchContratos() {
+            if (!rut || !tallerId) return;
+            setLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from('contratos')
+                    .select('*')
+                    .eq('cliente_rut_dni', rut)
+                    .eq('taller_id', tallerId)
+                    .order('creado_en', { ascending: false });
+
+                if (data) setContratos(data);
+            } catch (error) {
+                console.error('Error fetching contracts:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchContratos();
+    }, [rut, tallerId]);
+
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <p className="text-slate-400 text-sm font-medium animate-pulse">Cargando historial contractual...</p>
+        </div>
+    );
+
+    if (contratos.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-slate-900/40 rounded-2xl border border-slate-800 border-dashed group hover:border-blue-500/30 transition-colors">
+                <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <FileText className="w-8 h-8 text-slate-600 group-hover:text-blue-500/50" />
+                </div>
+                <h5 className="text-white font-bold mb-1">Sin contratos registrados</h5>
+                <p className="text-sm text-slate-500 max-w-[280px]">No se han generado contratos de venta o arriendo para este RUT aún.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {contratos.map((c) => (
+                <div key={c.id} className="group bg-[#1E293B] border border-slate-700/60 p-5 rounded-2xl hover:border-blue-500/50 transition-all shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3">
+                        <div className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                            c.estado === 'firmado' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        }`}>
+                            {c.estado || 'activo'}
+                        </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-4 mb-4">
+                        <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700 shadow-inner group-hover:bg-blue-500/10 transition-colors">
+                            <Car className="w-6 h-6 text-slate-400 group-hover:text-blue-400" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest">{c.tipo || 'CONTRATO'}</p>
+                            <h4 className="text-white font-bold text-sm tracking-tight">{c.vehiculo_marca} {c.vehiculo_modelo}</h4>
+                            <p className="text-xs text-slate-500 font-mono mt-0.5">{c.vehiculo_patente}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 py-3 border-t border-slate-700/50 mt-2">
+                        <div>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-0.5">Fecha</p>
+                            <p className="text-xs text-white font-medium">{new Date(c.creado_en).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-0.5">Monto Total</p>
+                            <p className="text-sm text-emerald-400 font-black">{formatCurrency(c.precio_total || 0)}</p>
+                        </div>
+                    </div>
+
+                    <Button variant="ghost" size="sm" className="w-full mt-2 bg-slate-800/30 hover:bg-blue-600 hover:text-white text-slate-400 border border-transparent hover:border-blue-500 text-[11px] font-bold h-9 rounded-xl transition-all">
+                        <FileText className="w-3.5 h-3.5 mr-2" />
+                        Ver Documentación
+                    </Button>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 // Skeleton loader para la tabla de clientes
 function ClientesSkeleton() {
     return (
@@ -105,7 +195,9 @@ function ClientesSkeleton() {
     );
 }
 
-export default function ClientesPage() {
+export default function ClientesContent() {
+    const { user } = useAuth();
+    const isEmployee = user?.role === 'mecanico' || user?.role === 'vendedor';
     const router = useRouter();
     const searchParams = useSearchParams();
     const query = searchParams.get('q') || '';
@@ -128,6 +220,8 @@ export default function ClientesPage() {
     }, [data]);
 
     const totalCount = data?.pages[0]?.count || 0;
+
+    const tallerId = user?.taller_id;
 
     const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -323,26 +417,30 @@ export default function ClientesPage() {
                     </div>
                 </Card>
 
-                <Card className="bg-[#1E293B] border-slate-700 p-6 flex items-center gap-5 hover:border-yellow-500/50 hover:shadow-lg hover:shadow-yellow-500/10 transition-all group rounded-2xl">
-                    <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center group-hover:bg-yellow-500/20 transition-colors border border-yellow-500/20 group-hover:scale-110">
-                        <Wallet className="w-7 h-7 text-yellow-400" />
-                    </div>
-                    <div>
-                        <p className="text-yellow-400/80 text-[11px] font-bold uppercase tracking-widest mb-1">Ingresos Totales</p>
-                        <p className="text-2xl font-black text-white leading-none tracking-tight">{formatCurrency(kpis.totalRevenue)}</p>
-                    </div>
-                </Card>
+                {!isEmployee && (
+                    <>
+                        <Card className="bg-[#1E293B] border-slate-700 p-6 flex items-center gap-5 hover:border-yellow-500/50 hover:shadow-lg hover:shadow-yellow-500/10 transition-all group rounded-2xl">
+                            <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 flex items-center justify-center group-hover:bg-yellow-500/20 transition-colors border border-yellow-500/20 group-hover:scale-110">
+                                <Wallet className="w-7 h-7 text-yellow-400" />
+                            </div>
+                            <div>
+                                <p className="text-yellow-400/80 text-[11px] font-bold uppercase tracking-widest mb-1">Ingresos Totales</p>
+                                <p className="text-2xl font-black text-white leading-none tracking-tight">{formatCurrency(kpis.totalRevenue)}</p>
+                            </div>
+                        </Card>
 
-                <Card className="bg-[#1E293B] border-slate-700/50 p-6 flex items-center gap-5 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10 transition-all group rounded-2xl relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative z-10 w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center group-hover:bg-red-500/20 transition-colors border border-red-500/20 group-hover:scale-110">
-                        <AlertTriangle className="w-7 h-7 text-red-500" />
-                    </div>
-                    <div className="relative z-10">
-                        <p className="text-red-400/80 text-[11px] font-bold uppercase tracking-widest mb-1">Cartera Vencida</p>
-                        <p className="text-2xl font-black text-red-400 leading-none tracking-tight">{formatCurrency(kpis.totalDebt)}</p>
-                    </div>
-                </Card>
+                        <Card className="bg-[#1E293B] border-slate-700/50 p-6 flex items-center gap-5 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10 transition-all group rounded-2xl relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="relative z-10 w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center group-hover:bg-red-500/20 transition-colors border border-red-500/20 group-hover:scale-110">
+                                <AlertTriangle className="w-7 h-7 text-red-500" />
+                            </div>
+                            <div className="relative z-10">
+                                <p className="text-red-400/80 text-[11px] font-bold uppercase tracking-widest mb-1">Cartera Vencida</p>
+                                <p className="text-2xl font-black text-red-400 leading-none tracking-tight">{formatCurrency(kpis.totalDebt)}</p>
+                            </div>
+                        </Card>
+                    </>
+                )}
             </div>
 
             {/* Search */}
@@ -408,18 +506,26 @@ export default function ClientesPage() {
                                             <DropdownMenuContent align="end" className="bg-[#0F172A] border-slate-700 text-slate-200 rounded-xl shadow-xl">
                                                 <DropdownMenuItem onClick={() => handleEditCliente(cliente, 'datos')} className="hover:bg-slate-800 focus:bg-slate-800 cursor-pointer">Editar Cliente</DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleEditCliente(cliente, 'historial')} className="hover:bg-slate-800 focus:bg-slate-800 text-blue-400 cursor-pointer">Ver Historial de Órdenes</DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                    onClick={() => router.push(`/admin/contratos?rut=${cliente.rut_dni}`)} 
+                                                    className="hover:bg-slate-800 focus:bg-slate-800 text-amber-400 cursor-pointer"
+                                                >
+                                                    📝 Nuevo Contrato
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-3 py-3 border-t border-slate-700/50 border-b">
-                                        <div className="bg-slate-800/30 p-2 rounded-lg">
-                                            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Gastado</p>
-                                            <p className="text-base font-black text-emerald-400">{formatCurrency(cliente.total_gastado)}</p>
-                                        </div>
-                                        <div className="bg-slate-800/30 p-2 rounded-lg">
-                                            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Visitas</p>
-                                            <p className="text-base font-bold text-white">{cliente.total_ordenes}</p>
+                                        {!isEmployee && (
+                                            <div className="text-right">
+                                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Gastado</p>
+                                                <p className="text-base font-black text-emerald-400">{formatCurrency(cliente.total_gastado)}</p>
+                                            </div>
+                                        )}
+                                        <div className="text-right pl-4 border-l border-slate-800/50">
+                                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Órdenes</p>
+                                            <p className="text-base font-black text-white">{cliente.total_ordenes}</p>
                                         </div>
                                     </div>
 
@@ -606,6 +712,15 @@ export default function ClientesPage() {
                                                                         </div>
                                                                         <span className="font-medium">Nueva Recepción</span>
                                                                     </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        className="flex items-center gap-2 cursor-pointer hover:bg-blue-500/10 focus:bg-blue-500/10 text-blue-400 rounded-lg px-3 py-2 transition-colors mt-1"
+                                                                        onClick={(e) => { e.stopPropagation(); router.push(`/admin/contratos?rut=${cliente.rut_dni}`); }}
+                                                                    >
+                                                                        <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400">
+                                                                            <FileText className="w-4 h-4" />
+                                                                        </div>
+                                                                        <span className="font-medium text-blue-400">📝 Nuevo Contrato</span>
+                                                                    </DropdownMenuItem>
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
                                                         </div>
@@ -616,10 +731,11 @@ export default function ClientesPage() {
                                                         <td colSpan={6} className="p-0 border-b border-slate-800/50">
                                                             <div className="p-6 border-l-2 border-blue-500 ml-6 mr-6 mb-6 mt-2 rounded-r-xl bg-slate-900/40 shadow-inner">
                                                                 <Tabs defaultValue="vehiculos" className="w-full">
-                                                                    <TabsList className="bg-[#1E293B] border border-slate-700/60 p-1 mb-6 rounded-xl flex">
-                                                                        <TabsTrigger value="datos" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all flex-1">Datos Personales</TabsTrigger>
-                                                                        <TabsTrigger value="vehiculos" className="rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all shadow-sm flex-1">Vehículos</TabsTrigger>
-                                                                        <TabsTrigger value="historial" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all flex-1">Historial ({cliente.total_ordenes})</TabsTrigger>
+                                                                    <TabsList className="bg-[#1E293B] border border-slate-700/60 p-1 mb-6 rounded-xl flex overflow-x-auto">
+                                                                        <TabsTrigger value="datos" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all flex-1 whitespace-nowrap">Datos Personales</TabsTrigger>
+                                                                        <TabsTrigger value="vehiculos" className="rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all shadow-sm flex-1 whitespace-nowrap">Flota ({cliente.vehiculos?.length || 0})</TabsTrigger>
+                                                                        <TabsTrigger value="contratos" className="rounded-lg data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all shadow-sm flex-1 whitespace-nowrap">Contratos</TabsTrigger>
+                                                                        <TabsTrigger value="historial" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 font-medium py-2 px-6 transition-all flex-1 whitespace-nowrap">Historial ({cliente.total_ordenes})</TabsTrigger>
                                                                     </TabsList>
 
                                                                     <TabsContent value="datos" className="space-y-4 outline-none">
@@ -677,8 +793,16 @@ export default function ClientesPage() {
                                                                                                 </div>
                                                                                                 <div className="flex-1">
                                                                                                     <p className="font-bold text-white font-mono tracking-wider text-[15px]">{v.patente}</p>
-                                                                                                    <p className="text-xs text-slate-400 mt-0.5 font-medium flex items-center gap-1.5">
-                                                                                                        {v.marca || 'S/M'} <span className="w-1 h-1 bg-slate-600 rounded-full"></span> {v.modelo ? v.modelo : 'S/M'}
+                                                                                                    <p className="text-xs text-slate-400 mt-0.5 font-medium flex flex-col gap-1.5">
+                                                                                                        <span className="flex items-center gap-1.5">
+                                                                                                            {v.marca || 'S/M'} <span className="w-1 h-1 bg-slate-600 rounded-full"></span> {v.modelo ? v.modelo : 'S/M'}
+                                                                                                        </span>
+                                                                                                        {v.fue_vendido && (
+                                                                                                            <span className="flex items-center gap-1 text-[9px] font-black uppercase text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 w-fit">
+                                                                                                                <Crown className="w-2.5 h-2.5" />
+                                                                                                                Comprado en RentMontt
+                                                                                                            </span>
+                                                                                                        )}
                                                                                                     </p>
                                                                                                 </div>
                                                                                                 <Button
@@ -696,15 +820,48 @@ export default function ClientesPage() {
                                                                         </div>
                                                                     </TabsContent>
 
-                                                                    <TabsContent value="historial" className="outline-none">
-                                                                        <div className="flex flex-col sm:flex-row items-center justify-between p-6 bg-[#1E293B] rounded-2xl border border-slate-700/50 shadow-md relative overflow-hidden">
-                                                                            <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
-                                                                            <div className="relative z-10 mb-4 sm:mb-0">
-                                                                                <h4 className="text-base font-bold text-white flex items-center gap-2 mb-1">
-                                                                                    <FileText className="w-5 h-5 text-emerald-400" />
-                                                                                    Registro de Intervenciones
-                                                                                </h4>
-                                                                                <p className="text-sm text-slate-400">Ver análisis detallado, órdenes pasadas y presupuestos de {cliente.nombre_completo}.</p>
+                                                                    <TabsContent value="contratos" className="outline-none">
+                                                                        <div className="bg-slate-900/60 rounded-2xl border border-slate-800/50 p-6 shadow-xl backdrop-blur-sm">
+                                                                            <div className="flex items-center justify-between mb-6">
+                                                                                <div>
+                                                                                    <h4 className="text-white font-black text-lg tracking-tight flex items-center gap-2">
+                                                                                        <FileText className="w-5 h-5 text-emerald-400" />
+                                                                                        Contratos y Negocios (RentMontt)
+                                                                                    </h4>
+                                                                                    <p className="text-xs text-slate-500 font-medium">Contratos de venta, arriendo y leasing asociados</p>
+                                                                                </div>
+                                                                                <Link href={`/admin/contratos?cliente=${cliente.id}`}>
+                                                                                    <Button variant="outline" size="sm" className="bg-slate-800/50 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 text-[11px] font-bold h-8 rounded-lg">
+                                                                                        Gestionar Todos
+                                                                                        <ArrowRight className="w-3.5 h-3.5 ml-2" />
+                                                                                    </Button>
+                                                                                </Link>
+                                                                            </div>
+                                                                            <ContratosCliente rut={cliente.rut_dni} tallerId={tallerId || ''} />
+                                                                        </div>
+                                                                    </TabsContent>
+
+                                                                    <TabsContent value="historial" className="space-y-4 outline-none">
+                                                                        <div className="bg-slate-900/60 rounded-2xl border border-slate-800/50 p-6 shadow-xl backdrop-blur-sm overflow-hidden">
+                                                                            <div className="flex items-center justify-between mb-6">
+                                                                                <div>
+                                                                                    <h4 className="text-white font-black text-lg tracking-tight flex items-center gap-2">
+                                                                                        <Wrench className="w-5 h-5 text-blue-400" />
+                                                                                        Historial de Servicios
+                                                                                    </h4>
+                                                                                    <p className="text-xs text-slate-500 font-medium">Cronología de órdenes de trabajo y reparaciones</p>
+                                                                                </div>
+                                                                                <div className="flex gap-2">
+                                                                                    <Button 
+                                                                                        variant="outline" 
+                                                                                        size="sm" 
+                                                                                        className="bg-slate-800/50 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 text-[11px] font-bold h-8 rounded-lg"
+                                                                                        onClick={() => handleCreateOrder(cliente)}
+                                                                                    >
+                                                                                        Nueva Orden
+                                                                                        <Plus className="w-3.5 h-3.5 ml-2" />
+                                                                                    </Button>
+                                                                                </div>
                                                                             </div>
                                                                             <Button className="relative z-10 bg-slate-800 hover:bg-slate-700 text-white shadow-lg border border-slate-600 h-11 px-6 rounded-xl font-bold transition-transform hover:scale-105" onClick={() => handleEditCliente(cliente, 'historial')}>
                                                                                 Ver Historial Completo

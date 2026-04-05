@@ -106,6 +106,7 @@ interface ContratoTracking {
     fecha_retorno: string | null;
     dias: number | null;
     firma_base64: string | null;
+    vendedor_firma_base64: string | null;
     firmado_en: string | null;
 }
 
@@ -132,7 +133,7 @@ async function fetchTracking(id: string): Promise<TrackingData | null> {
         .from('ordenes')
         .select(`
       id, numero_orden, estado, descripcion_problema, descripcion_ingreso,
-      fecha_ingreso, fotos_urls, patente_vehiculo, tipo_orden, eta_entrega, detalles_vehiculo,
+      fecha_ingreso, fotos_urls, patente_vehiculo, tipo_orden, eta_entrega,
       vehiculos:vehiculos!vehiculo_local_id ( marca, modelo, patente, ano ),
       talleres ( nombre, telefono, direccion, latitud, longitud )
     `)
@@ -792,6 +793,7 @@ function ContratoFirmaSection({ contrato, ordenId, onFirmado }: {
             pie_pagado: contrato.pie_pagado || 0,
             saldo_pendiente: contrato.saldo_pendiente || 0,
             firma_base64: firma,
+            vendedor_firma_base64: contrato.vendedor_firma_base64,
         }
         : {
             tipo: 'arriendo',
@@ -817,6 +819,7 @@ function ContratoFirmaSection({ contrato, ordenId, onFirmado }: {
             precio_dia: contrato.precio_dia || 0,
             dias: contrato.dias || 0,
             firma_base64: firma,
+            vendedor_firma_base64: contrato.vendedor_firma_base64,
         };
 
     const handleFirmar = async () => {
@@ -835,6 +838,16 @@ function ContratoFirmaSection({ contrato, ordenId, onFirmado }: {
             }).eq('id', contrato.id);
 
             if (error) throw error;
+
+            // ACTUALIZAR ESTADO DEL VEHICULO EN FLOTA AL FIRMAR CONTRATO
+            if (contrato.vehiculo_patente) {
+                const nuevoEstado = contrato.tipo === 'venta' ? 'Vendido' : 'Arrendado';
+                await supabase.from('flota').update({
+                    estado: nuevoEstado,
+                    updated_at: new Date().toISOString()
+                }).eq('patente', contrato.vehiculo_patente);
+            }
+
             onFirmado();
         } catch (err: any) {
             alert('Error al guardar la firma: ' + (err?.message || 'Intenta de nuevo.'));
@@ -992,13 +1005,39 @@ export default function TrackingPage() {
         // Buscar contrato pendiente de firma para esta orden
         const fetchContrato = async () => {
             if (!id) return;
-            const { data: ct } = await supabase
+            // Paso 1: buscar por orden_id
+            const { data: ct1 } = await supabase
                 .from('contratos')
                 .select('*')
                 .eq('orden_id', id)
                 .eq('estado', 'pendiente_firma')
                 .maybeSingle();
-            if (ct) setContrato(ct as ContratoTracking);
+
+            if (ct1) { setContrato(ct1 as ContratoTracking); return; }
+
+            // Paso 2: fallback — buscar por patente si la orden está vinculada a un vehículo
+            const { data: ordenData } = await supabase
+                .from('ordenes')
+                .select('patente_vehiculo')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (!ordenData?.patente_vehiculo) return;
+
+            const { data: ct2 } = await supabase
+                .from('contratos')
+                .select('*')
+                .eq('vehiculo_patente', ordenData.patente_vehiculo)
+                .eq('estado', 'pendiente_firma')
+                .order('creado_en', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (ct2) {
+                setContrato(ct2 as ContratoTracking);
+                // Vincular el contrato a esta orden para que el lookup sea directo la próxima vez
+                await supabase.from('contratos').update({ orden_id: id }).eq('id', ct2.id);
+            }
         };
         fetchContrato();
     }, [id, isLoadingAuth]);
@@ -1082,6 +1121,7 @@ export default function TrackingPage() {
         ? `SOS Arriendo: Asistencia en ruta, patente ${data.vehiculo?.patente || data.patente_vehiculo}`
         : `Hola, consulto por la orden #${data.numero_orden}`);
     const waLink = phone ? `https://wa.me/${phone}?text=${waMsg}` : null;
+    const isModoFirma = !!contrato && !firmaGuardada;
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -1089,40 +1129,58 @@ export default function TrackingPage() {
 
                 <TrackingHeader data={data} onBack={() => window.history.back()} />
 
-                {data.tipo_orden === 'arriendo' || data.tipo_orden === 'venta' ? (
-                    <RentalActiveCard data={data} waLink={waLink} />
-                ) : (
-                    <>
-                        <div className="py-2">
-                            <StatusTimeline data={data} />
+                {isModoFirma && (
+                    <div className="px-4 pt-2 pb-4 text-center">
+                        <div className="bg-blue-600/5 border border-blue-600/20 rounded-3xl p-6 shadow-sm">
+                            <div className="w-14 h-14 bg-blue-600/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <FileText className="w-7 h-7 text-blue-600" />
+                            </div>
+                            <h2 className="text-xl font-black text-slate-800 tracking-tight mb-2">Firma de Contrato</h2>
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                                Por favor, revisa el documento y realiza tu firma digital para finalizar el proceso de {contrato.tipo === 'venta' ? 'compra' : 'arriendo'}.
+                            </p>
                         </div>
+                    </div>
+                )}
 
-                        <div className="h-px bg-slate-200 mx-5" role="separator" />
+                {!isModoFirma && (
+                    <>
+                        {data.tipo_orden === 'arriendo' || data.tipo_orden === 'venta' ? (
+                            <RentalActiveCard data={data} waLink={waLink} />
+                        ) : (
+                            <>
+                                <div className="py-2">
+                                    <StatusTimeline data={data} />
+                                </div>
 
-                        <div className="pt-6 pb-2">
-                            <LiveActionCard
-                                fotos={data.fotos_urls}
-                                onOpenFotos={() => {
-                                    if (data.fotos_urls.length > 0) {
-                                        setPhotoIdx(0);
-                                        setGalleryOpen(true);
-                                    } else {
-                                        alert("Aún no se han subido fotos de inspección.");
-                                    }
-                                }}
-                                onOpenDetails={() => setDetailsOpen(true)}
+                                <div className="h-px bg-slate-200 mx-5" role="separator" />
+
+                                <div className="pt-6 pb-2">
+                                    <LiveActionCard
+                                        fotos={data.fotos_urls}
+                                        onOpenFotos={() => {
+                                            if (data.fotos_urls.length > 0) {
+                                                setPhotoIdx(0);
+                                                setGalleryOpen(true);
+                                            } else {
+                                                alert("Aún no se han subido fotos de inspección.");
+                                            }
+                                        }}
+                                        onOpenDetails={() => setDetailsOpen(true)}
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        <div className="py-2">
+                            <UpsellCard
+                                trackingId={data.id}
+                                isLoggedIn={!!user}
+                                userName={(user as any)?.user_metadata?.nombre || (user as any)?.user_metadata?.name || null}
                             />
                         </div>
                     </>
                 )}
-
-                <div className="py-2">
-                    <UpsellCard
-                        trackingId={data.id}
-                        isLoggedIn={!!user}
-                        userName={(user as any)?.user_metadata?.nombre || (user as any)?.user_metadata?.name || null}
-                    />
-                </div>
 
                 {/* ZONA DE FIRMA DEL CONTRATO */}
                 {contrato && !firmaGuardada && (

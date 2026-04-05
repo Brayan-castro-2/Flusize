@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, FileText, Car, User, DollarSign, Calendar, Loader2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
@@ -28,32 +28,58 @@ interface NuevoContratoFormProps {
         taller_id: string;
         orden_id: string | null;
     };
+    contratoToEdit?: any; // Añadido para edición
 }
 
-export function NuevoContratoForm({ isOpen, onClose, onSuccess, vehiculo }: NuevoContratoFormProps) {
+export function NuevoContratoForm({ isOpen, onClose, onSuccess, vehiculo, contratoToEdit }: NuevoContratoFormProps) {
     const { user } = useAuth();
 
-    const tipoInicial = vehiculo.destino_unidad === 'Arriendo' ? 'arriendo' : 'venta';
+    const tipoInicial = contratoToEdit?.tipo || (vehiculo.destino_unidad === 'Arriendo' ? 'arriendo' : 'venta');
     const [tipo, setTipo] = useState<'venta' | 'arriendo'>(tipoInicial);
 
     // Datos cliente
-    const [clienteNombre, setClienteNombre] = useState(vehiculo.cliente_nombre || '');
-    const [clienteRut, setClienteRut] = useState('');
-    const [clienteDomicilio, setClienteDomicilio] = useState('');
-    const [clienteTelefono, setClienteTelefono] = useState('');
+    const [clienteNombre, setClienteNombre] = useState(contratoToEdit?.cliente_nombre || vehiculo.cliente_nombre || '');
+    const [clienteRut, setClienteRut] = useState(contratoToEdit?.cliente_rut || '');
+    const [clienteDomicilio, setClienteDomicilio] = useState(contratoToEdit?.cliente_domicilio || '');
+    const [clienteTelefono, setClienteTelefono] = useState(contratoToEdit?.cliente_telefono || '');
 
     // Datos comerciales (venta)
-    const [precioTotal, setPrecioTotal] = useState(vehiculo.precio_objetivo?.toString() || '');
-    const [piePagado, setPiePagado] = useState('');
-    const [saldoPendiente, setSaldoPendiente] = useState('');
+    const [precioTotal, setPrecioTotal] = useState(contratoToEdit?.precio_total?.toString() || vehiculo.precio_objetivo?.toString() || '');
+    const [piePagado, setPiePagado] = useState(contratoToEdit?.pie_pagado?.toString() || '');
+    const [saldoPendiente, setSaldoPendiente] = useState(contratoToEdit?.saldo_pendiente?.toString() || '');
 
     // Datos comerciales (arriendo)
-    const [fechaSalida, setFechaSalida] = useState(vehiculo.fecha_salida?.slice(0, 10) || '');
-    const [fechaRetorno, setFechaRetorno] = useState(vehiculo.fecha_retorno?.slice(0, 10) || '');
-    const [precioDia, setPrecioDia] = useState(vehiculo.precio_arriendo_dia?.toString() || '');
+    const [fechaSalida, setFechaSalida] = useState(contratoToEdit?.fecha_salida?.slice(0, 10) || vehiculo.fecha_salida?.slice(0, 10) || '');
+    const [fechaRetorno, setFechaRetorno] = useState(contratoToEdit?.fecha_retorno?.slice(0, 10) || vehiculo.fecha_retorno?.slice(0, 10) || '');
+    const [precioDia, setPrecioDia] = useState(contratoToEdit?.precio_dia?.toString() || vehiculo.precio_arriendo_dia?.toString() || '');
 
-    const [notas, setNotas] = useState('');
+    const [notas, setNotas] = useState(contratoToEdit?.notas || '');
     const [guardando, setGuardando] = useState(false);
+    
+    // Datos legales del vendedor/usuario
+    const [vendedorLegal, setVendedorLegal] = useState<{ nombre: string; rut: string } | null>(null);
+
+    useEffect(() => {
+        if (user?.id) fetchVendedorLegal();
+    }, [user?.id]);
+
+    const fetchVendedorLegal = async () => {
+        try {
+            const { data } = await supabase
+                .from('perfiles')
+                .select('nombre_legal, rut_legal')
+                .eq('id', user?.id)
+                .single();
+            if (data?.nombre_legal) {
+                setVendedorLegal({
+                    nombre: data.nombre_legal,
+                    rut: data.rut_legal || ''
+                });
+            }
+        } catch (e) {
+            console.error('Error fetching legal data:', e);
+        }
+    };
 
     const dias = fechaSalida && fechaRetorno
         ? Math.max(1, Math.ceil((new Date(fechaRetorno).getTime() - new Date(fechaSalida).getTime()) / 86400000))
@@ -68,18 +94,78 @@ export function NuevoContratoForm({ isOpen, onClose, onSuccess, vehiculo }: Nuev
     };
 
     const guardar = async () => {
+        // Validaciones dinámicas según tipo
         if (!clienteNombre.trim()) { toast.error('El nombre del cliente es obligatorio'); return; }
-        if (!precioTotal || parseFloat(precioTotal) <= 0) { toast.error('El precio total es obligatorio'); return; }
+        
+        const totalAValidar = tipo === 'arriendo' ? precioTotalArriendo : parseFloat(precioTotal || '0');
+        if (!totalAValidar || totalAValidar <= 0) { 
+            toast.error(tipo === 'arriendo' ? 'El cálculo de arriendo no puede ser 0. Revisa fechas y precio/día.' : 'El precio total de venta es obligatorio'); 
+            return; 
+        }
+        
         if (tipo === 'arriendo' && (!fechaSalida || !fechaRetorno)) { toast.error('Las fechas de arriendo son obligatorias'); return; }
+
+        if (!vendedorLegal?.nombre) {
+            const proceed = confirm('⚠️ No has configurado tus "Datos Legales" en la sección de contratos. El documento se generará con datos genéricos de la empresa. ¿Deseas continuar?');
+            if (!proceed) return;
+        }
 
         setGuardando(true);
         try {
+            // --- CRM Auto-Sync Logic ---
+            if (clienteRut && clienteNombre) {
+                const { data: existingCliente } = await supabase
+                    .from('clientes')
+                    .select('id')
+                    .eq('rut_dni', clienteRut)
+                    .eq('taller_id', vehiculo.taller_id)
+                    .maybeSingle();
+
+                if (!existingCliente) {
+                    console.log('🔍 Cliente no encontrado en CRM, creando automáticamente...');
+                    const { error: syncError } = await supabase.from('clientes').insert({
+                        taller_id: vehiculo.taller_id,
+                        nombre_completo: clienteNombre,
+                        rut_dni: clienteRut,
+                        telefono: clienteTelefono,
+                        direccion: clienteDomicilio,
+                        creado_en: new Date().toISOString()
+                    });
+                    
+                    if (syncError) {
+                        console.warn('⚠️ No se pudo sincronizar automáticamente con el CRM:', syncError.message);
+                    } else {
+                        toast.info('🆕 Nuevo cliente añadido al CRM automáticamente');
+                    }
+                }
+            }
+
+            let finalOrdenId = contratoToEdit?.orden_id || vehiculo.orden_id || null;
+            
+            // Generar una orden "dummy" si no existe, para que funcione el Tracking Link de forma obligigatoria
+            if (!finalOrdenId) {
+                const reqOrden = await supabase.from('ordenes').insert({
+                    taller_id: vehiculo.taller_id,
+                    patente_vehiculo: vehiculo.patente,
+                    tipo_orden: tipo,
+                    estado: 'en_proceso',
+                    fecha_ingreso: new Date().toISOString(),
+                    eta_entrega: tipo === 'arriendo' && fechaRetorno ? new Date(fechaRetorno).toISOString() : null,
+                    precio_total: tipo === 'arriendo' ? precioTotalArriendo : parseFloat(precioTotal || '0'),
+                    descripcion_problema: tipo === 'arriendo' ? `Arriendo: ${dias} días` : 'Venta de vehículo',
+                    notas_publicas: 'Orden generada para firma de contrato'
+                }).select('id').single();
+                
+                if (reqOrden.data?.id) finalOrdenId = reqOrden.data.id;
+            }
+
             const payload: Record<string, any> = {
                 tipo,
                 estado: 'pendiente_firma',
                 taller_id: vehiculo.taller_id,
-                orden_id: vehiculo.orden_id || null,
+                orden_id: finalOrdenId,
                 vehiculo_flota_id: vehiculo.id,
+                patente: vehiculo.patente,           // columna original NOT NULL
                 vehiculo_patente: vehiculo.patente,
                 vehiculo_marca: vehiculo.marca,
                 vehiculo_modelo: vehiculo.modelo,
@@ -93,9 +179,19 @@ export function NuevoContratoForm({ isOpen, onClose, onSuccess, vehiculo }: Nuev
                 precio_total: tipo === 'arriendo' ? precioTotalArriendo : parseFloat(precioTotal),
                 notas,
                 creado_por: user?.name || user?.id || 'admin',
+                vendedor_nombre: vendedorLegal?.nombre || null,
+                vendedor_rut: vendedorLegal?.rut || null,
                 creado_en: new Date().toISOString(),
                 actualizado_en: new Date().toISOString(),
             };
+
+            // Capturar firma del vendedor actual
+            if (user?.id) {
+                const { data: perfilInfo } = await supabase.from('perfiles').select('firma_base64').eq('id', user.id).single();
+                if (perfilInfo?.firma_base64) {
+                    payload.vendedor_firma_base64 = perfilInfo.firma_base64;
+                }
+            }
 
             if (tipo === 'venta') {
                 payload.pie_pagado = parseFloat(piePagado || '0');
@@ -107,11 +203,46 @@ export function NuevoContratoForm({ isOpen, onClose, onSuccess, vehiculo }: Nuev
                 payload.dias = dias;
             }
 
-            const { data, error } = await supabase.from('contratos').insert(payload).select('id').single();
-            if (error) throw error;
+            let insertedId = contratoToEdit?.id;
 
-            toast.success('✅ Contrato creado — listo para enviar al cliente');
-            onSuccess(data.id);
+            if (contratoToEdit?.id) {
+                // Update
+                delete payload.creado_por; // No sobreescribir
+                delete payload.creado_en; // No sobreescribir
+                payload.actualizado_en = new Date().toISOString();
+                const { error } = await supabase.from('contratos').update(payload).eq('id', contratoToEdit.id);
+                if (error) throw error;
+                toast.success('✅ Contrato actualizado');
+            } else {
+                // Insert
+                const { data, error } = await supabase.from('contratos').insert(payload).select('id').single();
+                if (error) throw error;
+                insertedId = data.id;
+                toast.success('✅ Contrato creado — listo para enviar al cliente');
+            }
+
+            // --- CRM / Flota Sync ---
+            if (tipo === 'venta' && insertedId) {
+                console.log('🔄 Sincronizando estado de venta en flota y vehículos...');
+                // 1. Actualizar estado en Flota
+                await supabase
+                    .from('flota')
+                    .update({ 
+                        estado: 'Vendido',
+                        // Opcional: Vincular cliente_id si lo tenemos
+                    })
+                    .eq('patente', vehiculo.patente)
+                    .eq('taller_id', vehiculo.taller_id);
+
+                // 2. Marcar como vendido en tabla CRM (Vehículos)
+                await supabase
+                    .from('vehiculos')
+                    .update({ fue_vendido: true })
+                    .eq('patente', vehiculo.patente)
+                    .eq('taller_id', vehiculo.taller_id);
+            }
+
+            onSuccess(insertedId);
             onClose();
         } catch (err: any) {
             toast.error('Error al guardar contrato: ' + (err?.message || err));

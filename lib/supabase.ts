@@ -114,6 +114,7 @@ export interface VehiculoDB {
     vehiculo_global_id?: string | null; // Hub Link
     cliente_id: string; // FK -> Cliente
     taller_id: string; // FK -> Taller
+    fue_vendido?: boolean; // NEW: Indica si el vehículo fue vendido por RentMontt
 
     // Relación anidada (al hacer select *, clientes(*))
     clientes?: ClienteDB | null;

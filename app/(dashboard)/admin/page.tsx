@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { useDashboardOrders } from '@/hooks/use-dashboard';
+import { useDashboardOrders, useDashboardContracts } from '@/hooks/use-dashboard';
 import { useGananciaHistorica } from '@/hooks/use-ganancia';
 import {
     obtenerPerfiles,
@@ -87,6 +87,7 @@ export default function AdminPage() {
     const { user, hasPermission } = useAuth();
     const router = useRouter();
     const { data: allOrders = [], isLoading: isLoadingOrders } = useDashboardOrders();
+    const { data: allContracts = [], isLoading: isLoadingContracts } = useDashboardContracts();
     const { data: gananciaHistorica = 0, isLoading: isLoadingGanancia } = useGananciaHistorica();
     const { dateFilter, setDateFilter, filteredOrders } = useDateFilter(allOrders);
     const [perfiles, setPerfiles] = useState<PerfilDB[]>([]);
@@ -145,13 +146,34 @@ export default function AdminPage() {
         const completedTodaysOrders = todaysOrders.filter(o => o.estado === 'completada' || o.estado === 'entregada');
         const completedFilteredOrders = filteredOrders.filter(o => o.estado === 'completada' || o.estado === 'entregada');
 
+        // Filtrar contratos por fecha para el periodo seleccionado
+        const filteredContracts = allContracts.filter(c => {
+            if (!dateFilter || !dateFilter.startDate || !dateFilter.endDate) return true;
+            const cDate = new Date(c.actualizado_en || c.creado_en);
+            cDate.setHours(0,0,0,0);
+            const start = new Date(dateFilter.startDate); start.setHours(0,0,0,0);
+            const end = new Date(dateFilter.endDate); end.setHours(23,59,59,999);
+            return cDate >= start && cDate <= end;
+        });
+
+        // Contratos de hoy
+        const today = new Date(); today.setHours(0,0,0,0);
+        const todaysContracts = allContracts.filter(c => {
+            const cDate = new Date(c.actualizado_en || c.creado_en);
+            cDate.setHours(0,0,0,0);
+            return cDate.getTime() === today.getTime();
+        });
+
+        const contractFilteredRevenue = filteredContracts.reduce((acc, c) => acc + (Number(c.precio_total) || 0), 0);
+        const contractTodayRevenue = todaysContracts.reduce((acc, c) => acc + (Number(c.precio_total) || 0), 0);
+
         return {
-            todayRevenue: completedTodaysOrders.reduce((acc, o) => acc + cleanMoney(o.precio_total), 0),
+            todayRevenue: completedTodaysOrders.reduce((acc, o) => acc + cleanMoney(o.precio_total), 0) + contractTodayRevenue,
             pending: filteredOrders.filter(o => o.estado === 'pendiente' || o.estado === 'en_curso').length,
-            filteredRevenue: completedFilteredOrders.reduce((acc, o) => acc + cleanMoney(o.precio_total), 0),
-            completed: completedFilteredOrders.length,
+            filteredRevenue: completedFilteredOrders.reduce((acc, o) => acc + cleanMoney(o.precio_total), 0) + contractFilteredRevenue,
+            completed: completedFilteredOrders.length + filteredContracts.length,
         };
-    }, [todaysOrders, filteredOrders]);
+    }, [todaysOrders, filteredOrders, allContracts, dateFilter]);
 
     // Calcular rendimiento de mecánicos
     const mechanicPerformance = useMemo(() => {

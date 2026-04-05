@@ -11,6 +11,8 @@ const DEFAULT_MODULOS: TallerModulos = {
     inventario: false,
     checklist: false,
     fiscal: false,
+    flota: false,
+    contratos: false,
 };
 
 const DEFAULT_PLAN = 'GRATIS';
@@ -21,7 +23,7 @@ export interface AuthUser {
     id: string;
     email: string;
     name: string;
-    role: 'cliente' | 'taller_admin' | 'mecanico' | 'superadmin' | 'admin' | 'flusize_admin';
+    role: 'cliente' | 'taller_admin' | 'mecanico' | 'superadmin' | 'admin' | 'flusize_admin' | 'vendedor';
     isActive: boolean;
     tallerId?: string;
     workshopName?: string;

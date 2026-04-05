@@ -25,7 +25,7 @@ interface NavItem {
     label: string;
     icon: React.ReactNode;
     permissions?: string[];
-    roles?: ('taller_admin' | 'mecanico' | 'superadmin' | 'admin')[];
+    roles?: ('taller_admin' | 'mecanico' | 'superadmin' | 'admin' | 'vendedor')[];
     showBadge?: boolean;
     module?: 'agenda' | 'tracking' | 'inventario' | 'checklist' | 'fiscal' | 'clientes' | 'cotizaciones' | 'analytics' | 'public_profile' | 'flota' | 'contratos';
 }
@@ -36,27 +36,27 @@ const navItems: NavItem[] = [
         label: 'Recepción',
         icon: <ClipboardList className="w-5 h-5" />,
         // Recepción usualmente es abierta para mecánicos, pero si tienen acceso a órdenes la usan.
-        roles: ['mecanico', 'taller_admin', 'superadmin', 'admin'],
+        roles: ['mecanico', 'vendedor', 'taller_admin', 'superadmin', 'admin'],
     },
     {
         href: '/admin',
         label: 'Dashboard',
         icon: <LayoutDashboard className="w-5 h-5" />,
         permissions: ['financials.view_totals'],
-        roles: ['superadmin'], // Fallback legacy
+        roles: ['taller_admin', 'superadmin', 'admin'],
     },
     {
         href: '/admin/ordenes',
         label: 'Órdenes',
         icon: <FileText className="w-5 h-5" />,
         permissions: ['ordenes.ver_todas', 'ordenes.editar', 'ordenes.crear'],
-        roles: ['taller_admin', 'superadmin', 'mecanico', 'admin'],
+        roles: ['taller_admin', 'superadmin', 'mecanico', 'vendedor', 'admin'],
     },
     {
         href: '/admin/agenda',
         label: 'Agenda',
         icon: <Calendar className="w-5 h-5" />,
-        roles: ['taller_admin', 'superadmin', 'admin'], // Agenda no tiene granular aún
+        roles: ['taller_admin', 'vendedor', 'superadmin', 'admin'], // Agenda para adm y vend
         module: 'agenda',
     },
     {
@@ -71,7 +71,7 @@ const navItems: NavItem[] = [
         label: 'Gestión Clientes',
         icon: <Users className="w-5 h-5" />,
         permissions: ['clientes.ver', 'clientes.editar'],
-        roles: ['taller_admin', 'superadmin', 'admin'],
+        roles: ['taller_admin', 'vendedor', 'superadmin', 'admin'],
         showBadge: false,
     },
     {
@@ -79,7 +79,7 @@ const navItems: NavItem[] = [
         label: 'Inventario',
         icon: <FileText className="w-5 h-5" />,
         permissions: ['inventario.ver'],
-        roles: ['taller_admin', 'superadmin', 'admin'],
+        roles: ['taller_admin', 'vendedor', 'mecanico', 'superadmin', 'admin'],
         showBadge: true,
         module: 'inventario',
     },
@@ -94,7 +94,7 @@ const navItems: NavItem[] = [
         href: '/admin/flota',
         label: 'Gestión de Flota',
         icon: <Car className="w-5 h-5" />,
-        roles: ['taller_admin', 'superadmin', 'admin'],
+        roles: ['taller_admin', 'vendedor', 'mecanico', 'superadmin', 'admin'],
         module: 'flota',
         showBadge: true,
     },
@@ -126,14 +126,54 @@ export function Sidebar() {
 
     if (!user && !isLoading) return null;
 
-    const filteredItems = navItems.filter(item => {
-        if (!user) return false;
+    // ── CONFIGURACIÓN DE MENÚS DINÁMICOS ───────────────────────────
+    
+    // Módulos base
+    const itemRecepcion = navItems.find(i => i.href === '/recepcion')!;
+    const itemDashboard = navItems.find(i => i.href === '/admin')!;
+    const itemOrdenes = navItems.find(i => i.href === '/admin/ordenes')!;
+    const itemAgenda = navItems.find(i => i.href === '/admin/agenda')!;
+    const itemClientes = navItems.find(i => i.href === '/admin/clientes')!;
+    const itemInventario = navItems.find(i => i.href === '/admin/inventario')!;
+    const itemPerfil = navItems.find(i => i.href === '/admin/perfil')!;
+    const itemFlota = navItems.find(i => i.href === '/admin/flota')!;
+    const itemContratos = navItems.find(i => i.href === '/admin/contratos')!;
+    const itemUsuarios = navItems.find(i => i.href === '/admin/usuarios')!;
+
+    // Perfil Clásico: Enfoque en Taller
+    const menuClasico = [
+        itemRecepcion,
+        itemOrdenes,
+        itemDashboard,
+        itemAgenda,
+        itemClientes,
+        itemInventario,
+        itemPerfil
+    ];
+
+    // Perfil Corporativo: Enfoque en Flota (RentMontt)
+    const menuCorporativo = [
+        itemFlota,
+        itemContratos,
+        itemInventario,
+        itemDashboard,
+        itemClientes,
+        itemUsuarios,
+        itemRecepcion,
+        itemOrdenes,
+        itemAgenda,
+        itemPerfil
+    ];
+
+    const currentMenu = user?.modulos?.flota ? menuCorporativo : menuClasico;
+
+    const filteredItems = currentMenu.filter(item => {
+        if (!user || !item) return false;
 
         // 1. Verificar rol/permisos (RBAC con fallback legacy)
         let hasAccess = false;
         if (item.permissions && item.permissions.length > 0) {
             hasAccess = item.permissions.some(perm => hasPermission(perm));
-            // Si el RBAC aún no está configurado, usamos el fallback de roles
             if (!hasAccess && item.roles && item.roles.includes(user.role as any)) {
                 hasAccess = true;
             }
@@ -146,15 +186,11 @@ export function Sidebar() {
         // 2. Verificar Módulos A La Carta (GodMode) / Plan Comercial
         if (item.module) {
             const isModuleActive = (user.modulos as any)?.[item.module];
-            
-            // Si el god mode lo desactivó explícitamente:
             if (isModuleActive === false) return false;
-
-            // Si el god mode lo activó, puentea el plan comercial
             if (isModuleActive === true) return true;
         }
 
-        // 3. Fallback: Verificar Plan Comercial Clásico
+        // 3. Fallback: Plan Comercial
         const planStr = normalizePlan(user.plan);
         if (!planCanAccess(planStr, item.href)) return false;
 
@@ -165,9 +201,8 @@ export function Sidebar() {
         <>
             {/* ── Desktop Sidebar ─────────────────────────────────── */}
             <aside className="hidden md:flex fixed left-0 top-20 bottom-0 w-64 bg-white border-r border-gray-200 flex-col shadow-lg z-40">
-                <nav className="flex-1 p-4 space-y-1">
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
                     {isLoading ? (
-                        // Skeletons de Carga
                         Array.from({ length: 6 }).map((_, i) => (
                             <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl animate-pulse">
                                 <div className="w-5 h-5 bg-gray-200 rounded-md" />
@@ -245,7 +280,13 @@ export function Sidebar() {
                 {user && (
                     <div className="px-5 py-4 border-b border-[#222]">
                         <p className="text-sm font-semibold text-white">{user.name}</p>
-                        <p className="text-xs text-gray-400 capitalize">{user.role}</p>
+                        <p className={cn(
+                            "text-[10px] font-black uppercase tracking-widest mt-0.5",
+                            (user.role === 'admin' || user.role === 'taller_admin' || user.role === 'superadmin') ? "text-emerald-400" :
+                            user.role === 'vendedor' ? "text-amber-500" : "text-blue-400"
+                        )}>
+                            {user.role}
+                        </p>
                     </div>
                 )}
 

@@ -1,6 +1,6 @@
 // Tipos del sistema
 
-export type UserRole = 'mecanico' | 'admin';
+export type UserRole = 'mecanico' | 'admin' | 'vendedor';
 
 export interface User {
   id: string;

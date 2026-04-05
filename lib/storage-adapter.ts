@@ -82,6 +82,13 @@ export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promi
     return localService.obtenerGananciaHistorica();
 }
 
+export async function obtenerContratosRecent(limit?: number, tallerIdOverride?: string): Promise<any[]> {
+    if (isSupabase()) {
+        return supabaseService.obtenerContratosRecent(limit, tallerIdOverride);
+    }
+    return []; // No soportado en local storage por ahora
+}
+
 export async function obtenerOrdenesLight(mecanicoId?: string): Promise<OrdenDB[]> {
     if (isSupabase()) {
         return supabaseService.obtenerOrdenesLight(mecanicoId);

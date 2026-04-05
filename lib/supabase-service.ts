@@ -246,6 +246,7 @@ export async function obtenerClientesPaginados(page: number, pageSize: number, s
                 patente,
                 marca,
                 modelo,
+                fue_vendido,
                 ordenes (
                     id,
                     fecha_ingreso,
@@ -633,7 +634,58 @@ export async function obtenerGananciaHistorica(tallerIdOverride?: string): Promi
         if (from > 20000) hasMore = false;
     }
 
-    return allData.reduce((acc, row) => acc + (Number(row.precio_total) || 0), 0);
+    let contratosData: any[] = [];
+    from = 0;
+    hasMore = true;
+
+    while (hasMore) {
+        const { data: cData, error: cError } = await supabase
+            .from('contratos')
+            .select('precio_total')
+            .eq('taller_id', tallerId)
+            .eq('estado', 'firmado')
+            .range(from, from + step);
+
+        if (cError) {
+            console.error('❌ Error al obtener ganancia de contratos:', cError);
+            break; // No lanzamos error para no romper todo si contratos falla
+        }
+
+        if (cData && cData.length > 0) {
+            contratosData = [...contratosData, ...cData];
+            from += step + 1;
+        } else {
+            hasMore = false;
+        }
+
+        if (from > 20000) hasMore = false;
+    }
+
+    const ordenesTotal = allData.reduce((acc, row) => acc + (Number(row.precio_total) || 0), 0);
+    const contratosTotal = contratosData.reduce((acc, row) => acc + (Number(row.precio_total) || 0), 0);
+    
+    return ordenesTotal + contratosTotal;
+}
+
+// Obtener contratos recientes firmados para el Dashboard
+export async function obtenerContratosRecent(limit: number = 20, tallerIdOverride?: string): Promise<any[]> {
+    const tallerId = ensureStringId(tallerIdOverride || await getCurrentUserTallerId());
+    if (!tallerId) return [];
+
+    const { data, error } = await supabase
+        .from('contratos')
+        .select('*')
+        .eq('taller_id', tallerId)
+        .eq('estado', 'firmado')
+        .order('actualizado_en', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('❌ Error al obtener contratos recientes:', error);
+        return [];
+    }
+
+    return data || [];
 }
 
 // Obtener órdenes optimizadas para Dashboard (Light) — FILTRADO por taller_id
