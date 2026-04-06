@@ -17,7 +17,9 @@ import { toPng } from 'html-to-image';
 
 // --- INLINE STUBS FOR MISSING COMPONENTS TO AVOID ERRORS ---
 function QCModal(props: any) { return null; }
-function DeleteConfirmModal(props: any) { return null; }
+// function DeleteConfirmModal(props: any) { return null; } // Removed stub
+import DeleteConfirmModal from '@/components/inventario/delete-confirm-modal';
+
 function MaterialSettingsModal(props: any) { return null; }
 function DateRangePicker(props: any) { return <div className="hidden">DateRangePicker</div>; }
 // -----------------------------------------------------------
@@ -644,6 +646,7 @@ function InventoryContent() {
                 onClose={() => setDeleteModal({ isOpen: false, itemId: null })}
                 onConfirm={handleConfirmDelete}
             />
+
             <AddItemModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={fetchItems} mode={modalMode} initialData={modalInitialData} />
             <QCModal isOpen={qcModal.isOpen} onClose={() => setQcModal({ isOpen: false, item: null })} onSuccess={fetchItems} item={qcModal.item} />
         </div>

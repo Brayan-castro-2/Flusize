@@ -203,16 +203,15 @@ function UsuariosContent() {
                 .order('es_sistema', { ascending: false });
             if (error) throw error;
 
-            // Hide SUPERADMIN role from non-superadmin users
             const filtered = (data || []).filter((r: Rol) =>
-                isSuperAdmin ? true : r.nombre.toUpperCase() !== 'SUPERADMIN'
+                isSuperAdmin ? true : r.nombre.toLowerCase() !== 'superadmin'
             );
 
             // Sort roles reflecting fixed hierarchy
-            const roleOrder = ['SUPERADMIN', 'FLUSIZE_ADMIN', 'TALLER_ADMIN', 'ADMIN', 'MECANICO'];
+            const roleOrder = ['superadmin', 'flusize_admin', 'taller_admin', 'admin', 'mecanico', 'vendedor'];
             filtered.sort((a, b) => {
-                const idxA = roleOrder.indexOf(a.nombre.toUpperCase());
-                const idxB = roleOrder.indexOf(b.nombre.toUpperCase());
+                const idxA = roleOrder.indexOf(a.nombre.toLowerCase());
+                const idxB = roleOrder.indexOf(b.nombre.toLowerCase());
                 const posA = idxA === -1 ? 999 : idxA;
                 const posB = idxB === -1 ? 999 : idxB;
                 return posA - posB;
@@ -268,7 +267,7 @@ function UsuariosContent() {
         setSavingRole(true);
         try {
             const { error } = await supabase.from('roles').insert({
-                nombre: newRole.nombre.trim().toUpperCase(),
+                nombre: newRole.nombre.trim().toLowerCase(),
                 etiqueta: newRole.etiqueta.trim(),
                 color: newRole.color,
                 es_sistema: false,

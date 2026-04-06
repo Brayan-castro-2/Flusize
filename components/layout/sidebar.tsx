@@ -102,7 +102,7 @@ const navItems: NavItem[] = [
         href: '/admin/contratos',
         label: 'Contratos Digitales',
         icon: <FileSignature className="w-5 h-5" />,
-        roles: ['taller_admin', 'superadmin', 'admin'],
+        roles: ['taller_admin', 'superadmin', 'admin', 'vendedor'],
     },
 ];
 
