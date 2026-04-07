@@ -1116,7 +1116,8 @@ function RecepcionContent() {
 
     // Renderizado original (Formulario)
     return (
-        <div className="mx-auto max-w-5xl space-y-6 px-4 md:px-0">
+        <div className="bg-slate-950 text-slate-100 p-6 min-h-screen">
+          <div className="mx-auto max-w-5xl space-y-6">
             {successMsg ? (
                 <div className="fixed top-20 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-auto z-50">
                     <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-2">
@@ -1130,9 +1131,9 @@ function RecepcionContent() {
                 <div className="mt-1 text-xs md:text-sm text-blue-100">{fechaHora}</div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
                 <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">RESPONSABLES</div>
-                <label className="text-sm font-semibold text-slate-700">Mecánico Responsable</label>
+                <label className="text-sm font-semibold text-slate-300">Mecánico Responsable</label>
                 <input
                     value={mecanico}
                     readOnly
@@ -1141,12 +1142,12 @@ function RecepcionContent() {
                 <div className="mt-2 text-xs text-slate-500">Se completa automáticamente con el usuario actual (si existe).</div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
                 <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">VEHÍCULO</div>
 
                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">Patente</label>
+                        <label className="text-sm font-semibold text-slate-300">Patente</label>
                         <input
                             value={patente}
                             onChange={(e) => { setPatente(normalizePatente(e.target.value)); setValidationErrors(p => ({...p, patente: false})); }}
@@ -1186,7 +1187,7 @@ function RecepcionContent() {
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">Marca</label>
+                        <label className="text-sm font-semibold text-slate-300">Marca</label>
                         <input
                             value={marca}
                             onChange={(e) => { setMarca(e.target.value); setValidationErrors(p => ({...p, marca: false})); }}
@@ -1197,7 +1198,7 @@ function RecepcionContent() {
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">Modelo</label>
+                        <label className="text-sm font-semibold text-slate-300">Modelo</label>
                         <input
                             value={modelo}
                             onChange={(e) => { setModelo(e.target.value); setValidationErrors(p => ({...p, modelo: false})); }}
@@ -1208,7 +1209,7 @@ function RecepcionContent() {
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">Año</label>
+                        <label className="text-sm font-semibold text-slate-300">Año</label>
                         <input
                             value={anio}
                             onChange={(e) => { setAnio(e.target.value); setValidationErrors(p => ({...p, anio: false})); }}
@@ -1219,7 +1220,7 @@ function RecepcionContent() {
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">Motor</label>
+                        <label className="text-sm font-semibold text-slate-300">Motor</label>
                         <input
                             value={motor}
                             onChange={(e) => setMotor(e.target.value)}
@@ -1228,7 +1229,7 @@ function RecepcionContent() {
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">Color</label>
+                        <label className="text-sm font-semibold text-slate-300">Color</label>
                         <input
                             value={vehiculoColor}
                             onChange={(e) => setVehiculoColor(e.target.value)}
@@ -1237,7 +1238,7 @@ function RecepcionContent() {
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">Kilometraje de Ingreso</label>
+                        <label className="text-sm font-semibold text-slate-300">Kilometraje de Ingreso</label>
                         <input
                             value={kilometrajeIngreso}
                             onChange={(e) => setKilometrajeIngreso(e.target.value)}
@@ -1248,7 +1249,7 @@ function RecepcionContent() {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
                 <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">CLIENTE</div>
 
 
@@ -1278,7 +1279,7 @@ function RecepcionContent() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">Receptor (Nombre)</label>
+                        <label className="text-sm font-semibold text-slate-300">Receptor (Nombre)</label>
                         <input
                             value={clienteNombre}
                             onChange={(e) => setClienteNombre(e.target.value)}
@@ -1287,7 +1288,7 @@ function RecepcionContent() {
                         />
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">RUT / DNI</label>
+                        <label className="text-sm font-semibold text-slate-300">RUT / DNI</label>
                         <input
                             value={clienteRut}
                             onChange={(e) => setClienteRut(e.target.value)}
@@ -1299,7 +1300,7 @@ function RecepcionContent() {
                         <div className="mt-1 text-xs text-slate-500 text-right">Presiona Enter para buscar</div>
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">WhatsApp <span className="text-red-400">*</span></label>
+                        <label className="text-sm font-semibold text-slate-300">WhatsApp <span className="text-red-400">*</span></label>
                         <div className="relative mt-2">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                                 <span className="text-slate-400">+56</span>
@@ -1324,7 +1325,7 @@ function RecepcionContent() {
                         <div className="mt-2 text-xs text-slate-500">Obligatorio para enviar el tracking al cliente.</div>
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-700">Email (Opcional)</label>
+                        <label className="text-sm font-semibold text-slate-300">Email (Opcional)</label>
                         <input
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -1336,7 +1337,7 @@ function RecepcionContent() {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
                 <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">SERVICIOS</div>
 
                 <div className="mb-4 flex flex-wrap gap-2">
@@ -1378,7 +1379,7 @@ function RecepcionContent() {
                 {kmEnabled ? (
                     <div className="mb-4 grid gap-4 rounded-xl border border-slate-700 bg-slate-800/30 p-4 md:grid-cols-2">
                         <div>
-                            <label className="text-sm font-semibold text-slate-700">KM actual</label>
+                            <label className="text-sm font-semibold text-slate-300">KM actual</label>
                             <input
                                 ref={kmActualInputRef}
                                 value={formatMilesConPunto(kmActual)}
@@ -1389,7 +1390,7 @@ function RecepcionContent() {
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-semibold text-slate-700">KM nuevo</label>
+                            <label className="text-sm font-semibold text-slate-300">KM nuevo</label>
                             <input
                                 value={formatMilesConPunto(kmNuevo)}
                                 onChange={(e) => setKmNuevo(e.target.value.replace(/[^0-9]/g, '').slice(0, 7))}
@@ -1470,15 +1471,15 @@ function RecepcionContent() {
             </div>
 
             {hasInventario && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
                     <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">📦 MATERIALES Y REPUESTOS (Opcional)</div>
                     <BuscadorInventario onChange={setRepuestosOrden} />
                 </div>
             )}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
                 <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">DETALLES DEL VEHÍCULO</div>
-                <label className="text-sm font-semibold text-slate-700">Descripción general</label>
+                <label className="text-sm font-semibold text-slate-300">Descripción general</label>
                 <textarea
                     value={detallesVehiculo}
                     onChange={(e) => setDetallesVehiculo(e.target.value)}
@@ -1688,6 +1689,7 @@ function RecepcionContent() {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 }
