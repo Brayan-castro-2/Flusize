@@ -404,7 +404,7 @@ function ContratosContent() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                 <input value={search} onChange={e => setSearch(e.target.value)}
                     placeholder="Buscar por cliente, patente o RUT..."
-                    className="w-full h-12 pl-11 pr-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400" />
+                    className="w-full h-12 pl-11 pr-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 font-medium" />
             </div>
 
             {/* Lista */}

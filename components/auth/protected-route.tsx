@@ -47,13 +47,7 @@ export function ProtectedRoute({ children, allowedRoles, requirePaidPlan }: Prot
                     
                     if (pathname.startsWith('/admin') && !isAllowed) {
                         console.log('🚫 ProtectedRoute: Bloqueo Plan Digital en', pathname);
-                        setShowContent(false);
-                        sileo.info({
-                            title: 'Mejora al Plan Pro',
-                            description: 'Mejora tu plan para acceder al Dashboard de Gestión.'
-                        });
-                        router.push('/recepcion');
-                        return;
+                        // Upsell removed as per request
                     }
                 }
 
@@ -63,13 +57,7 @@ export function ProtectedRoute({ children, allowedRoles, requirePaidPlan }: Prot
                     
                     if (isBlocked) {
                         console.log('🚫 ProtectedRoute: Bloqueo Plan Pro en', pathname);
-                        setShowContent(false);
-                        sileo.info({
-                            title: 'Plan Pro',
-                            description: 'Mejora al Plan Premium para acceder a Módulos Avanzados.'
-                        });
-                        router.push('/admin');
-                        return;
+                        // Upsell removed as per request
                     }
                 }
             }

@@ -275,6 +275,26 @@ export async function obtenerClientesPaginados(page: number, pageSize: number, s
         return { data: [], count: 0, error };
     }
 
+    // 🆕 Obtener contratos firmados de estos clientes (para sumar a total_gastado)
+    const ruts = (data || []).map((c: any) => c.rut_dni).filter(Boolean);
+    let contratosPorRut: Record<string, number> = {};
+
+    if (ruts.length > 0) {
+        const { data: contratos, error: errC } = await supabase
+            .from('contratos')
+            .select('cliente_rut, precio_total')
+            .eq('taller_id', tallerId)
+            .eq('estado', 'firmado')
+            .in('cliente_rut', ruts);
+        
+        if (!errC && contratos) {
+            contratos.forEach((c: any) => {
+                const rut = c.cliente_rut;
+                contratosPorRut[rut] = (contratosPorRut[rut] || 0) + (Number(c.precio_total) || 0);
+            });
+        }
+    }
+
     // Calcular estadísticas en el cliente
     const resultados = (data || []).map((cliente: any) => {
         let totalOrdenes = 0;
@@ -287,7 +307,7 @@ export async function obtenerClientesPaginados(page: number, pageSize: number, s
                 if (vehiculo.ordenes) {
                     vehiculo.ordenes.forEach((orden: any) => {
                         totalOrdenes++;
-                        totalGastado += (orden.precio_total || 0);
+                        totalGastado += Number(orden.precio_total || 0);
 
                         const fecha = new Date(orden.fecha_ingreso).getTime();
                         if (fecha > ultimaVisitaTime) {
@@ -297,6 +317,11 @@ export async function obtenerClientesPaginados(page: number, pageSize: number, s
                     });
                 }
             });
+        }
+
+        // ➕ Sumar lo de los contratos (Ventas/Rentals)
+        if (cliente.rut_dni && contratosPorRut[cliente.rut_dni]) {
+            totalGastado += Number(contratosPorRut[cliente.rut_dni] || 0);
         }
 
         return {
@@ -361,6 +386,23 @@ export async function obtenerClientes(busqueda?: string, tallerIdOverride?: stri
 
     const data = allClientes;
 
+    // 🆕 Obtener contratos firmados para todos los clientes (para sumar a total_gastado)
+    let contratosPorRut: Record<string, number> = {};
+    const { data: contratos, error: errC } = await supabase
+        .from('contratos')
+        .select('cliente_rut, precio_total')
+        .eq('taller_id', tallerId)
+        .eq('estado', 'firmado');
+    
+    if (!errC && contratos) {
+        contratos.forEach((c: any) => {
+            const rut = c.cliente_rut;
+            if (rut) {
+                contratosPorRut[rut] = (contratosPorRut[rut] || 0) + (Number(c.precio_total) || 0);
+            }
+        });
+    }
+
     // Calcular estadísticas en el cliente (más eficiente que subqueries complejas en esta etapa)
     const resultados = (data || []).map((cliente: any) => {
         let totalOrdenes = 0;
@@ -373,7 +415,7 @@ export async function obtenerClientes(busqueda?: string, tallerIdOverride?: stri
                 if (vehiculo.ordenes) {
                     vehiculo.ordenes.forEach((orden: any) => {
                         totalOrdenes++;
-                        totalGastado += (orden.precio_total || 0);
+                        totalGastado += Number(orden.precio_total || 0);
 
                         // Encontrar la fecha más reciente
                         const fecha = new Date(orden.fecha_ingreso).getTime();
@@ -384,6 +426,11 @@ export async function obtenerClientes(busqueda?: string, tallerIdOverride?: stri
                     });
                 }
             });
+        }
+
+        // ➕ Sumar lo de los contratos (Ventas/Rentals)
+        if (cliente.rut_dni && contratosPorRut[cliente.rut_dni]) {
+            totalGastado += Number(contratosPorRut[cliente.rut_dni] || 0);
         }
 
         return {

@@ -927,7 +927,8 @@ function UsuariosContent() {
                                         placeholder="Ej. Juan Pérez"
                                         value={newUserForm.nombreCompleto}
                                         onChange={e => setNewUserForm({ ...newUserForm, nombreCompleto: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                        style={{ color: '#1e293b' }}
                                     />
                                 </div>
 
@@ -939,7 +940,8 @@ function UsuariosContent() {
                                         placeholder="juan@taller.com"
                                         value={newUserForm.email}
                                         onChange={e => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                        style={{ color: '#1e293b' }}
                                     />
                                 </div>
 
@@ -952,7 +954,8 @@ function UsuariosContent() {
                                         minLength={6}
                                         value={newUserForm.password}
                                         onChange={e => setNewUserForm({ ...newUserForm, password: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                        style={{ color: '#1e293b' }}
                                     />
                                 </div>
 
@@ -962,12 +965,16 @@ function UsuariosContent() {
                                         required
                                         value={newUserForm.rol}
                                         onChange={e => setNewUserForm({ ...newUserForm, rol: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none"
+                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none"
+                                        style={{ color: '#334155' }}
                                     >
-                                        <option value="" disabled>Selecciona un rol</option>
-                                        {roles.map(r => (
-                                            <option key={r.id} value={r.nombre}>{r.etiqueta}</option>
-                                        ))}
+                                        <option value="" disabled style={{ color: '#334155' }}>Selecciona un rol</option>
+                                        {roles
+                                            .filter(r => !['flusize_admin', 'superadmin'].includes(r.nombre.toLowerCase()))
+                                            .map(r => (
+                                                <option key={r.id} value={r.nombre} style={{ color: '#334155' }}>{r.etiqueta}</option>
+                                            ))
+                                        }
                                     </select>
                                 </div>
 

@@ -772,13 +772,13 @@ function ContratoFirmaSection({ contrato, ordenId, onFirmado }: {
     const contratoData: ContratoData = contrato.tipo === 'venta'
         ? {
             tipo: 'venta',
-            numero: contrato.id.slice(-8).toUpperCase(),
+            numero: (contrato.id || 'S/N').slice(-8).toUpperCase(),
             fecha: fechaHoy,
-            vendedor_nombre: 'Rentmontt SpA.',
-            vendedor_rut: '77.294.859-K',
-            vendedor_email: 'olivares@rentmontt.cl',
-            vendedor_fono: '+569 9265 7540',
-            vendedor_ciudad: 'Puerto Montt',
+            vendedor_nombre: contrato.vendedor_nombre || 'Sin nombre',
+            vendedor_rut: contrato.vendedor_rut || 'Sin RUT',
+            vendedor_email: 'correo@ejemplo.com',
+            vendedor_fono: 'Sin fono',
+            vendedor_ciudad: 'Sin ciudad',
             comprador_nombre: contrato.cliente_nombre || '',
             comprador_rut: contrato.cliente_rut || '',
             comprador_domicilio: contrato.cliente_domicilio || '',
@@ -797,13 +797,13 @@ function ContratoFirmaSection({ contrato, ordenId, onFirmado }: {
         }
         : {
             tipo: 'arriendo',
-            numero: contrato.id.slice(-8).toUpperCase(),
+            numero: (contrato.id || 'S/N').slice(-8).toUpperCase(),
             fecha: fechaHoy,
-            vendedor_nombre: 'Rentmontt SpA.',
-            vendedor_rut: '77.294.859-K',
-            vendedor_email: 'olivares@rentmontt.cl',
-            vendedor_fono: '+569 9265 7540',
-            vendedor_ciudad: 'Puerto Montt',
+            vendedor_nombre: contrato.vendedor_nombre || 'Sin nombre',
+            vendedor_rut: contrato.vendedor_rut || 'Sin RUT',
+            vendedor_email: 'correo@ejemplo.com',
+            vendedor_fono: 'Sin fono',
+            vendedor_ciudad: 'Sin ciudad',
             comprador_nombre: contrato.cliente_nombre || '',
             comprador_rut: contrato.cliente_rut || '',
             comprador_domicilio: contrato.cliente_domicilio || '',
@@ -841,11 +841,15 @@ function ContratoFirmaSection({ contrato, ordenId, onFirmado }: {
 
             // ACTUALIZAR ESTADO DEL VEHICULO EN FLOTA AL FIRMAR CONTRATO
             if (contrato.vehiculo_patente) {
-                const nuevoEstado = contrato.tipo === 'venta' ? 'Vendido' : 'Arrendado';
-                await supabase.from('flota').update({
-                    estado: nuevoEstado,
-                    updated_at: new Date().toISOString()
-                }).eq('patente', contrato.vehiculo_patente);
+                try {
+                    const nuevoEstado = contrato.tipo === 'venta' ? 'Vendido' : 'Arrendado';
+                    await supabase.from('flota').update({
+                        estado: nuevoEstado,
+                        updated_at: new Date().toISOString()
+                    }).eq('patente', contrato.vehiculo_patente);
+                } catch (e) {
+                    console.error('Error actualizando estado de la flota', e);
+                }
             }
 
             onFirmado();

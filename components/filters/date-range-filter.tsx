@@ -64,9 +64,10 @@ export function DateRangeFilter({ onFilterChange, totalOrders, totalRevenue }: D
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(Number(e.target.value))}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-800 outline-none focus:ring-2 focus:ring-[#0066FF]/20 transition-all"
+                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-800 outline-none focus:ring-2 focus:ring-[#0066FF]/20 transition-all"
+                            style={{ color: '#1f2937' }}
                         >
-                            {years.map(year => <option key={year} value={year}>{year}</option>)}
+                            {years.map(year => <option key={year} value={year} style={{ color: '#1f2937' }}>{year}</option>)}
                         </select>
                     </div>
                     <div>
@@ -74,10 +75,11 @@ export function DateRangeFilter({ onFilterChange, totalOrders, totalRevenue }: D
                         <select
                             value={selectedMonth || ''}
                             onChange={(e) => setSelectedMonth(e.target.value ? Number(e.target.value) : null)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-800 outline-none focus:ring-2 focus:ring-[#0066FF]/20 transition-all"
+                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-800 outline-none focus:ring-2 focus:ring-[#0066FF]/20 transition-all"
+                            style={{ color: '#1f2937' }}
                         >
-                            <option value="">Todos los meses</option>
-                            {MONTHS.map(month => <option key={month.value} value={month.value}>{month.label}</option>)}
+                            <option value="" style={{ color: '#1f2937' }}>Todos los meses</option>
+                            {MONTHS.map(month => <option key={month.value} value={month.value} style={{ color: '#1f2937' }}>{month.label}</option>)}
                         </select>
                     </div>
                 </div>

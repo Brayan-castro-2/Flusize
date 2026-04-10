@@ -294,7 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hasPermission = useCallback((permission: string) => {
         // Los admins globales o dueños tienen todo activo por diseño inicial 
         // a menos que sus permisos se bloqueen. Pero superadmin/admin tienen all.
-        if (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'flusize_admin') return true;
+        if (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'flusize_admin' || user?.role === 'taller_admin') return true;
         // Si no hay perfil mapeado aún o no trae permisos, asumimos false provisionalmente
         if (!user?.permissions) return false;
         

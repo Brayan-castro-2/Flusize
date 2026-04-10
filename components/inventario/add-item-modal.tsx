@@ -291,7 +291,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
         ? { ring: 'focus:ring-emerald-500', bg: 'bg-emerald-600', hover: 'hover:bg-emerald-700', light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' }
         : { ring: 'focus:ring-red-500', bg: 'bg-red-600', hover: 'hover:bg-red-700', light: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: 'text-red-600', badge: 'bg-red-100 text-red-700' };
 
-    const inputCls = `w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 ${accent.ring} focus:border-transparent transition-all disabled:opacity-60`;
+    const inputCls = `w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 ${accent.ring} focus:border-transparent transition-all disabled:opacity-60`;
 
     // Compute IVA amount for display
     const ivaAmount = form.precio_venta && form.porcentaje_iva

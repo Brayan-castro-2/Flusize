@@ -1266,8 +1266,8 @@ export default function OrdenesPage() {
                                     </SelectTrigger>
                                     <SelectContent className="bg-white border-slate-200">
                                         <SelectItem value="all" className="text-slate-900">Todos</SelectItem>
-                                        <SelectItem value="pendiente" className="text-slate-200">⏳ Pendientes</SelectItem>
-                                        <SelectItem value="completada" className="text-slate-200">✓ Completadas</SelectItem>
+                                        <SelectItem value="pendiente" className="text-slate-900">⏳ Pendientes</SelectItem>
+                                        <SelectItem value="completada" className="text-slate-900">✓ Completadas</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

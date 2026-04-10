@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ import {
     AlertTriangle,
     MessageCircle
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { obtenerClientes } from '@/lib/supabase-service';
 import type { ClienteWithStats, VehiculoDB } from '@/lib/storage-adapter';
 import Link from 'next/link';
@@ -71,7 +73,7 @@ function ContratosCliente({ rut, tallerId }: { rut: string; tallerId: string }) 
                 const { data, error } = await supabase
                     .from('contratos')
                     .select('*')
-                    .eq('cliente_rut_dni', rut)
+                    .eq('cliente_rut', rut)
                     .eq('taller_id', tallerId)
                     .order('creado_en', { ascending: false });
 
@@ -220,8 +222,7 @@ export default function ClientesContent() {
     }, [data]);
 
     const totalCount = data?.pages[0]?.count || 0;
-
-    const tallerId = user?.taller_id;
+    const tallerId = user?.tallerId;
 
     const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -548,8 +549,8 @@ export default function ClientesContent() {
                             {/* Decorative top border gradient */}
                             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-emerald-500 to-red-500 opacity-50"></div>
 
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm text-slate-300">
+                            <div className="overflow-x-auto custom-scrollbar">
+                                <table className="w-full text-left text-sm text-slate-300 min-w-[1000px]">
                                     <thead className="bg-[#1E293B] text-slate-400 uppercase font-bold text-[11px] tracking-widest border-b border-slate-700/80">
                                         <tr>
                                             <th className="px-6 py-5 cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('nombre_completo')}>

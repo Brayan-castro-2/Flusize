@@ -109,11 +109,11 @@ function VehiculoCard({ v, onSelect }: { v: VehiculoFlota; onSelect: () => void 
     const { user } = useAuth();
     const isEmployee = user?.role === 'mecanico' || user?.role === 'vendedor';
 
-    const totalInvertido = (v.inversiones || []).reduce((s, i) => s + i.monto, 0);
-    const costoRepuestos = v.costo_repuestos_ordenes || 0;
-    const costoReal = v.precio_compra + totalInvertido + costoRepuestos;
-    const incomes = v.ingresos_historicos || 0;
-    const ingresosHistoricos = incomes > 0 ? incomes : v.precio_objetivo;
+    const totalInvertido = (v.inversiones || []).reduce((s, i) => s + (Number(i.monto) || 0), 0);
+    const costoRepuestos = Number(v.costo_repuestos_ordenes || 0);
+    const costoReal = Number(v.precio_compra || 0) + totalInvertido + costoRepuestos;
+    const incomes = Number(v.ingresos_historicos || 0);
+    const ingresosHistoricos = incomes > 0 ? incomes : Number(v.precio_objetivo || 0);
     const margen = ingresosHistoricos - costoReal;
     const margenPct = costoReal > 0 ? ((margen / costoReal) * 100).toFixed(1) : '0';
 
@@ -220,6 +220,7 @@ type TabId = 'financiero' | 'taller' | 'comercial';
 // ─── Modal Detalle ─────────────────────────────────────────────────────────────
 function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () => void; onUpdate: () => void }) {
     const { user } = useAuth();
+    const isEmployee = user?.role === 'mecanico' || user?.role === 'vendedor';
     const [activeTab, setActiveTab] = useState<TabId>('financiero');
 
     // ── Inversiones ──────────────────────────────────────────────────────────
@@ -319,10 +320,11 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
         fetchClientes();
     }, [user?.tallerId]);
 
-    const totalInvertido = inversiones.reduce((s, i) => s + i.monto, 0);
-    const costoRepuestos = v.costo_repuestos_ordenes || 0;
-    const costoReal = v.precio_compra + totalInvertido + costoRepuestos;
-    const ingresoTotal = ingresosHistoricos > 0 ? ingresosHistoricos : v.precio_objetivo;
+    const totalInvertido = (inversiones || []).reduce((s, i) => s + (Number(i.monto) || 0), 0);
+    const costoRepuestos = Number(v.costo_repuestos_ordenes || 0);
+    const costoReal = Number(v.precio_compra || 0) + totalInvertido + costoRepuestos;
+    const incomes = Number(v.ingresos_historicos || 0);
+    const ingresoTotal = incomes > 0 ? incomes : Number(v.precio_objetivo || 0);
     const margen = ingresoTotal - costoReal;
 
     const clientesFiltrados = clientes.filter(c => !busquedaCliente || c.nombre_completo.toLowerCase().includes(busquedaCliente.toLowerCase()) || (c.rut_dni || '').includes(busquedaCliente));
@@ -579,6 +581,23 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
         setProcesando(false);
     };
 
+    // ── Handler Eliminar ──────────────────────────────────────────────────────
+    const handleDeleteVehicle = async () => {
+        if (!confirm(`¿Seguro que deseas ELIMINAR el vehículo ${v.patente} de forma permanente?\n\n⚠️ Esta acción podría fallar si el vehículo ya tiene órdenes, contratos o gastos vinculados directamente.`)) return;
+        setProcesando(true);
+        const { error } = await supabase.from('flota').delete().eq('id', v.id);
+        if (error) {
+            toast.error('No se pudo eliminar el vehículo. Es posible que tenga registros históricos (Órdenes/Contratos).', {
+                duration: 5000,
+            });
+        } else {
+            toast.success('Vehículo eliminado de la flota exitosamente.');
+            onUpdate();
+            onClose();
+        }
+        setProcesando(false);
+    };
+
     // ────────────────────────────────────────────────────────────────────────────
     // RENDER TABS
     // ────────────────────────────────────────────────────────────────────────────
@@ -648,7 +667,10 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                                 </>
                             )}
                         </div>
-                        <button onClick={onClose} className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-black/20">
+                        <button onClick={handleDeleteVehicle} disabled={procesando} className="p-2.5 rounded-xl bg-red-900/40 border border-red-700/50 text-red-500 hover:text-white hover:bg-red-600 transition-all active:scale-95 shadow-lg shadow-black/20" title="Eliminar Vehículo">
+                            <Trash2 className="w-5 h-5" />
+                        </button>
+                        <button onClick={onClose} className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-black/20" title="Cerrar">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -1519,8 +1541,8 @@ function FlotaContent() {
         total: vehiculos.length,
         disponibles: vehiculos.filter(v => v.estado === 'Disponible').length,
         enPrep: vehiculos.filter(v => v.estado === 'En Preparación').length,
-        totalInvertido: vehiculos.reduce((s, v) => s + v.precio_compra + (v.costo_repuestos_ordenes || 0) + (v.inversiones || []).reduce((si, i) => si + i.monto, 0), 0),
-        ingresos: vehiculos.reduce((s, v) => s + (v.ingresos_historicos || 0), 0),
+        totalInvertido: vehiculos.reduce((s, v) => s + Number(v.precio_compra || 0) + Number(v.costo_repuestos_ordenes || 0) + (v.inversiones || []).reduce((si, i) => si + Number(i.monto || 0), 0), 0),
+        ingresos: vehiculos.reduce((s, v) => s + Number(v.ingresos_historicos || 0), 0),
     };
 
     return (
