@@ -229,7 +229,8 @@ export function ServiciosManager() {
                                 placeholder="Buscar servicio..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full sm:w-52"
+                                className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 w-full sm:w-52"
+                                style={{ color: '#1e293b' }}
                             />
                         </div>
                         <button
@@ -259,7 +260,8 @@ export function ServiciosManager() {
                                 value={createForm.descripcion}
                                 onChange={e => setCreateForm({ ...createForm, descripcion: e.target.value })}
                                 onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                                className="flex-1 bg-white border border-blue-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-full"
+                                className="flex-1 bg-white border border-blue-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-full"
+                                style={{ color: '#1e293b' }}
                             />
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-500 text-sm">$</span>
@@ -268,7 +270,8 @@ export function ServiciosManager() {
                                     placeholder="Precio base"
                                     value={createForm.precio_base || ''}
                                     onChange={e => setCreateForm({ ...createForm, precio_base: Number(e.target.value) })}
-                                    className="w-32 bg-white border border-blue-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    className="w-32 bg-white border border-blue-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    style={{ color: '#1e293b' }}
                                 />
                             </div>
                             <div className="flex items-center gap-2">
@@ -320,7 +323,8 @@ export function ServiciosManager() {
                                                     type="text"
                                                     value={editForm.descripcion}
                                                     onChange={e => setEditForm({ ...editForm, descripcion: e.target.value })}
-                                                    className="w-full bg-white border border-blue-200 rounded-lg px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                    className="w-full bg-white border border-blue-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                    style={{ color: '#1e293b' }}
                                                 />
                                             ) : (
                                                 <span className={`font-medium ${servicio.activo ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
@@ -336,7 +340,8 @@ export function ServiciosManager() {
                                                         type="number"
                                                         value={editForm.precio_base}
                                                         onChange={e => setEditForm({ ...editForm, precio_base: Number(e.target.value) })}
-                                                        className="w-24 bg-white border border-blue-200 rounded-lg px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                        className="w-24 bg-white border border-blue-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                        style={{ color: '#1e293b' }}
                                                     />
                                                 </div>
                                             ) : (

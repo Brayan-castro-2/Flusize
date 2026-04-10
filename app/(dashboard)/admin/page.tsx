@@ -95,10 +95,11 @@ export default function AdminPage() {
     const [isLoadingOther, setIsLoadingOther] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // FASE 27: Solo el superadmin (Dueño del Taller) puede ver las métricas financieras del Dashboard.
-    // Los demás roles (taller_admin, admin, mecanico) son redirigidos a Órdenes.
+    // FASE 27: Solo roles con nivel administrativo pueden ver las métricas financieras del Dashboard.
+    // El mecánico es redirigido a Órdenes por el Sidebar y esta guarda de ruta.
     useEffect(() => {
-        if (user && user.role !== 'superadmin') {
+        const allowedRoles = ['superadmin', 'taller_admin', 'admin', 'flusize_admin'];
+        if (user && !allowedRoles.includes(user.role)) {
             router.replace('/admin/ordenes');
         }
     }, [user, router]);

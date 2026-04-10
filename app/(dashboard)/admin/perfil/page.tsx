@@ -218,7 +218,8 @@ export default function PerfilTallerPage() {
                                 type="text"
                                 value={personalInfo.nombre}
                                 onChange={e => setPersonalInfo({ ...personalInfo, nombre: e.target.value })}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-semibold"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                style={{ color: '#1e293b' }}
                                 placeholder="Tu nombre"
                             />
                         </div>
@@ -228,7 +229,8 @@ export default function PerfilTallerPage() {
                                 type="email"
                                 disabled
                                 value={personalInfo.email}
-                                className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-400 cursor-not-allowed font-medium"
+                                className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3.5 text-sm cursor-not-allowed font-medium"
+                                style={{ color: '#64748b' }}
                                 title="El correo no se puede cambiar por seguridad"
                             />
                         </div>
@@ -388,7 +390,8 @@ export default function PerfilTallerPage() {
                                     type="text"
                                     value={workshop.nombre || ''}
                                     onChange={e => setWorkshop({ ...workshop, nombre: e.target.value })}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-semibold"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                    style={{ color: '#1e293b' }}
                                     placeholder="Ej: Steelmonkey Performance"
                                 />
                             </div>
@@ -398,7 +401,8 @@ export default function PerfilTallerPage() {
                                     value={workshop.descripcion || ''}
                                     onChange={e => setWorkshop({ ...workshop, descripcion: e.target.value })}
                                     rows={4}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all resize-none leading-relaxed"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all resize-none leading-relaxed"
+                                    style={{ color: '#1e293b' }}
                                     placeholder="Describe tu taller..."
                                 />
                             </div>
@@ -409,7 +413,8 @@ export default function PerfilTallerPage() {
                                         type="text"
                                         value={workshop.reconocimiento || ''}
                                         onChange={e => setWorkshop({ ...workshop, reconocimiento: e.target.value })}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-semibold"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                        style={{ color: '#1e293b' }}
                                         placeholder="Ej: Premio Innovación 2024"
                                     />
                                 </div>
@@ -419,7 +424,8 @@ export default function PerfilTallerPage() {
                                         type="text"
                                         value={workshop.estadisticas || ''}
                                         onChange={e => setWorkshop({ ...workshop, estadisticas: e.target.value })}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-semibold"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-semibold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                        style={{ color: '#1e293b' }}
                                         placeholder="Ej: +500 Autos Potenciados"
                                     />
                                 </div>
@@ -440,7 +446,8 @@ export default function PerfilTallerPage() {
                                     type="text"
                                     value={workshop.direccion || ''}
                                     onChange={e => setWorkshop({ ...workshop, direccion: e.target.value })}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                    style={{ color: '#1e293b' }}
                                     placeholder="Av. Vitacura 9800"
                                 />
                             </div>
@@ -451,7 +458,8 @@ export default function PerfilTallerPage() {
                                         type="text"
                                         value={workshop.whatsapp || ''}
                                         onChange={e => setWorkshop({ ...workshop, whatsapp: e.target.value })}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                        style={{ color: '#1e293b' }}
                                         placeholder="+569"
                                     />
                                 </div>
@@ -461,7 +469,8 @@ export default function PerfilTallerPage() {
                                         type="url"
                                         value={workshop.sitio_web || ''}
                                         onChange={e => setWorkshop({ ...workshop, sitio_web: e.target.value })}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                        style={{ color: '#1e293b' }}
                                         placeholder="https://www.misitio.com"
                                     />
                                 </div>
@@ -473,7 +482,8 @@ export default function PerfilTallerPage() {
                                         type="text"
                                         value={workshop.instagram || ''}
                                         onChange={e => setWorkshop({ ...workshop, instagram: e.target.value })}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                                        style={{ color: '#1e293b' }}
                                         placeholder="@usuario"
                                     />
                                 </div>
