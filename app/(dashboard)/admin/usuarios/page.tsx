@@ -966,13 +966,15 @@ function UsuariosContent() {
                                         value={newUserForm.rol}
                                         onChange={e => setNewUserForm({ ...newUserForm, rol: e.target.value })}
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none"
-                                        style={{ color: '#334155' }}
+                                        style={{ color: '#1e293b' }}
                                     >
-                                        <option value="" disabled style={{ color: '#334155' }}>Selecciona un rol</option>
+                                        <option value="" disabled className="text-slate-500">Selecciona un rol</option>
                                         {roles
-                                            .filter(r => !['flusize_admin', 'superadmin'].includes(r.nombre.toLowerCase()))
+                                            .filter(r => !['flusize_admin', 'superadmin', 'flusize admin'].includes(r.nombre.toLowerCase().trim()))
                                             .map(r => (
-                                                <option key={r.id} value={r.nombre} style={{ color: '#334155' }}>{r.etiqueta}</option>
+                                                <option key={r.id} value={r.nombre} className="text-slate-900 bg-white">
+                                                    {r.etiqueta}
+                                                </option>
                                             ))
                                         }
                                     </select>

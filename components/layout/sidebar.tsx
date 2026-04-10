@@ -181,6 +181,11 @@ export function Sidebar() {
             hasAccess = true;
         }
 
+        // ESPECIFICO: Ocultar Dashboard (Reportes Clave/Análiticas) siempre para el mecánico
+        if (item.href === '/admin' && user.role === 'mecanico') {
+            hasAccess = false;
+        }
+
         if (!hasAccess) return false;
 
         // 2. Verificar Módulos A La Carta (GodMode) / Plan Comercial

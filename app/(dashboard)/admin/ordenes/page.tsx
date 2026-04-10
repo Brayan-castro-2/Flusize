@@ -1236,6 +1236,7 @@ export default function OrdenesPage() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10 bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 rounded-xl text-sm"
                                 autoComplete="off"
+                                style={{ color: '#1e293b' }}
                             />
                         </div>
                         {/* View Type Filter — solo visible si tiene módulo agenda */}

@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
                     .maybeSingle();
 
                 const tienePermisoCrear = permisoData?.concedido === true || 
-                                         ['superadmin', 'taller_admin'].includes(rolDelCreador);
+                                         ['superadmin', 'flusize_admin', 'taller_admin'].includes(rolDelCreador);
 
                 if (!tienePermisoCrear) {
                     return NextResponse.json(
@@ -91,8 +91,8 @@ export async function POST(req: NextRequest) {
                     );
                 }
 
-                // 3. Restricción de Jerarquía: Solo superadmin crea superadmin
-                if (rol === 'superadmin' && rolDelCreador !== 'superadmin') {
+                // 3. Restricción de Jerarquía: Solo superadmin o flusize_admin crean superadmin
+                if (rol === 'superadmin' && !['superadmin', 'flusize_admin'].includes(rolDelCreador)) {
                     return NextResponse.json(
                         { error: 'Solo un Super Usuario puede crear otros Super Usuarios.' },
                         { status: 403 }
