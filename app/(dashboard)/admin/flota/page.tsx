@@ -890,7 +890,8 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                                             <div className="space-y-1">
                                                 <Label className="text-slate-400 text-xs">Tipo</Label>
                                                 <select value={newInv.tipo} onChange={e => setNewInv(p => ({ ...p, tipo: e.target.value as Inversion['tipo'] }))}
-                                                    className="w-full h-10 bg-slate-900 border border-slate-700 text-white rounded-md px-3 text-sm">
+                                                    className="w-full h-10 bg-slate-900 border border-slate-700 text-white rounded-md px-3 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                                    style={{ color: '#1e293b' }}>
                                                     {['Mecánica', 'Pintura', 'Documentación', 'Externa', 'Otro'].map(t => (
                                                         <option key={t} value={t}>{t}</option>
                                                     ))}
@@ -1405,7 +1406,8 @@ function NuevaUnidadModal({ tallerIdProp, onClose, onCreated }: { tallerIdProp: 
                             <div className="space-y-1">
                                 <Label className="text-slate-400 text-xs">Destino de la Unidad</Label>
                                 <select value={form.destino_unidad} onChange={e => setForm(p => ({ ...p, destino_unidad: e.target.value }))}
-                                    className="w-full h-10 bg-slate-900 border border-slate-700 text-white rounded-md px-3 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                    className="w-full h-10 bg-slate-900 border border-slate-700 text-white rounded-md px-3 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                    style={{ color: '#1e293b' }}>
                                     <option value="Venta">Venta</option>
                                     <option value="Arriendo">Arriendo</option>
                                     <option value="Desarmaduría">Desarmaduría</option>

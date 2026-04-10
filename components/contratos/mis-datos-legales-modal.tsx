@@ -111,6 +111,7 @@ export function MisDatosLegalesModal({ isOpen, onClose }: MisDatosLegalesModalPr
                                         type="text"
                                         placeholder="Ej: Juan Pérez Soto"
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none"
+                                        style={{ color: '#1e293b' }}
                                         value={nombreLegal}
                                         onChange={(e) => setNombreLegal(e.target.value)}
                                     />
@@ -128,6 +129,7 @@ export function MisDatosLegalesModal({ isOpen, onClose }: MisDatosLegalesModalPr
                                         type="text"
                                         placeholder="Ej: 12.345.678-9"
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none"
+                                        style={{ color: '#1e293b' }}
                                         value={rutLegal}
                                         onChange={(e) => setRutLegal(e.target.value)}
                                     />
