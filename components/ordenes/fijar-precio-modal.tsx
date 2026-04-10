@@ -231,6 +231,7 @@ export function FijarPrecioModal({ isOpen, onClose, order, onSaved }: Props) {
                             onChange={(e) => setPrecioTotal(e.target.value)}
                             className="h-12 text-lg font-bold border-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                             placeholder="Ej: 85000"
+                            style={{ color: '#1e293b' }}
                         />
                     </div>
                     
@@ -327,6 +328,7 @@ export function FijarPrecioModal({ isOpen, onClose, order, onSaved }: Props) {
                                         className="h-11 font-bold border-2 border-red-300 focus:border-red-500 focus:ring-red-200 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                                         placeholder="0"
                                         max={finalTotal}
+                                        style={{ color: '#1e293b' }}
                                     />
                                 </div>
 

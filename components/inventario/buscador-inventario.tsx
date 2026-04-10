@@ -163,6 +163,7 @@ export function BuscadorInventario({ onChange, initialItems = [] }: BuscadorInve
                             setShowDropdown(true);
                         }}
                         className="w-full h-11 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                        style={{ color: '#1e293b' }}
                     />
                     {isSearching && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -242,6 +243,7 @@ export function BuscadorInventario({ onChange, initialItems = [] }: BuscadorInve
                                                 min="1"
                                                 max={item.stock_actual}
                                                 className="w-10 h-6 text-center text-xs font-bold bg-transparent border-none focus:ring-0 outline-none p-0 text-slate-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                style={{ color: '#1e293b' }}
                                             />
                                             <button 
                                                 type="button"

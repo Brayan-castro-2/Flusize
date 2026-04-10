@@ -325,6 +325,7 @@ export function BitacoraAvanceModal({ isOpen, onClose, orderId, onSaved }: Props
                                             onChange={e => setPiezaManual(e.target.value)}
                                             placeholder="Ej: Filtro de aceite"
                                             className="w-full h-10 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                            style={{ color: '#1e293b' }}
                                         />
                                     </div>
                                     <div>
@@ -336,6 +337,7 @@ export function BitacoraAvanceModal({ isOpen, onClose, orderId, onSaved }: Props
                                             onChange={e => setCostoManual(e.target.value)}
                                             placeholder="Ej: 15.000"
                                             className="w-full h-10 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                            style={{ color: '#1e293b' }}
                                         />
                                     </div>
                                 </div>

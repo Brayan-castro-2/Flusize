@@ -1327,6 +1327,7 @@ export default function OrdenesPage() {
                                                         value={dateRange.from}
                                                         onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
                                                         className="bg-white border-slate-200 h-8 text-xs text-slate-900"
+                                                        style={{ color: '#1e293b' }}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
@@ -1336,6 +1337,7 @@ export default function OrdenesPage() {
                                                         value={dateRange.to}
                                                         onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
                                                         className="bg-white border-slate-200 h-8 text-xs text-slate-900"
+                                                        style={{ color: '#1e293b' }}
                                                     />
                                                 </div>
                                             </div>

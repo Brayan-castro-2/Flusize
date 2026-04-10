@@ -110,7 +110,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
             loadMeta();
             setTimeout(() => firstInputRef.current?.focus(), 80);
         }
-    }, [isOpen, initialData, mode]);
+    }, [isOpen, initialData, mode, loadMeta]);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -239,7 +239,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                 if (updateProdErr) throw updateProdErr;
             }
 
-            // --- PASO 2: Insert del Movimiento --- (NOTE: NO creado_por field)
+            // --- PASO 2: Insert del Movimiento ---
             const now = new Date();
             const { error: movErr } = await supabase
                 .from('movimientos_inventario')
@@ -509,6 +509,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                                     step="1"
                                                                     disabled={isSubmitting}
                                                                     className={`${inputCls} pl-7 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                                                                    style={inputStyle}
                                                                 />
                                                             </div>
                                                         </div>
@@ -528,6 +529,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                                     step="1"
                                                                     disabled={isSubmitting}
                                                                     className={`${inputCls} pl-7 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                                                                    style={inputStyle}
                                                                 />
                                                             </div>
                                                         </div>
@@ -562,6 +564,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                                         max="100"
                                                                         disabled={isSubmitting}
                                                                         className={`${inputCls} pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                                                                        style={inputStyle}
                                                                     />
                                                                 </div>
                                                             ) : (
@@ -630,10 +633,11 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                                     onChange={handleChange}
                                                                     disabled={isSubmitting || !!form.nueva_categoria}
                                                                     className={`${inputCls} pl-9 appearance-none`}
+                                                                    style={inputStyle}
                                                                 >
-                                                                    <option value="">Seleccionar...</option>
+                                                                    <option value="" style={inputStyle}>Seleccionar...</option>
                                                                     {categorias.map(c => (
-                                                                        <option key={c} value={c}>{c}</option>
+                                                                        <option key={c} value={c} style={inputStyle}>{c}</option>
                                                                     ))}
                                                                 </select>
                                                             </div>
@@ -651,6 +655,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                                 placeholder="Ej: Filtros de aire"
                                                                 disabled={isSubmitting}
                                                                 className={inputCls}
+                                                                style={inputStyle}
                                                             />
                                                         </div>
                                                     </div>
@@ -669,10 +674,11 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                                     onChange={handleChange}
                                                                     disabled={isSubmitting || !!form.nueva_marca}
                                                                     className={`${inputCls} pl-9 appearance-none`}
+                                                                    style={inputStyle}
                                                                 >
-                                                                    <option value="">Seleccionar...</option>
+                                                                    <option value="" style={inputStyle}>Seleccionar...</option>
                                                                     {marcas.map(m => (
-                                                                        <option key={m} value={m}>{m}</option>
+                                                                        <option key={m} value={m} style={inputStyle}>{m}</option>
                                                                     ))}
                                                                 </select>
                                                             </div>
@@ -690,6 +696,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                                 placeholder="Ej: Mobil, Bosch, NGK"
                                                                 disabled={isSubmitting}
                                                                 className={inputCls}
+                                                                style={inputStyle}
                                                             />
                                                         </div>
                                                     </div>
