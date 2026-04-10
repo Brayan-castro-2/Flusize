@@ -292,6 +292,8 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
         : { ring: 'focus:ring-red-500', bg: 'bg-red-600', hover: 'hover:bg-red-700', light: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: 'text-red-600', badge: 'bg-red-100 text-red-700' };
 
     const inputCls = `w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 ${accent.ring} focus:border-transparent transition-all disabled:opacity-60`;
+    // color forced via style prop on each input to override any dark theme CSS inheritance
+    const inputStyle: React.CSSProperties = { color: '#1e293b' };
 
     // Compute IVA amount for display
     const ivaAmount = form.precio_venta && form.porcentaje_iva
@@ -363,6 +365,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                 required
                                                 disabled={isSubmitting}
                                                 className={`${inputCls} pl-9 font-mono font-bold`}
+                                                style={inputStyle}
                                             />
                                         </div>
                                     </div>
@@ -380,6 +383,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                 placeholder="Aceite 5W-30 Shell"
                                                 disabled={isSubmitting}
                                                 className={`${inputCls} pl-9`}
+                                                style={inputStyle}
                                             />
                                         </div>
                                     </div>
@@ -401,6 +405,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                             required
                                             disabled={isSubmitting}
                                             className={`${inputCls} text-center font-black [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                                            style={inputStyle}
                                         />
                                     </div>
                                     <div>
@@ -418,6 +423,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                 required
                                                 disabled={isSubmitting}
                                                 className={`${inputCls} pl-9`}
+                                                style={inputStyle}
                                             />
                                         </div>
                                     </div>
@@ -439,6 +445,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                 placeholder={isEntrada ? 'Proveedor ABC' : 'Consumo interno'}
                                                 disabled={isSubmitting}
                                                 className={`${inputCls} pl-9`}
+                                                style={inputStyle}
                                             />
                                         </div>
                                     </div>
@@ -456,6 +463,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, mode, initial
                                                 rows={1}
                                                 disabled={isSubmitting}
                                                 className={`${inputCls} pl-9 resize-none`}
+                                                style={inputStyle}
                                             />
                                         </div>
                                     </div>
