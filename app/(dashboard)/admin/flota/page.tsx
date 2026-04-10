@@ -11,7 +11,7 @@ import {
     CircleDot, CheckCircle2, Clock, Tag, Edit3, Save,
     AlertTriangle, Link2, Search, CalendarDays, BarChart3,
     HandshakeIcon, ArrowLeft, Copy, RotateCcw, ShoppingCart,
-    CheckSquare
+    CheckSquare, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
