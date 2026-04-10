@@ -565,8 +565,8 @@ function UsuariosContent() {
             )}
 
             {/* ── Permissions Matrix Panel (Admin Only) ── */}
-            {canViewMatrix && (
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+            {false && canViewMatrix && (
+                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm mb-6">
                     <button
                         onClick={() => { setShowRolePanel(v => !v); if (!showRolePanel && !permissionsData) fetchPermissions(); }}
                         className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors"
