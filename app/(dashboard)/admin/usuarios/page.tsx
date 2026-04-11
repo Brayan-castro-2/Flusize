@@ -513,14 +513,15 @@ function UsuariosContent() {
                                                     value={newRole.color}
                                                     onChange={e => setNewRole({ ...newRole, color: e.target.value })}
                                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                    style={{ color: '#1e293b' }}
                                                 >
-                                                    <option value="gray">Gris</option>
-                                                    <option value="blue">Azul</option>
-                                                    <option value="purple">Morado</option>
-                                                    <option value="emerald">Verde</option>
-                                                    <option value="orange">Naranja</option>
-                                                    <option value="red">Rojo</option>
-                                                    <option value="amber">Ámbar</option>
+                                                    <option value="gray" className="text-slate-900 bg-white">Gris</option>
+                                                    <option value="blue" className="text-slate-900 bg-white">Azul</option>
+                                                    <option value="purple" className="text-slate-900 bg-white">Morado</option>
+                                                    <option value="emerald" className="text-slate-900 bg-white">Verde</option>
+                                                    <option value="orange" className="text-slate-900 bg-white">Naranja</option>
+                                                    <option value="red" className="text-slate-900 bg-white">Rojo</option>
+                                                    <option value="amber" className="text-slate-900 bg-white">Ámbar</option>
                                                 </select>
                                             </div>
                                             <button
@@ -745,10 +746,11 @@ function UsuariosContent() {
                                                         value={editRoleMode[perfil.id]}
                                                         onChange={e => setEditRoleMode(prev => ({ ...prev, [perfil.id]: e.target.value }))}
                                                         className="rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 px-3 py-1.5 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        style={{ color: '#1e293b' }}
                                                     >
-                                                        <option value="">Sin rol</option>
+                                                        <option value="" className="text-slate-900 bg-white">Sin rol</option>
                                                         {roles.map(r => (
-                                                            <option key={r.id} value={r.nombre}>{r.etiqueta}</option>
+                                                            <option key={r.id} value={r.nombre} className="text-slate-900 bg-white">{r.etiqueta}</option>
                                                         ))}
                                                     </select>
                                                     <button
