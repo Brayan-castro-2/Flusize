@@ -317,10 +317,22 @@ function ContratosContent() {
         if (!user || !base64) return;
         setGuardandoFirma(true);
         try {
+            // 1. Guardar en perfil
             const { error } = await supabase.from('perfiles').update({ firma_base64: base64 }).eq('id', user.id);
             if (error) throw error;
-            toast.success('¡Firma digital guardada!');
+
+            // 2. Propagar a todos los contratos pendientes del mismo taller
+            if (user.tallerId) {
+                await supabase
+                    .from('contratos')
+                    .update({ vendedor_firma_base64: base64, actualizado_en: new Date().toISOString() })
+                    .eq('taller_id', user.tallerId)
+                    .eq('estado', 'pendiente_firma');
+            }
+
+            toast.success('¡Firma guardada! Los contratos pendientes han sido actualizados.');
             setOpenFirmaPanel(false);
+            await loadContratos(); // Refrescar lista
         } catch (e: any) {
             toast.error('Error al guardar firma: ' + e.message);
         } finally {
