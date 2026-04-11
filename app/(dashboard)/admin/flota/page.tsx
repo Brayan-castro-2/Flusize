@@ -260,6 +260,7 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
     const [showGenerarContrato, setShowGenerarContrato] = useState(false);
     const [showEstadoMenu, setShowEstadoMenu] = useState(false);
     const [ingresosHistoricos, setIngresosHistoricos] = useState(0);
+    const [contratoExito, setContratoExito] = useState<{ ordenId: string; telefono: string; clienteNombre: string } | null>(null);
 
     // ── Notas Técnicas ────────────────────────────────────────────────────────
     const [notasIngreso, setNotasIngreso] = useState(v.notas_ingreso || '');
@@ -760,22 +761,93 @@ function DetalleModal({ v, onClose, onUpdate }: { v: VehiculoFlota; onClose: () 
                                 </div>
                             )}
 
-                            {/* Botón Generar Contrato — abre formulario de variables primero */}
-                            {(v.estado === 'Disponible' || v.estado === 'Arrendado' || v.estado === 'Vendido') && (
+                            {/* Botón Crear Contrato Digital */}
+                            {!contratoExito && (v.estado === 'Disponible' || v.estado === 'Arrendado' || v.estado === 'Vendido') && (
                                 <button onClick={() => setShowNuevoContrato(true)}
                                     className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-300 font-semibold text-sm transition-colors">
                                     <FileText className="w-4 h-4" /> 📋 Crear Contrato Digital
                                 </button>
                             )}
 
+                            {/* Panel éxito contrato recién creado */}
+                            {contratoExito && (() => {
+                                const trackingUrl = `${window.location.origin}/tracking/${contratoExito.ordenId}`;
+                                const mensaje = `Hola ${contratoExito.clienteNombre}! 👋 Te enviamos el link para revisar y firmar tu contrato del vehículo ${v.patente}.\n\n👉 ${trackingUrl}\n\nAl abrir el link, podrás ver el contrato y firmarlo digitalmente desde tu celular.\n\n_Rentmontt SpA._`;
+                                const whatsappUrl = contratoExito.telefono
+                                    ? `https://api.whatsapp.com/send?phone=${contratoExito.telefono.replace(/[^0-9]/g,'')}&text=${encodeURIComponent(mensaje)}`
+                                    : null;
+                                return (
+                                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 space-y-3 animate-in fade-in duration-300">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-emerald-300 font-bold text-sm">✅ ¡Contrato creado!</p>
+                                                <p className="text-slate-400 text-xs">Listo para enviar al cliente para su firma digital</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {whatsappUrl ? (
+                                                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer"
+                                                    className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm py-2.5 px-4 rounded-xl transition-colors active:scale-95">
+                                                    📱 Enviar por WhatsApp al Cliente
+                                                </a>
+                                            ) : (
+                                                <button
+                                                    onClick={() => { navigator.clipboard.writeText(trackingUrl); toast.success('Link copiado!'); }}
+                                                    className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm py-2.5 px-4 rounded-xl transition-colors active:scale-95">
+                                                    <Copy className="w-4 h-4" /> Copiar Link de Firma
+                                                </button>
+                                            )}
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={() => { navigator.clipboard.writeText(trackingUrl); toast.success('Link copiado!'); }}
+                                                    className="flex items-center justify-center gap-2 bg-slate-700/60 hover:bg-slate-700 border border-slate-600 text-slate-300 font-semibold text-xs py-2 px-3 rounded-xl transition-colors active:scale-95">
+                                                    <Copy className="w-3.5 h-3.5" /> Copiar Link
+                                                </button>
+                                                <a href="/admin/contratos"
+                                                    className="flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 font-semibold text-xs py-2 px-3 rounded-xl transition-colors active:scale-95">
+                                                    <FileText className="w-3.5 h-3.5" /> Ir a Contratos
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <button onClick={() => setContratoExito(null)}
+                                            className="w-full text-center text-xs text-slate-500 hover:text-slate-400 transition-colors pt-1">
+                                            Crear otro contrato
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Formulario Nuevo Contrato */}
                             {showNuevoContrato && (
                                 <NuevoContratoForm
                                     isOpen={showNuevoContrato}
                                     onClose={() => setShowNuevoContrato(false)}
-                                    onSuccess={(contratoId) => {
+                                    onSuccess={async (contratoId) => {
                                         setShowNuevoContrato(false);
-                                        toast.info('Contrato creado — ve a Contratos Digitales para enviar por WhatsApp');
+                                        // Recuperar orden_id y teléfono del contrato recién creado
+                                        try {
+                                            const { data: c } = await supabase
+                                                .from('contratos')
+                                                .select('orden_id, cliente_telefono, cliente_nombre')
+                                                .eq('id', contratoId)
+                                                .single();
+                                            if (c?.orden_id) {
+                                                setContratoExito({
+                                                    ordenId: c.orden_id,
+                                                    telefono: c.cliente_telefono || '',
+                                                    clienteNombre: c.cliente_nombre || '',
+                                                });
+                                            }
+                                        } catch (_) {
+                                            toast.info('Contrato creado — ve a Contratos Digitales para enviar el link');
+                                        }
+                                        onUpdate();
                                     }}
                                     vehiculo={v}
                                 />
