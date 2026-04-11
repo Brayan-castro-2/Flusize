@@ -749,9 +749,12 @@ function UsuariosContent() {
                                                         style={{ color: '#1e293b' }}
                                                     >
                                                         <option value="" className="text-slate-900 bg-white">Sin rol</option>
-                                                        {roles.map(r => (
-                                                            <option key={r.id} value={r.nombre} className="text-slate-900 bg-white">{r.etiqueta}</option>
-                                                        ))}
+                                                        {roles
+                                                            .filter(r => !['flusize_admin', 'superadmin', 'flusize admin'].includes((r.nombre || '').toLowerCase().trim()))
+                                                            .map(r => (
+                                                                <option key={r.id} value={r.nombre} className="text-slate-900 bg-white">{r.etiqueta}</option>
+                                                            ))
+                                                        }
                                                     </select>
                                                     <button
                                                         onClick={() => handleUpdateUserRole(perfil.id, editRoleMode[perfil.id])}
