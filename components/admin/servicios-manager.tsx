@@ -364,19 +364,19 @@ export function ServiciosManager() {
                                         <td className="py-3 px-4 text-right">
                                             {editingId === servicio.id ? (
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <button onClick={() => saveEdit(servicio.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                                                    <button type="button" onClick={() => saveEdit(servicio.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
                                                         <Check className="w-4 h-4" />
                                                     </button>
-                                                    <button onClick={() => setEditingId(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors">
+                                                    <button type="button" onClick={() => setEditingId(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors">
                                                         <X className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => startEdit(servicio)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                                                    <button type="button" onClick={() => startEdit(servicio)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                                                         <Pencil className="w-4 h-4" />
                                                     </button>
-                                                    <button onClick={() => handleDelete(servicio.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                                                    <button type="button" onClick={() => handleDelete(servicio.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
