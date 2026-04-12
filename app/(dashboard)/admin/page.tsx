@@ -35,7 +35,10 @@ import {
     Users,
     DollarSign,
     ChevronDown,
-    Calendar
+    Calendar,
+    FileText,
+    ShoppingBag,
+    Home
 } from 'lucide-react';
 import Link from 'next/link';
 import nextDynamic from 'next/dynamic';
@@ -94,6 +97,7 @@ export default function AdminPage() {
     // const [vehiculos, setVehiculos] = useState<VehiculoDB[]>([]); // REMOVED
     const [isLoadingOther, setIsLoadingOther] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [contractTab, setContractTab] = useState<'todos' | 'venta' | 'arriendo'>('todos');
 
     // FASE 27: Solo roles con nivel administrativo pueden ver las métricas financieras del Dashboard.
     // El mecánico es redirigido a Órdenes por el Sidebar y esta guarda de ruta.
@@ -176,22 +180,24 @@ export default function AdminPage() {
         };
     }, [todaysOrders, filteredOrders, allContracts, dateFilter]);
 
-    // Calcular rendimiento de mecánicos
+    // Calcular rendimiento de mecánicos — solo órdenes FINALIZADAS (completada/entregada)
     const mechanicPerformance = useMemo(() => {
         const mechanics = perfiles.filter(p => p.rol === 'mecanico' || p.rol === 'taller_admin');
 
         return mechanics.map(mechanic => {
-            const assignedOrders = filteredOrders.filter(o => o.asignado_a === mechanic.id);
-            const completedOrders = assignedOrders.filter(o => o.estado === 'completada');
-            const totalRevenue = assignedOrders.reduce((acc, o) => acc + cleanMoney(o.precio_total), 0);
+            // Solo órdenes finales para el ranking
+            const finalOrders = filteredOrders.filter(
+                o => (o.estado === 'completada' || o.estado === 'entregada') && o.asignado_a === mechanic.id
+            );
+            const totalRevenue = finalOrders.reduce((acc, o) => acc + cleanMoney(o.precio_total), 0);
 
             return {
                 id: mechanic.id,
                 name: mechanic.nombre_completo,
-                ordersCount: assignedOrders.length,
+                ordersCount: finalOrders.length,  // Solo finalizadas
                 totalRevenue,
-                completedCount: completedOrders.length,
-                completedOrders: completedOrders,
+                completedCount: finalOrders.length,
+                completedOrders: finalOrders,
             };
         }).sort((a, b) => b.ordersCount - a.ordersCount);
     }, [filteredOrders, perfiles]);
@@ -338,8 +344,8 @@ export default function AdminPage() {
 
                         {/* Market Analysis Grid */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <TopBrandsChart orders={allOrders} />
-                            <TopServicesChart orders={allOrders} />
+                            <TopBrandsChart orders={allOrders} contracts={allContracts} />
+                            <TopServicesChart orders={allOrders} contracts={allContracts} />
                         </div>
 
                         {/* Seasonality Row */}
@@ -440,6 +446,124 @@ export default function AdminPage() {
                         })}
                     </div>
                 )}
+            </div>
+
+            {/* ─── Últimos Contratos Registrados ─────────────────────────────── */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-emerald-600" />
+                        <h2 className="text-lg font-semibold text-gray-900">Últimos Contratos</h2>
+                    </div>
+                    <Link href="/admin/contratos" prefetch>
+                        <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
+                            Ver todos
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                    </Link>
+                </div>
+
+                {/* Filtro de tabs */}
+                <div className="flex gap-2 mb-3">
+                    {(['todos', 'venta', 'arriendo'] as const).map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setContractTab(tab)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                contractTab === tab
+                                    ? tab === 'todos' ? 'bg-gray-900 text-white'
+                                        : tab === 'venta' ? 'bg-emerald-600 text-white'
+                                        : 'bg-violet-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            {tab === 'todos' ? 'Todos' : tab === 'venta' ? '🤝 Ventas' : '🏠 Arriendos'}
+                        </button>
+                    ))}
+                </div>
+
+                {isLoadingContracts ? (
+                    <div className="space-y-3">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="bg-white rounded-xl p-4 animate-pulse border border-gray-200">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gray-200 rounded-lg" />
+                                    <div className="flex-1">
+                                        <div className="w-32 h-3 bg-gray-200 rounded mb-2" />
+                                        <div className="w-20 h-3 bg-gray-200 rounded" />
+                                    </div>
+                                    <div className="w-20 h-5 bg-gray-200 rounded" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (() => {
+                    const signedContracts = allContracts
+                        .filter(c => c?.estado === 'firmado')
+                        .filter(c => contractTab === 'todos' || c?.tipo === contractTab)
+                        .slice(0, 8);
+
+                    if (signedContracts.length === 0) {
+                        return (
+                            <Card className="bg-white border-gray-200">
+                                <CardContent className="py-10 text-center">
+                                    <FileText className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                                    <p className="text-gray-500 text-sm">No hay contratos {contractTab !== 'todos' ? `de ${contractTab}` : ''} registrados aún</p>
+                                </CardContent>
+                            </Card>
+                        );
+                    }
+
+                    return (
+                        <div className="space-y-2">
+                            {signedContracts.map((c) => (
+                                <Link key={c.id} href="/admin/contratos" prefetch>
+                                    <Card className="bg-white border-gray-200 hover:bg-gray-50 transition-colors duration-150 active:scale-[0.99]">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-center gap-3">
+                                                {/* Tipo Badge Icon */}
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                                    c.tipo === 'venta' ? 'bg-emerald-100' : 'bg-violet-100'
+                                                }`}>
+                                                    {c.tipo === 'venta'
+                                                        ? <ShoppingBag className="w-5 h-5 text-emerald-600" />
+                                                        : <Home className="w-5 h-5 text-violet-600" />}
+                                                </div>
+
+                                                {/* Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-gray-900 font-semibold text-sm truncate">
+                                                        {c.cliente_nombre || 'Cliente'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 truncate">
+                                                        <span className="font-mono font-bold">{c.vehiculo_patente || c.patente || '—'}</span>
+                                                        {c.vehiculo_marca && ` · ${c.vehiculo_marca} ${c.vehiculo_modelo || ''}`}
+                                                    </p>
+                                                </div>
+
+                                                {/* Monto + Badge */}
+                                                <div className="text-right shrink-0">
+                                                    {canViewPrices && (
+                                                        <p className="text-gray-900 font-bold text-sm">
+                                                            ${(Number(c.precio_total) || 0).toLocaleString('es-CL')}
+                                                        </p>
+                                                    )}
+                                                    <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                                        c.tipo === 'venta'
+                                                            ? 'bg-emerald-100 text-emerald-700'
+                                                            : 'bg-violet-100 text-violet-700'
+                                                    }`}>
+                                                        {c.tipo === 'venta' ? 'Venta' : 'Arriendo'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                            ))}
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Mechanic Performance */}

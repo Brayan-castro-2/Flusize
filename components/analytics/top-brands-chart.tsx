@@ -8,57 +8,71 @@ import { Card } from '@/components/ui/card';
 
 interface TopBrandsChartProps {
     orders: OrdenDB[];
+    contracts?: any[]; // Contratos firmados opcionales (Rent-A-Car)
 }
 
-// Sleek blue shade for the bars
 const BAR_COLOR = '#3b82f6';
 const OTHERS_COLOR = '#94a3b8';
 
-export function TopBrandsChart({ orders }: TopBrandsChartProps) {
+export function TopBrandsChart({ orders, contracts = [] }: TopBrandsChartProps) {
     const chartData = useMemo(() => {
-        const brandCounts = orders.reduce((acc, order) => {
+        // Acumulador: marca -> ingresos totales (en vez de conteo)
+        const brandRevenue: Record<string, number> = {};
+
+        // 1. Órdenes completadas/entregadas → sumar precio_total por marca
+        orders.forEach(order => {
+            if (order.estado !== 'completada' && order.estado !== 'entregada') return;
             let brand = order.vehiculos?.marca;
-            if (!brand || brand.trim() === '-' || brand.trim() === '' || brand.toUpperCase() === 'S/P' || brand.toUpperCase() === 'SIN REGISTRO') {
-                return acc; // Skip unassigned or empty
-            }
+            if (!brand || brand.trim() === '-' || brand.trim() === '' || brand.toUpperCase() === 'S/P' || brand.toUpperCase() === 'SIN REGISTRO') return;
             brand = brand.trim().toUpperCase();
+            const price = typeof order.precio_total === 'number'
+                ? order.precio_total
+                : parseInt(String(order.precio_total || 0).replace(/\D/g, ''), 10) || 0;
+            brandRevenue[brand] = (brandRevenue[brand] || 0) + price;
+        });
 
-            acc[brand] = (acc[brand] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
+        // 2. Contratos firmados → sumar precio_total por marca del vehículo (optional chaining)
+        (contracts || []).forEach(c => {
+            if (c?.estado !== 'firmado') return;
+            const marcaRaw = c?.vehiculo_marca || c?.datos_comerciales?.vehiculo?.split(' ')?.[0] || '';
+            if (!marcaRaw || marcaRaw.trim() === '') return;
+            const brand = marcaRaw.trim().toUpperCase();
+            const price = Number(c?.precio_total) || 0;
+            if (price <= 0) return;
+            brandRevenue[brand] = (brandRevenue[brand] || 0) + price;
+        });
 
-        // Convert to array and sort by count descending
-        let sortedBrands = Object.entries(brandCounts)
-            .map(([name, cantidad]) => ({ name, cantidad }))
-            .sort((a, b) => b.cantidad - a.cantidad);
+        // Convertir a array y ordenar por ingresos descendente
+        const sorted = Object.entries(brandRevenue)
+            .map(([name, totalCLP]) => ({ name, totalCLP }))
+            .sort((a, b) => b.totalCLP - a.totalCLP);
 
-        // Group into top 10 and "Otros"
         const TOP_LIMIT = 10;
-        const topBrands = sortedBrands.slice(0, TOP_LIMIT);
-        const otherBrands = sortedBrands.slice(TOP_LIMIT);
+        const top = sorted.slice(0, TOP_LIMIT);
+        const others = sorted.slice(TOP_LIMIT);
 
-        if (otherBrands.length > 0) {
-            const othersCount = otherBrands.reduce((sum, item) => sum + item.cantidad, 0);
-            topBrands.push({ name: 'OTROS', cantidad: othersCount });
+        if (others.length > 0) {
+            const othersTotal = others.reduce((sum, i) => sum + i.totalCLP, 0);
+            top.push({ name: 'OTROS', totalCLP: othersTotal });
         }
 
-        // Recharts vertical bar chart displays from bottom to top by default, 
-        // to show largest at the top we either reverse the data array or set layout props.
-        // We'll reverse it so index 0 (which renders at bottom) is the smallest.
-        return topBrands.reverse();
-    }, [orders]);
+        // Revertir para que el más grande quede arriba en gráfico horizontal
+        return top.reverse();
+    }, [orders, contracts]);
 
-    const total = chartData.reduce((sum, item) => sum + item.cantidad, 0);
+    const totalRevenue = chartData.reduce((sum, item) => sum + item.totalCLP, 0);
+    const formatCLP = (v: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(v);
 
     return (
         <Card className="bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 p-6 shadow-sm w-full">
             <div className="mb-6">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-gray-100 flex items-center gap-2">
                     <Car className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    Top Marcas Atendidas
+                    Top Marcas — Ingresos Generados
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-                    Historial valuado: <span className="font-bold text-slate-900 dark:text-gray-200">{total}</span> vehículos
+                    Total: <span className="font-bold text-slate-900 dark:text-gray-200">{formatCLP(totalRevenue)}</span>
+                    <span className="ml-2 text-xs text-blue-500">(Órdenes + Contratos)</span>
                 </p>
             </div>
 
@@ -88,12 +102,13 @@ export function TopBrandsChart({ orders }: TopBrandsChartProps) {
                                     color: '#0f172a',
                                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                                 }}
+                                formatter={(value: number | string | Array<number | string> | undefined) => [formatCLP(Number(value) || 0), 'Ingresos']}
                                 itemStyle={{ color: '#0f172a', fontWeight: 'bold' }}
                                 labelStyle={{ color: '#64748b', marginBottom: '4px' }}
                             />
                             <Bar
-                                dataKey="cantidad"
-                                name="Órdenes"
+                                dataKey="totalCLP"
+                                name="Ingresos"
                                 radius={[0, 4, 4, 0]}
                                 barSize={24}
                             >
