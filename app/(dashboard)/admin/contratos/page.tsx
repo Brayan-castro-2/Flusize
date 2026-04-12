@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth-context';
 import {
     Shield, Clock, FileText, CheckCircle2, Search,
-    MessageCircle, Eye, Loader2, X, Printer, PenTool, Settings, Eraser
+    MessageCircle, Eye, Loader2, X, Printer, PenTool, Settings, Eraser,
+    Car, DollarSign, Filter, ChevronDown
 } from 'lucide-react';
 import { ContratoDocumento } from '@/components/contratos/contrato-documento';
 import type { ContratoData } from '@/components/contratos/contrato-documento';
@@ -44,6 +45,7 @@ interface Contrato {
     creado_en: string;
     vendedor_nombre?: string | null;
     vendedor_rut?: string | null;
+    actualizado_en?: string | null;
 }
 
 function formatCLP(n: number | null) {
@@ -166,7 +168,7 @@ function VerPdfModal({ contrato, onClose }: { contrato: Contrato; onClose: () =>
     );
 }
 
-// ── Fila de contrato ─────────────────────────────────────────────────────────
+// ── Fila de contrato (tarjeta card existente para vista móvil) ─────────────────
 function ContratoRow({ contrato, onVerPdf, onDelete, onEdit }: { contrato: Contrato; onVerPdf: () => void; onDelete: (id: string) => void; onEdit: (contrato: Contrato) => void }) {
     const esVenta = contrato.tipo === 'venta';
     const esFirmado = contrato.estado === 'firmado';
@@ -258,13 +260,71 @@ function ContratoRow({ contrato, onVerPdf, onDelete, onEdit }: { contrato: Contr
                 </button>
             </div>
 
-            {esFirmado && contrato.firma_base64 && (
-                <div className="mt-2 flex items-center gap-2 text-[11px] font-medium text-emerald-600 bg-emerald-50/50 p-1.5 rounded-lg border border-emerald-100">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Firma digital capturada · {contrato.ip_cliente && <span className="text-slate-500 font-normal">IP: {contrato.ip_cliente}</span>}
-                </div>
-            )}
         </div>
+    );
+}
+
+// ── Fila de tabla detallada ────────────────────────────────────────────────────
+function ContratoTableRow({ contrato, onVerPdf, onDelete, onEdit }: { contrato: Contrato; onVerPdf: () => void; onDelete: (id: string) => void; onEdit: (contrato: Contrato) => void }) {
+    const esVenta = contrato.tipo === 'venta';
+    const esFirmado = contrato.estado === 'firmado';
+
+    return (
+        <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors group">
+            {/* Cliente */}
+            <td className="px-4 py-3">
+                <p className="font-semibold text-slate-900 text-sm">{contrato.cliente_nombre || '—'}</p>
+                <p className="text-xs text-slate-400">{contrato.cliente_rut || ''}</p>
+            </td>
+
+            {/* Vehículo */}
+            <td className="px-4 py-3">
+                <span className="font-mono text-xs font-black text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                    {contrato.vehiculo_patente || '—'}
+                </span>
+                <p className="text-xs text-slate-500 mt-0.5">{contrato.vehiculo_marca} {contrato.vehiculo_modelo}</p>
+            </td>
+
+            {/* Tipo */}
+            <td className="px-4 py-3">
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wide ${
+                    esVenta ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'
+                }`}>
+                    {esVenta ? '🤝 Venta' : '🏠 Arriendo'}
+                </span>
+            </td>
+
+            {/* Monto */}
+            <td className="px-4 py-3 text-right">
+                <p className="font-black text-slate-900 text-sm">{formatCLP(contrato.precio_total)}</p>
+            </td>
+
+            {/* Estado */}
+            <td className="px-4 py-3">
+                <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold w-fit ${
+                    esFirmado ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                }`}>
+                    {esFirmado ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                    {esFirmado ? 'Firmado' : 'Pendiente'}
+                </span>
+                <p className="text-[10px] text-slate-400 mt-0.5 ml-0.5">
+                    {esFirmado && contrato.firmado_en
+                        ? new Date(contrato.firmado_en).toLocaleDateString('es-CL')
+                        : new Date(contrato.creado_en).toLocaleDateString('es-CL')}
+                </p>
+            </td>
+
+            {/* Acciones */}
+            <td className="px-4 py-3">
+                <button
+                    onClick={onVerPdf}
+                    className="flex items-center gap-1.5 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                >
+                    <Eye className="w-3.5 h-3.5" />
+                    Ver PDF
+                </button>
+            </td>
+        </tr>
     );
 }
 
@@ -275,8 +335,10 @@ function ContratosContent() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [tab, setTab] = useState<'pendiente_firma' | 'firmado'>('pendiente_firma');
+    const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'venta' | 'arriendo'>('todos');
     const [verPdf, setVerPdf] = useState<Contrato | null>(null);
     const [contratoToEdit, setContratoToEdit] = useState<Contrato | null>(null);
+    const [vista, setVista] = useState<'tarjetas' | 'tabla'>('tarjetas');
     
     // Firma admin estado
     const [openFirmaPanel, setOpenFirmaPanel] = useState(false);
@@ -342,6 +404,7 @@ function ContratosContent() {
 
     const filtrados = contratos.filter(c => {
         if (c.estado !== tab) return false;
+        if (tipoFiltro !== 'todos' && c.tipo !== tipoFiltro) return false;
         const q = search.toLowerCase();
         if (!q) return true;
         return (
@@ -353,6 +416,8 @@ function ContratosContent() {
 
     const pendienteCount = contratos.filter(c => c.estado === 'pendiente_firma').length;
     const firmadoCount = contratos.filter(c => c.estado === 'firmado').length;
+    const ventasCount = contratos.filter(c => c.estado === 'firmado' && c.tipo === 'venta').length;
+    const arriendosCount = contratos.filter(c => c.estado === 'firmado' && c.tipo === 'arriendo').length;
 
     return (
         <div className="space-y-6 relative">
@@ -383,6 +448,18 @@ function ContratosContent() {
                         </button>
                     </div>
                 </div>
+
+                {/* Resumen rápido firmados */}
+                <div className="flex flex-wrap gap-2 shrink-0">
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 text-center min-w-[90px]">
+                        <p className="text-2xl font-black text-emerald-600">{ventasCount}</p>
+                        <p className="text-xs text-emerald-600 font-semibold">Ventas</p>
+                    </div>
+                    <div className="bg-violet-50 border border-violet-100 rounded-2xl px-4 py-3 text-center min-w-[90px]">
+                        <p className="text-2xl font-black text-violet-600">{arriendosCount}</p>
+                        <p className="text-xs text-violet-600 font-semibold">Arriendos</p>
+                    </div>
+                </div>
             </div>
 
             {/* Tabs */}
@@ -411,15 +488,52 @@ function ContratosContent() {
                 </button>
             </div>
 
-            {/* Buscador */}
-            <div className="relative group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                <input value={search} onChange={e => setSearch(e.target.value)}
-                    placeholder="Buscar por cliente, patente o RUT..."
-                    className="w-full h-12 pl-11 pr-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 font-medium" />
+            {/* Buscador + Filtros */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                {/* Buscador */}
+                <div className="relative group flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <input value={search} onChange={e => setSearch(e.target.value)}
+                        placeholder="Buscar por cliente, patente o RUT..."
+                        className="w-full h-12 pl-11 pr-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 font-medium" />
+                </div>
+
+                {/* Filtro por tipo */}
+                <div className="relative">
+                    <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <select
+                        value={tipoFiltro}
+                        onChange={e => setTipoFiltro(e.target.value as typeof tipoFiltro)}
+                        className="h-12 pl-10 pr-8 bg-white border border-slate-200 text-slate-900 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer font-medium appearance-none"
+                        style={{ backgroundColor: '#ffffff', color: '#1e293b' }}
+                    >
+                        <option value="todos" style={{ color: '#1e293b' }}>Todos los tipos</option>
+                        <option value="venta" style={{ color: '#1e293b' }}>🤝 Solo Ventas</option>
+                        <option value="arriendo" style={{ color: '#1e293b' }}>🏠 Solo Arriendos</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+
+                {/* Toggle vista (solo en firmados cuando hay datos) */}
+                {tab === 'firmado' && firmadoCount > 0 && (
+                    <div className="flex bg-slate-100 border border-slate-200 rounded-xl p-1 gap-1">
+                        <button
+                            onClick={() => setVista('tarjetas')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${vista === 'tarjetas' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Tarjetas
+                        </button>
+                        <button
+                            onClick={() => setVista('tabla')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${vista === 'tabla' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Tabla
+                        </button>
+                    </div>
+                )}
             </div>
 
-            {/* Lista */}
+            {/* Lista / Tabla */}
             {loading ? (
                 <div className="space-y-3">
                     {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white rounded-2xl border border-slate-100 animate-pulse" />)}
@@ -431,13 +545,48 @@ function ContratosContent() {
                         {tab === 'pendiente_firma' ? 'No hay contratos pendientes' : 'No hay contratos firmados aún'}
                     </p>
                     <p className="text-sm mt-1">
-                        {tab === 'pendiente_firma'
+                        {tipoFiltro !== 'todos' ? `Sin contratos de tipo "${tipoFiltro}" con ese criterio` :
+                            tab === 'pendiente_firma'
                             ? 'Crea un contrato desde Gestión de Flota → botón "Crear Contrato Digital"'
                             : 'Los contratos firmados por el cliente aparecerán aquí'
                         }
                     </p>
                 </div>
+            ) : vista === 'tabla' && tab === 'firmado' ? (
+                /* ─── VISTA TABLA ─── */
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Cliente</th>
+                                    <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Vehículo</th>
+                                    <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Tipo</th>
+                                    <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider text-right">Monto</th>
+                                    <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Estado</th>
+                                    <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtrados.map(c => (
+                                    <ContratoTableRow
+                                        key={c.id}
+                                        contrato={c}
+                                        onVerPdf={() => setVerPdf(c)}
+                                        onDelete={handleDelete}
+                                        onEdit={setContratoToEdit}
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="px-4 py-2 border-t border-slate-100 text-xs text-slate-400 font-medium">
+                        {filtrados.length} contrato{filtrados.length !== 1 ? 's' : ''}
+                        {tipoFiltro !== 'todos' ? ` de tipo "${tipoFiltro}"` : ''}
+                    </div>
+                </div>
             ) : (
+                /* ─── VISTA TARJETAS ─── */
                 <div className="space-y-3">
                     {filtrados.map(c => (
                         <ContratoRow key={c.id} contrato={c} onVerPdf={() => setVerPdf(c)} onDelete={handleDelete} onEdit={setContratoToEdit} />

@@ -148,6 +148,7 @@ export function Sidebar() {
         itemAgenda,
         itemClientes,
         itemInventario,
+        itemUsuarios,
         itemPerfil
     ];
 
