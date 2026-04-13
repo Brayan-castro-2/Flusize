@@ -189,6 +189,11 @@ function ContratoRow({ contrato, onVerPdf, onDelete, onEdit }: { contrato: Contr
         toast.info('Link de firma copiado al portapapeles');
     };
 
+    const nombreCliente = contrato.cliente_nombre || (contrato as any).comprador_nombre || (contrato as any).arrendatario_nombre || (contrato as any).datos_cliente?.nombre || 'Cliente sin nombre';
+    const patenteVeh = contrato.vehiculo_patente || (contrato as any).patente || 'S/P';
+    const marcaVeh = contrato.vehiculo_marca || '';
+    const modeloVeh = contrato.vehiculo_modelo || '';
+
     return (
         <div className={`bg-white border rounded-2xl p-4 transition-all relative group shadow-sm hover:shadow-md ${esFirmado ? 'border-emerald-500/30' : 'border-slate-200'}`}>
             <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -210,12 +215,14 @@ function ContratoRow({ contrato, onVerPdf, onDelete, onEdit }: { contrato: Contr
                         {esFirmado ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Clock className="w-4 h-4 text-amber-600" />}
                     </div>
                     <div className="min-w-0">
-                        <p className="font-bold text-slate-900 truncate">{contrato.cliente_nombre || 'Cliente'}</p>
+                        <p className="font-bold text-slate-900 truncate">{nombreCliente}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded italic">{contrato.vehiculo_patente}</span>
-                            <p className="text-sm text-slate-600 truncate underline decoration-slate-300">
-                                {contrato.vehiculo_marca} {contrato.vehiculo_modelo}
-                            </p>
+                            <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded italic">{patenteVeh}</span>
+                            {(marcaVeh || modeloVeh) && (
+                                <p className="text-sm text-slate-600 truncate underline decoration-slate-300">
+                                    {marcaVeh} {modeloVeh}
+                                </p>
+                            )}
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${esVenta ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                                 {contrato.tipo}
                             </span>
@@ -269,20 +276,27 @@ function ContratoTableRow({ contrato, onVerPdf, onDelete, onEdit }: { contrato: 
     const esVenta = contrato.tipo === 'venta';
     const esFirmado = contrato.estado === 'firmado';
 
+    const nombreCliente = contrato.cliente_nombre || (contrato as any).comprador_nombre || (contrato as any).arrendatario_nombre || (contrato as any).datos_cliente?.nombre || 'Cliente sin nombre';
+    const patenteVeh = contrato.vehiculo_patente || (contrato as any).patente || 'S/P';
+    const marcaVeh = contrato.vehiculo_marca || '';
+    const modeloVeh = contrato.vehiculo_modelo || '';
+
     return (
         <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors group">
             {/* Cliente */}
             <td className="px-4 py-3">
-                <p className="font-semibold text-slate-900 text-sm">{contrato.cliente_nombre || '—'}</p>
+                <p className="font-semibold text-slate-900 text-sm">{nombreCliente}</p>
                 <p className="text-xs text-slate-400">{contrato.cliente_rut || ''}</p>
             </td>
 
             {/* Vehículo */}
             <td className="px-4 py-3">
                 <span className="font-mono text-xs font-black text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                    {contrato.vehiculo_patente || '—'}
+                    {patenteVeh}
                 </span>
-                <p className="text-xs text-slate-500 mt-0.5">{contrato.vehiculo_marca} {contrato.vehiculo_modelo}</p>
+                {(marcaVeh || modeloVeh) && (
+                    <p className="text-xs text-slate-500 mt-0.5">{marcaVeh} {modeloVeh}</p>
+                )}
             </td>
 
             {/* Tipo */}
