@@ -623,7 +623,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                             onChange={(e) => updater('detalle_daño', e.target.value)}
                             disabled={isReadOnly}
                             placeholder="Describe brevemente los daños observados..."
-                            className="w-full min-h-[80px] p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-y disabled:opacity-75"
+                            className="w-full min-h-[80px] p-3 rounded-xl bg-slate-50 border border-slate-200 !text-slate-700 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-y disabled:opacity-75"
                         />
                     </div>
                 </div>
@@ -647,7 +647,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                                     const formatted = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                                     updater('kilometraje', formatted);
                                 }}
-                                className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white pl-10 h-12 text-lg font-mono focus:ring-blue-500/20"
+                                className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 !text-slate-800 dark:text-white pl-10 h-12 text-lg font-mono focus:ring-blue-500/20"
                             />
                         </div>
                     </div>
@@ -662,7 +662,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                                 placeholder="Ej: Blanco Perla..."
                                 value={currentItems.color}
                                 onChange={(e) => updater('color', e.target.value)}
-                                className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white pl-10 h-12 focus:ring-blue-500/20"
+                                className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 !text-slate-800 dark:text-white pl-10 h-12 focus:ring-blue-500/20"
                             />
                         </div>
                     </div>
@@ -675,7 +675,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                                 placeholder="Ej: Desgaste parejo..."
                                 value={currentItems.neumaticos}
                                 onChange={(e) => updater('neumaticos', e.target.value)}
-                                className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white pl-10 h-12 focus:ring-blue-500/20"
+                                className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 !text-slate-800 dark:text-white pl-10 h-12 focus:ring-blue-500/20"
                             />
                         </div>
                     </div>
@@ -757,7 +757,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                         <textarea
                             value={comentariosSalida}
                             onChange={(e) => setComentariosSalida(e.target.value)}
-                            className="w-full min-h-[100px] p-4 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+                            className="w-full min-h-[100px] p-4 rounded-xl bg-white border border-slate-200 !text-slate-800 shadow-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
                             placeholder="Observaciones finales al entregar el vehículo..."
                         />
                     </section>
@@ -784,7 +784,7 @@ export default function ChecklistForm({ orderId, onClose, initialData, mode = 'c
                     <textarea
                         value={comentarios}
                         onChange={(e) => setComentarios(e.target.value)}
-                        className="w-full min-h-[120px] p-4 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+                        className="w-full min-h-[120px] p-4 rounded-xl bg-white border border-slate-200 !text-slate-800 shadow-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
                         placeholder="Escribe notas sobre el estado general de ingreso..."
                     />
                     <div className="space-y-6 mt-6">

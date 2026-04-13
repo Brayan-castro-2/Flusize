@@ -691,7 +691,7 @@ function OrderEditContent() {
                                                     setShowSuggestions(true);
                                                 }}
                                                 onFocus={() => setShowSuggestions(true)}
-                                                className="bg-white border-slate-300 text-slate-900 rounded-xl"
+                                                className="bg-white border-slate-300 !text-slate-900 rounded-xl"
                                                 placeholder="Buscar o ingresar nombre..."
                                             />
                                             {showSuggestions && clientesSugeridos.length > 0 && (
@@ -712,18 +712,18 @@ function OrderEditContent() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-slate-700">Teléfono</Label>
-                                        <Input value={clienteTelefono} onChange={(e) => setClienteTelefono(e.target.value)} className="bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="+56 9..." />
+                                        <Input value={clienteTelefono} onChange={(e) => setClienteTelefono(e.target.value)} className="bg-white border-slate-300 !text-slate-900 rounded-xl" placeholder="+56 9..." />
                                     </div>
                                 </div>
 
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-slate-700">RUT</Label>
-                                        <Input value={clienteRut} onChange={(e) => setClienteRut(e.target.value)} className="bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="12.345.678-9" />
+                                        <Input value={clienteRut} onChange={(e) => setClienteRut(e.target.value)} className="bg-white border-slate-300 !text-slate-900 rounded-xl" placeholder="12.345.678-9" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-slate-700">Email</Label>
-                                        <Input type="email" value={clienteEmail} onChange={(e) => setClienteEmail(e.target.value)} className="bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="correo@ejemplo.com" />
+                                        <Input type="email" value={clienteEmail} onChange={(e) => setClienteEmail(e.target.value)} className="bg-white border-slate-300 !text-slate-900 rounded-xl" placeholder="correo@ejemplo.com" />
                                     </div>
                                 </div>
 
@@ -778,11 +778,11 @@ function OrderEditContent() {
                                         <div className="grid md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
                                             <div className="space-y-2">
                                                 <Label className="text-slate-600">KM Ingreso</Label>
-                                                <Input type="number" value={kmIngreso} onChange={(e) => setKmIngreso(e.target.value)} className="bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="Ej: 150000" />
+                                                <Input type="number" value={kmIngreso} onChange={(e) => setKmIngreso(e.target.value)} className="bg-white border-slate-300 !text-slate-900 rounded-xl" placeholder="Ej: 150000" />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-slate-600">KM Salida</Label>
-                                                <Input type="number" value={kmSalida} onChange={(e) => setKmSalida(e.target.value)} className="bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="Ej: 150050" />
+                                                <Input type="number" value={kmSalida} onChange={(e) => setKmSalida(e.target.value)} className="bg-white border-slate-300 !text-slate-900 rounded-xl" placeholder="Ej: 150050" />
                                             </div>
                                         </div>
                                     )}
@@ -790,12 +790,12 @@ function OrderEditContent() {
 
                                 <div className="space-y-2">
                                     <Label className="text-slate-700">Motivo de Ingreso</Label>
-                                    <Textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} className="min-h-[100px] bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="Describe los síntomas o solicitud del cliente..." />
+                                    <Textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} className="min-h-[100px] bg-white border-slate-300 !text-slate-900 rounded-xl" placeholder="Describe los síntomas o solicitud del cliente..." />
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label className="text-slate-700">Detalle de Trabajos Realizados</Label>
-                                    <Textarea value={detalleTrabajos} onChange={(e) => setDetalleTrabajos(e.target.value)} className="min-h-[120px] bg-white border-slate-300 text-slate-900 rounded-xl" placeholder="Paso a paso de las reparaciones ejecutadas..." />
+                                    <Textarea value={detalleTrabajos} onChange={(e) => setDetalleTrabajos(e.target.value)} className="min-h-[120px] bg-white border-slate-300 !text-slate-900 rounded-xl" placeholder="Paso a paso de las reparaciones ejecutadas..." />
                                 </div>
 
                                 <div className="pt-6 border-t border-slate-200 mt-6 md:mt-8">
@@ -823,7 +823,7 @@ function OrderEditContent() {
                                                     value={precioFinal}
                                                     onChange={(e) => setPrecioFinal(e.target.value)}
                                                     onBlur={() => setPrecioFinal(formatPrecio(parsePrecio(precioFinal)))}
-                                                    className="bg-white border-slate-300 text-slate-900 rounded-xl text-2xl font-bold h-14"
+                                                    className="bg-white border-slate-300 !text-slate-900 rounded-xl text-2xl font-bold h-14"
                                                     placeholder="15000"
                                                 />
                                             </div>
@@ -878,7 +878,7 @@ function OrderEditContent() {
                                                                     newItems[idx].descripcion = e.target.value;
                                                                     setCotizacionItems(newItems);
                                                                 }}
-                                                                className="flex-1 bg-white border-slate-300 text-slate-900 rounded-xl shadow-sm min-w-[200px]"
+                                                                className="flex-1 bg-white border-slate-300 !text-slate-900 rounded-xl shadow-sm min-w-[200px]"
                                                             />
                                                             <Input
                                                                 type="text"
@@ -895,7 +895,7 @@ function OrderEditContent() {
                                                                     setCotizacionItems(newItems);
                                                                     e.target.value = formatPrecio(newItems[idx].monto);
                                                                 }}
-                                                                className="w-[140px] bg-white border-slate-300 text-slate-900 rounded-xl font-semibold text-right shadow-sm"
+                                                                className="w-[140px] bg-white border-slate-300 !text-slate-900 rounded-xl font-semibold text-right shadow-sm"
                                                             />
                                                             <Button
                                                                 type="button"
@@ -1018,7 +1018,7 @@ function OrderEditContent() {
                                                             e.target.value = formatPrecio(updated[idx].monto);
                                                         }}
                                                         placeholder="Monto $"
-                                                        className="flex-1 bg-slate-50 border-slate-200 text-slate-900 rounded-lg text-right font-medium"
+                                                        className="flex-1 bg-slate-50 border-slate-200 !text-slate-900 rounded-lg text-right font-medium"
                                                     />
                                                     <Button variant="ghost" size="icon" onClick={() => setMetodosPago(metodosPago.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg shrink-0">
                                                         <X className="w-5 h-5" />

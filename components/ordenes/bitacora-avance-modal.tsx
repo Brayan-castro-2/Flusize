@@ -256,7 +256,7 @@ export function BitacoraAvanceModal({ isOpen, onClose, orderId, onSaved }: Props
                                     : '⚠️ Describe el problema encontrado o el retraso...'
                                 }
                                 rows={4}
-                                className={`w-full p-4 rounded-xl border text-sm font-medium resize-y outline-none focus:ring-2 transition-all text-slate-800 dark:text-white dark:bg-slate-800 ${
+                                className={`w-full p-4 rounded-xl border text-sm font-medium resize-y outline-none focus:ring-2 transition-all !text-slate-800 dark:text-white dark:bg-slate-800 ${
                                     activeTab === 'alerta'
                                         ? 'border-orange-300 bg-orange-50 dark:bg-orange-950/20 focus:ring-orange-500/20 placeholder:text-orange-400'
                                         : 'border-slate-200 dark:border-slate-700 bg-white focus:ring-blue-500/20 placeholder:text-slate-400'
@@ -324,7 +324,7 @@ export function BitacoraAvanceModal({ isOpen, onClose, orderId, onSaved }: Props
                                             value={piezaManual}
                                             onChange={e => setPiezaManual(e.target.value)}
                                             placeholder="Ej: Filtro de aceite"
-                                            className="w-full h-10 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                            className="w-full h-10 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 !text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
                                             style={{ color: '#1e293b' }}
                                         />
                                     </div>
@@ -336,7 +336,7 @@ export function BitacoraAvanceModal({ isOpen, onClose, orderId, onSaved }: Props
                                             value={costoManual}
                                             onChange={e => setCostoManual(e.target.value)}
                                             placeholder="Ej: 15.000"
-                                            className="w-full h-10 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                            className="w-full h-10 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 !text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
                                             style={{ color: '#1e293b' }}
                                         />
                                     </div>
