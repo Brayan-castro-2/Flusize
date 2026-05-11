@@ -592,7 +592,7 @@ export function ClienteModal({ isOpen, onClose, onSave, cliente, defaultTab = 'd
                                                                 size="sm"
                                                                 onClick={() => {
                                                                     onClose();
-                                                                    router.push(`/admin/ordenes/editar/${order.id}`);
+                                                                    router.push(`/admin/ordenes/${order.id}`);
                                                                 }}
                                                                 className="h-8 w-8 p-0 hover:bg-blue-500/10 hover:text-blue-400 rounded-lg"
                                                             >

@@ -1,0 +1,1 @@
+require('dotenv').config({path: '.env.local'}); fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + '/rest/v1/contratos?limit=2', {headers:{apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}}).then(r=>r.json()).then(console.log)

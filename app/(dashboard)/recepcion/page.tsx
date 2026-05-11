@@ -167,6 +167,37 @@ function RecepcionContent() {
     // Validation errors
     const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
+    // Modo Recepción
+    const [modoRecepcion, setModoRecepcion] = useState<'taller' | 'venta_directa'>('taller');
+    const isFlipped = modoRecepcion === 'venta_directa';
+
+    // Gestos Swipe para Flip
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > 50;
+        const isRightSwipe = distance < -50;
+        
+        if (isLeftSwipe && modoRecepcion === 'taller') {
+            setModoRecepcion('venta_directa');
+        }
+        if (isRightSwipe && modoRecepcion === 'venta_directa') {
+            setModoRecepcion('taller');
+        }
+    };
+
     // Skip Checklist Modal
     const [showSkipModal, setShowSkipModal] = useState(false);
     const [skipPassword, setSkipPassword] = useState('');
@@ -724,7 +755,10 @@ function RecepcionContent() {
 
     // ─── Shared order creation logic ──────────────────────────────────────
     const buildOrdenPayload = () => {
-        const p = normalizePatente(patente);
+        let p = normalizePatente(patente);
+        if (modoRecepcion === 'venta_directa') {
+            p = 'VENTA_DIRECTA_SYS';
+        }
         const serviciosForOrder = servicios
             .map((s) => ({ descripcion: s.descripcion.trim(), precio: parsePrecio(s.precio) }))
             .filter((s) => s.descripcion || s.precio);
@@ -757,14 +791,16 @@ function RecepcionContent() {
         const errors: Record<string, boolean> = {};
         const missing: string[] = [];
 
-        if (!p) { errors['patente'] = true; missing.push('Patente del vehículo'); }
-        if (!marca || marca === 'Por definir') { errors['marca'] = true; missing.push('Marca'); }
-        if (!modelo || modelo === 'Por definir') { errors['modelo'] = true; missing.push('Modelo'); }
-        if (!anio) { errors['anio'] = true; missing.push('Año'); }
+        if (modoRecepcion === 'taller') {
+            if (!p) { errors['patente'] = true; missing.push('Patente del vehículo'); }
+            if (!marca || marca === 'Por definir') { errors['marca'] = true; missing.push('Marca'); }
+            if (!modelo || modelo === 'Por definir') { errors['modelo'] = true; missing.push('Modelo'); }
+            if (!anio) { errors['anio'] = true; missing.push('Año'); }
 
-        if (!clienteWhatsapp || clienteWhatsapp.length < 9) {
-            errors['whatsapp'] = true;
-            missing.push('Número de WhatsApp (9 dígitos)');
+            if (!clienteWhatsapp || clienteWhatsapp.length < 9) {
+                errors['whatsapp'] = true;
+                missing.push('Número de WhatsApp (9 dígitos)');
+            }
         }
 
         if (kmEnabled) {
@@ -773,7 +809,7 @@ function RecepcionContent() {
         }
 
         const serviciosValidos = servicios.filter(s => s.descripcion.trim() || parsePrecio(s.precio) > 0);
-        if (serviciosValidos.length === 0) { errors['servicios'] = true; missing.push('Al menos un servicio'); }
+        if (serviciosValidos.length === 0 && repuestosOrden.length === 0) { errors['servicios'] = true; missing.push('Al menos un servicio o repuesto'); }
 
         setValidationErrors(errors);
 
@@ -799,9 +835,9 @@ function RecepcionContent() {
                 cliente_telefono: whatsappCompleto,
                 cliente_email: email || undefined,
                 cliente_rut: clienteRut || undefined,
-                vehiculo_marca: String(marca).trim(),
-                vehiculo_modelo: String(modelo).trim(),
-                vehiculo_anio: String(anio).trim(),
+                vehiculo_marca: modoRecepcion === 'venta_directa' ? 'Venta Directa' : String(marca).trim(),
+                vehiculo_modelo: modoRecepcion === 'venta_directa' ? 'Genérico' : String(modelo).trim(),
+                vehiculo_anio: modoRecepcion === 'venta_directa' ? new Date().getFullYear().toString() : String(anio).trim(),
                 vehiculo_motor: motor ? String(motor).trim() : undefined,
                 vehiculo_color: vehiculoColor ? String(vehiculoColor).trim() : '-',
                 precio_total: total || undefined,
@@ -1126,9 +1162,37 @@ function RecepcionContent() {
                 </div>
             ) : null}
 
-            <div className="rounded-2xl bg-gradient-to-br from-blue-700 to-blue-900 px-4 py-4 md:px-6 md:py-5 shadow">
-                <div className="text-lg md:text-xl font-bold text-white">Nueva Orden de Trabajo</div>
-                <div className="mt-1 text-xs md:text-sm text-blue-100">{fechaHora}</div>
+            <div className="rounded-2xl bg-gradient-to-br from-blue-700 to-blue-900 px-4 py-4 md:px-6 md:py-5 shadow"
+                 onTouchStart={onTouchStart}
+                 onTouchMove={onTouchMove}
+                 onTouchEnd={onTouchEnd}
+            >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <div className="text-lg md:text-xl font-bold text-white">Nueva Orden de Trabajo</div>
+                        <div className="mt-1 text-xs md:text-sm text-blue-100">{fechaHora}</div>
+                    </div>
+                    <div className="flex w-full sm:w-auto bg-blue-950/60 rounded-xl p-1 gap-1">
+                        <button
+                            type="button"
+                            onClick={() => setModoRecepcion('taller')}
+                            className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                                modoRecepcion === 'taller' ? 'bg-white text-blue-900 shadow-md' : 'text-blue-200 hover:text-white'
+                            }`}
+                        >
+                            🚗 Ingreso Taller
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setModoRecepcion('venta_directa')}
+                            className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                                modoRecepcion === 'venta_directa' ? 'bg-white text-blue-900 shadow-md' : 'text-blue-200 hover:text-white'
+                            }`}
+                        >
+                            📦 Venta Directa
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
@@ -1142,8 +1206,20 @@ function RecepcionContent() {
                 <div className="mt-2 text-xs text-slate-500">Se completa automáticamente con el usuario actual (si existe).</div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
-                <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">VEHÍCULO</div>
+            {/* ── 3D Flip Container ── */}
+            <div className="relative" style={{ perspective: '1000px' }}>
+                <div
+                    className="relative w-full transition-transform duration-700"
+                    style={{
+                        transformStyle: 'preserve-3d',
+                        transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                        minHeight: isFlipped ? '420px' : undefined,
+                    }}
+                >
+                    {/* ── CARA FRONTAL: Ingreso Taller (VEHÍCULO) ── */}
+                    <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
+                            <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">VEHÍCULO</div>
 
                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                     <div>
@@ -1247,7 +1323,27 @@ function RecepcionContent() {
                         />
                     </div>
                 </div>
-            </div>
+                        </div>{/* end front face card */}
+                    </div>{/* end front face backfaceHidden */}
+
+                    {/* ── CARA TRASERA: Venta Directa ── */}
+                    <div
+                        className="absolute inset-0 w-full rounded-2xl border border-emerald-700/50 bg-slate-900 p-5 shadow-lg flex flex-col justify-center items-center text-center"
+                        style={{
+                            backfaceVisibility: 'hidden',
+                            WebkitBackfaceVisibility: 'hidden',
+                            transform: 'rotateY(180deg)',
+                        }}
+                    >
+                        <span className="text-5xl mb-4 animate-bounce">📦</span>
+                        <div className="text-sm font-bold tracking-widest text-emerald-400 mb-2">VENTA DIRECTA ACTIVADA</div>
+                        <p className="text-slate-400 text-sm max-w-md">
+                            El registro de vehículo ha sido omitido.<br/>
+                            Desliza hacia abajo para agregar el cliente (opcional), el <span className="text-slate-200 font-semibold">Inventario o los Servicios</span>, y luego presiona "Crear Orden".
+                        </p>
+                    </div>{/* end back face */}
+                </div>{/* end flip inner */}
+            </div>{/* end perspective container */}
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
                 <div className="mb-4 text-xs font-semibold tracking-widest text-slate-500">CLIENTE</div>

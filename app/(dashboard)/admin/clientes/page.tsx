@@ -549,8 +549,8 @@ export default function ClientesContent() {
                             {/* Decorative top border gradient */}
                             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-emerald-500 to-red-500 opacity-50"></div>
 
-                            <div className="overflow-x-auto custom-scrollbar">
-                                <table className="w-full text-left text-sm text-slate-300 min-w-[1000px]">
+                            <div className="overflow-hidden">
+                                <table className="w-full text-left text-sm text-slate-300">
                                     <thead className="bg-[#1E293B] text-slate-400 uppercase font-bold text-[11px] tracking-widest border-b border-slate-700/80">
                                         <tr>
                                             <th className="px-6 py-5 cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('nombre_completo')}>
@@ -571,13 +571,6 @@ export default function ClientesContent() {
                                                     <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-500 transition-colors" />
                                                 </div>
                                             </th>
-                                            <th className="px-6 py-5 cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('tipo')}>
-                                                <div className="flex items-center gap-2">
-                                                    TIPO
-                                                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-500 transition-colors" />
-                                                </div>
-                                            </th>
-                                            <th className="px-6 py-5">ESTADO</th>
                                             <th className="px-6 py-5 text-right">ACCIONES</th>
                                         </tr>
                                     </thead>
@@ -642,24 +635,7 @@ export default function ClientesContent() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${cliente.tipo === 'empresa'
-                                                            ? 'bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-sm shadow-purple-500/5'
-                                                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-sm shadow-blue-500/5'
-                                                            }`}>
-                                                            {cliente.tipo === 'empresa' ? <Building2 className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
-                                                            {cliente.tipo === 'empresa' ? 'Empresa' : 'Particular'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-xs font-medium border border-green-500/20 inline-flex items-center gap-1.5">
-                                                            <span className="relative flex h-2 w-2">
-                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                                            </span>
-                                                            Activo
-                                                        </span>
-                                                    </td>
+
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
                                                             {cliente.telefono && (
@@ -729,7 +705,7 @@ export default function ClientesContent() {
                                                 </tr>
                                                 {expandedClientId === cliente.id && (
                                                     <tr className="bg-[#0F172A] border-b border-slate-700/80">
-                                                        <td colSpan={6} className="p-0 border-b border-slate-800/50">
+                                                        <td colSpan={4} className="p-0 border-b border-slate-800/50">
                                                             <div className="p-6 border-l-2 border-blue-500 ml-6 mr-6 mb-6 mt-2 rounded-r-xl bg-slate-900/40 shadow-inner">
                                                                 <Tabs defaultValue="vehiculos" className="w-full">
                                                                     <TabsList className="bg-[#1E293B] border border-slate-700/60 p-1 mb-6 rounded-xl flex overflow-x-auto">
@@ -777,7 +753,7 @@ export default function ClientesContent() {
                                                                                 </Button>
                                                                             </div>
 
-                                                                            {!cliente.vehiculos || cliente.vehiculos.length === 0 ? (
+                                                                            {!cliente.vehiculos || cliente.vehiculos.filter((v: any) => v.patente && v.patente !== 'VENTA_DIRECTA_SYS').length === 0 ? (
                                                                                 <div className="flex flex-col items-center justify-center py-10 text-center bg-[#1E293B] rounded-xl border border-slate-700/50 border-dashed">
                                                                                     <Car className="w-12 h-12 text-slate-600 mb-3 opacity-50" />
                                                                                     <p className="text-sm text-slate-400 font-medium">No hay vehículos registrados para este cliente.</p>
@@ -785,7 +761,7 @@ export default function ClientesContent() {
                                                                                 </div>
                                                                             ) : (
                                                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                                                    {cliente.vehiculos.map((v: any, index: number) => (
+                                                                                    {cliente.vehiculos.filter((v: any) => v.patente && v.patente !== 'VENTA_DIRECTA_SYS').map((v: any, index: number) => (
                                                                                         <div key={v.id || index} className="group relative bg-[#1E293B] border border-slate-700/60 p-4 rounded-2xl flex items-center justify-between hover:border-blue-500/50 transition-all shadow-md overflow-hidden">
                                                                                             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                                                                             <div className="relative flex items-center gap-4 z-10 w-full">

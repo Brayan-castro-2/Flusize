@@ -105,13 +105,13 @@ function ETAInput({ orderId, currentEta, onUpdateETA }: { orderId: string, curre
     const [val, setVal] = useState(currentEta ? new Date(currentEta).toISOString().slice(0, 16) : '');
     return (
         <div className="flex flex-col gap-1 w-[160px] flex-shrink-0">
-            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">⏱️ Entrega Estimada</label>
+            <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">⏱️ Entrega Estimada</label>
             <input 
                 type="datetime-local" 
                 value={val}
                 onChange={e => setVal(e.target.value)}
                 onBlur={() => onUpdateETA(orderId, val)}
-                className="bg-slate-800/80 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 h-9 outline-none focus:border-blue-500 transition-colors w-full z-10 relative"
+                className="bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2 h-9 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors w-full z-10 relative [color-scheme:light]"
                 onClick={e => e.stopPropagation()}
             />
         </div>
@@ -199,8 +199,8 @@ function MobileOrderCard({
     }, [order.id, onExpand]);
 
     return (
-        <Card
-            className={`bg-slate-700/30 border-slate-600/50 cursor-pointer select-none transition-all duration-200 active:scale-[0.99] ${hasDebt(order) ? 'border-l-4 border-l-red-500 bg-red-900/10' : ''}`}
+        <div
+            className={`bg-white shadow-sm border rounded-xl p-4 mb-3 cursor-pointer select-none transition-all duration-200 active:scale-[0.99] ${hasDebt(order) ? 'border-l-4 border-l-red-500 border-t border-r border-b border-red-100' : 'border-slate-100'}`}
             onMouseDown={startLongPress}
             onMouseUp={cancelLongPress}
             onMouseLeave={cancelLongPress}
@@ -209,54 +209,102 @@ function MobileOrderCard({
             onTouchMove={cancelLongPress}
             onClick={handleTap}
         >
-            <CardContent className="p-4">
-                {/* ── Summary Row (always visible) ── */}
-                <div className="flex items-start gap-3">
-                    <div className="w-14 h-10 bg-slate-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-mono font-bold text-xs">
-                            {order.patente_vehiculo}
+                {/* ── TOP: Patente + Badge estado ── */}
+                <div className="flex justify-between items-start">
+                    <span className="bg-slate-800 text-white px-2 py-1 rounded font-mono text-sm font-bold tracking-wider">
+                        {order.patente_vehiculo || 'SIN PATENTE'}
+                    </span>
+                    <div onClick={e => e.stopPropagation()}>
+                        {getStatusBadge(order.estado, order.id, true)}
+                    </div>
+                </div>
+
+                {/* ── MIDDLE: Nombre cliente + servicio ── */}
+                <div className="mt-3">
+                    {order.cliente?.nombre_completo ? (
+                        <p className="font-semibold text-slate-800 text-lg leading-tight truncate">
+                            {order.cliente.nombre_completo}
+                        </p>
+                    ) : (
+                        <p className="font-semibold text-slate-400 text-lg leading-tight">Sin cliente</p>
+                    )}
+                    {vehiculo && (
+                        <p className="text-slate-500 text-sm mt-0.5">{vehiculo.marca} {vehiculo.modelo}</p>
+                    )}
+                    <p className="text-slate-500 text-sm mt-1 line-clamp-2">{getCleanMotivo(order.descripcion_ingreso)}</p>
+                </div>
+
+                {/* ── BOTTOM: Metadatos con íconos ── */}
+                <div className="flex flex-col gap-1 mt-3">
+                    {order.cliente?.telefono && (
+                        <div className="flex items-center gap-2 text-slate-500 text-sm">
+                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21L8.5 10.5a11.05 11.05 0 005 5l1.113-1.724a1 1 0 011.21-.502l4.493 1.498A1 1 0 0121 15.72V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                            <span>{order.cliente.telefono}</span>
+                        </div>
+                    )}
+                    <div className="flex items-center gap-2 text-slate-500 text-sm">
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <span>
+                            {new Date(order.fecha_ingreso).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            {' — '}
+                            {new Date(order.fecha_ingreso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                     </div>
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                        <div className="flex items-center gap-2 mb-1">
-                            <p className="text-white font-medium truncate text-sm flex-1">
-                                {vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}` : order.patente_vehiculo}
-                            </p>
-                            {hasDebt(order) && <span className="text-red-400 text-xs flex-shrink-0">💳</span>}
-                            {/* Expand indicator */}
-                            <ChevronDown className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                    {hasDebt(order) && (
+                        <div className="flex items-center gap-2 text-red-500 text-sm font-medium">
+                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            <span>Deuda pendiente</span>
                         </div>
-                        {order.cliente?.nombre_completo && (
-                            <p className="text-xs text-blue-400 truncate">{order.cliente.nombre_completo}</p>
+                    )}
+                </div>
+
+                {/* ── Expand indicator ── */}
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-2 text-slate-400 text-xs">
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                        <span>{isExpanded ? 'Ocultar detalles' : 'Ver detalles'}</span>
+                    </div>
+                    {/* ── Action buttons ── */}
+                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        {canEditOrders && (
+                            <Link href={`/admin/ordenes/clean?id=${order.id}`} onClick={e => e.stopPropagation()}>
+                                <button className="p-2 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-blue-50 transition-colors">
+                                    <Edit className="w-4 h-4" />
+                                </button>
+                            </Link>
                         )}
-                        {order.cliente?.telefono && (
-                            <p className="text-xs text-slate-500 truncate">{order.cliente.telefono}</p>
+                        {canDeleteOrders && (
+                            deleteConfirm === order.id ? (
+                                <div className="flex gap-1">
+                                    <button className="p-2 text-red-500 rounded-lg hover:bg-red-50 transition-colors" onClick={() => handleDeleteOrder(order)} disabled={deleteOrderPending}>✓</button>
+                                    <button className="p-2 text-slate-400 rounded-lg hover:bg-slate-100 transition-colors" onClick={() => setDeleteConfirm(null)}>✕</button>
+                                </div>
+                            ) : (
+                                <button className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" onClick={() => setDeleteConfirm(order.id)}>
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )
                         )}
-                        <p className="text-xs text-slate-500 truncate">
-                            {new Date(order.fecha_ingreso).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' })}{' '}
-                            {new Date(order.fecha_ingreso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        <p className="text-xs text-slate-400 truncate mt-1">{getCleanMotivo(order.descripcion_ingreso)}</p>
                     </div>
                 </div>
 
                 {/* ── Accordion Detail (visible when expanded) ── */}
                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[1600px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
-                    <div className="pt-3 border-t border-slate-600/50 space-y-3 text-xs text-slate-300">
+                    <div className="pt-3 border-t border-slate-100 space-y-3 text-xs text-slate-600">
                         {order.descripcion_ingreso && (
                             <div>
-                                <p className="text-slate-500 font-medium uppercase tracking-wider mb-1">Motivo completo</p>
-                                <p className="text-slate-300 leading-relaxed">{order.descripcion_ingreso}</p>
+                                <p className="text-slate-400 font-medium uppercase tracking-wider mb-1">Motivo completo</p>
+                                <p className="text-slate-700 leading-relaxed">{order.descripcion_ingreso}</p>
                             </div>
                         )}
                         {order.precio_total > 0 && (
-                            <div className="flex justify-between items-center bg-slate-800/60 rounded-lg px-3 py-2">
-                                <span className="text-slate-400">Total:</span>
-                                <span className="text-green-400 font-bold text-sm">${order.precio_total.toLocaleString('es-CL')}</span>
+                            <div className="flex justify-between items-center bg-slate-50 rounded-lg px-3 py-2">
+                                <span className="text-slate-500">Total:</span>
+                                <span className="text-green-600 font-bold text-sm">${order.precio_total.toLocaleString('es-CL')}</span>
                             </div>
                         )}
 
-                        {/* ── Workflow Actions (same as desktop) ── */}
+                        {/* ── Workflow Actions ── */}
                         <div
                             className="mt-4 w-full flex flex-col gap-2"
                             onClick={e => e.stopPropagation()}
@@ -284,66 +332,60 @@ function MobileOrderCard({
                         </div>
 
                         {/* Repuestos y Materiales */}
-                        <div className="space-y-3 mt-4 border-t border-slate-700/30 pt-4">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <div className="space-y-3 mt-4 border-t border-slate-100 pt-4">
+                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                 <BoxIcon className="w-3.5 h-3.5" />
                                 Materiales y Repuestos
                             </h3>
-                            
                             {isLoadingRepuestos ? (
-                                <div className="flex items-center gap-2 text-slate-500 text-[10px] py-1">
+                                <div className="flex items-center gap-2 text-slate-400 text-[10px] py-1">
                                     <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
                                 </div>
                             ) : repuestos && repuestos.length > 0 ? (
                                 <div className="space-y-2">
                                     {repuestos.map((rep: any) => (
-                                        <div key={rep.id} className="bg-slate-800/40 rounded-lg p-2 flex justify-between items-center border border-slate-700/50">
+                                        <div key={rep.id} className="bg-slate-50 rounded-lg p-2 flex justify-between items-center border border-slate-200">
                                             <div className="flex-1 min-w-0 pr-2">
-                                                <div className="text-slate-200 font-medium truncate">{rep.producto?.nombre}</div>
-                                                <div className="text-[9px] text-slate-500">{rep.cantidad} x ${rep.precio_unitario.toLocaleString('es-CL')}</div>
+                                                <div className="text-slate-700 font-medium truncate">{rep.producto?.nombre}</div>
+                                                <div className="text-[9px] text-slate-400">{rep.cantidad} x ${rep.precio_unitario.toLocaleString('es-CL')}</div>
                                             </div>
-                                            <div className="text-emerald-400 font-bold">${rep.subtotal.toLocaleString('es-CL')}</div>
+                                            <div className="text-emerald-600 font-bold">${rep.subtotal.toLocaleString('es-CL')}</div>
                                         </div>
                                     ))}
                                     <div className="flex justify-between items-center px-1 pt-1">
-                                        <span className="text-slate-500 text-[10px] font-bold uppercase">Total Materiales</span>
-                                        <span className="text-emerald-400 font-black">${repuestos.reduce((acc, curr) => acc + curr.subtotal, 0).toLocaleString('es-CL')}</span>
+                                        <span className="text-slate-400 text-[10px] font-bold uppercase">Total Materiales</span>
+                                        <span className="text-emerald-600 font-black">${repuestos.reduce((acc, curr) => acc + curr.subtotal, 0).toLocaleString('es-CL')}</span>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-slate-600 italic text-[10px] py-1">
-                                    No hay materiales registrados.
-                                </div>
+                                <div className="text-slate-400 italic text-[10px] py-1">No hay materiales registrados.</div>
                             )}
                         </div>
 
                         {/* Historial (Bitácora) */}
-                        <div className="space-y-3 mt-4 border-t border-slate-700/30 pt-4">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <div className="space-y-3 mt-4 border-t border-slate-100 pt-4">
+                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                 <HistoryIcon className="w-3.5 h-3.5" />
                                 Historial Reciente (Bitácora)
                             </h3>
-
                             {isLoadingBitacora ? (
-                                <div className="flex items-center gap-2 text-slate-500 text-[10px] py-1">
+                                <div className="flex items-center gap-2 text-slate-400 text-[10px] py-1">
                                     <Loader2 className="w-3 h-3 animate-spin" /> Cargando...
                                 </div>
                             ) : bitacoraEntries && bitacoraEntries.length > 0 ? (
-                                <div className="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-slate-700/50 pl-2">
+                                <div className="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-slate-200 pl-2">
                                     {bitacoraEntries.slice(0, 5).map((entry: any) => (
                                         <div key={entry.id} className="relative pl-6">
-                                            <div className={`absolute left-[-13px] top-1 w-2 h-2 rounded-full border border-slate-900 ${
-                                                entry.tipo === 'alerta' ? 'bg-orange-500' : 
-                                                entry.tipo === 'repuesto' ? 'bg-emerald-500' : 
-                                                entry.tipo === 'evidencia' ? 'bg-violet-500' : 'bg-blue-500'
+                                            <div className={`absolute left-[-13px] top-1 w-2 h-2 rounded-full border border-white ${
+                                                entry.tipo === 'alerta' ? 'bg-orange-400' :
+                                                entry.tipo === 'repuesto' ? 'bg-emerald-400' :
+                                                entry.tipo === 'evidencia' ? 'bg-violet-400' : 'bg-blue-400'
                                             }`} />
-                                            <div className="bg-slate-800/30 rounded-lg p-2 space-y-1">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-[9px] text-slate-500">
-                                                        {new Date(entry.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })}
-                                                    </span>
-                                                </div>
-                                                <p className="text-[11px] text-slate-300 leading-snug">{entry.contenido}</p>
+                                            <div className="bg-slate-50 rounded-lg p-2 space-y-1 border border-slate-100">
+                                                <span className="text-[9px] text-slate-400">
+                                                    {new Date(entry.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })}
+                                                </span>
+                                                <p className="text-[11px] text-slate-600 leading-snug">{entry.contenido}</p>
                                                 {entry.fotos?.length > 0 && (
                                                     <div className="flex gap-1 overflow-x-auto pt-1">
                                                         {entry.fotos.map((f: string, i: number) => (
@@ -356,20 +398,18 @@ function MobileOrderCard({
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-slate-600 italic text-[10px] py-1">
-                                    Sin avances registrados.
-                                </div>
+                                <div className="text-slate-400 italic text-[10px] py-1">Sin avances registrados.</div>
                             )}
                         </div>
 
-                        {/* ── Quick Links (Tracking + Print) ── */}
+                        {/* ── Quick Links ── */}
                         <div
-                            className="mt-4 mb-2 px-2"
+                            className="mt-4 mb-2 px-1"
                             onClick={e => e.stopPropagation()}
                             onTouchStart={e => e.stopPropagation()}
                         >
-                            <p className="text-[11px] text-blue-400/90 bg-blue-900/20 p-2 rounded-lg border border-blue-800/30 leading-snug">
-                                💡 <span className="font-semibold text-blue-300">Tip:</span> Comparte el link de tracking para que el cliente vea estos avances en tiempo real.
+                            <p className="text-[11px] text-blue-600/90 bg-blue-50 p-2 rounded-lg border border-blue-100 leading-snug">
+                                💡 <span className="font-semibold text-blue-500">Tip:</span> Comparte el link de tracking para que el cliente vea estos avances en tiempo real.
                             </p>
                         </div>
                         <div
@@ -378,12 +418,7 @@ function MobileOrderCard({
                             onTouchStart={e => e.stopPropagation()}
                         >
                             <Link href={`/tracking/${order.id}`} target="_blank" onClick={e => e.stopPropagation()}>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="w-full h-9 bg-white/10 border border-white/20 text-white hover:bg-white/20 text-xs rounded-lg"
-                                    title="Ver Tracking Público"
-                                >
+                                <Button size="sm" variant="outline" className="w-full h-9 text-slate-600 border-slate-200 hover:bg-slate-50 text-xs rounded-lg" title="Ver Tracking Público">
                                     <Eye className="w-3.5 h-3.5 mr-1.5" />
                                     Tracking
                                 </Button>
@@ -394,90 +429,29 @@ function MobileOrderCard({
                                     target="_blank"
                                     onClick={e => e.stopPropagation()}
                                 >
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="w-full h-9 border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs rounded-lg"
-                                        title="Enviar estado al cliente"
-                                    >
+                                    <Button size="sm" variant="outline" className="w-full h-9 border-green-200 text-green-600 hover:bg-green-50 text-xs rounded-lg">
                                         <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
                                         WhatsApp
                                     </Button>
                                 </Link>
                             ) : (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="w-full h-9 border-slate-600/50 text-slate-500 cursor-not-allowed text-xs rounded-lg flex gap-1.5"
-                                    title="Cliente sin teléfono"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <MessageCircle className="w-3.5 h-3.5 opacity-50" />
+                                <Button size="sm" variant="outline" className="w-full h-9 border-slate-200 text-slate-400 cursor-not-allowed text-xs rounded-lg" onClick={e => e.stopPropagation()}>
+                                    <MessageCircle className="w-3.5 h-3.5 opacity-50 mr-1.5" />
                                     WhatsApp
                                 </Button>
                             )}
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-full h-9 bg-white/10 border border-white/20 text-white hover:bg-white/20 text-xs rounded-lg col-span-2"
-                                onClick={e => { e.stopPropagation(); onPrintOrder(order); }}
-                            >
+                            <Button size="sm" variant="outline" className="w-full h-9 text-slate-600 border-slate-200 hover:bg-slate-50 text-xs rounded-lg col-span-2" onClick={e => { e.stopPropagation(); onPrintOrder(order); }}>
                                 <Printer className="w-3.5 h-3.5 mr-1.5" />
                                 Imprimir Orden
                             </Button>
                         </div>
 
-                        <p className="text-slate-600 italic text-center text-[10px] pt-3 border-t border-slate-700/30">
+                        <p className="text-slate-400 italic text-center text-[10px] pt-3 border-t border-slate-100">
                             Mantén pulsado 0.7s para edición avanzada
                         </p>
                     </div>
                 </div>
-
-                {/* ── Footer Actions ── */}
-                <div className="mt-3 flex items-center justify-between gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
-                    <div className="flex-shrink-0">
-                        {getStatusBadge(order.estado, order.id, true)}
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                        {canEditOrders && (
-                            <Link href={`/admin/ordenes/clean?id=${order.id}`} onClick={e => e.stopPropagation()}>
-                                <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 px-2">
-                                    <Edit className="w-3.5 h-3.5" />
-                                </Button>
-                            </Link>
-                        )}
-                        {canDeleteOrders && (
-                            deleteConfirm === order.id ? (
-                                <div className="flex gap-1">
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
-                                        onClick={() => handleDeleteOrder(order)}
-                                        disabled={deleteOrderPending}
-                                    >✓</Button>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="text-slate-400 hover:text-slate-300 h-8 px-2"
-                                        onClick={() => setDeleteConfirm(null)}
-                                    >✕</Button>
-                                </div>
-                            ) : (
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
-                                    onClick={() => setDeleteConfirm(order.id)}
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                            )
-                        )}
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
+        </div>
     );
 }
 // ─────────────────────────────────────────────────────────────────────────────
