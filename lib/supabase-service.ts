@@ -1061,8 +1061,9 @@ export async function crearOrden(orden: {
         .eq('taller_id', tallerId)
         .maybeSingle();
 
-    // 2. Si no existe el vehículo, necesitamos un Cliente para crearlo
+    // 2. Si no existe el vehículo, necesitamos un Cliente para crearlo (Excepto en Venta Directa si es opcional)
     let clienteId: string | undefined;
+    const esVentaDirecta = patenteNormalizada === 'VENTA_DIRECTA_SYS';
 
     if (!vehiculo) {
         console.log(`🚗 Vehículo nuevo detectado: ${patenteNormalizada}`);
@@ -1085,12 +1086,12 @@ export async function crearOrden(orden: {
             }
         }
 
-        // Si no tenemos ID, creamos un cliente nuevo
-        if (!clienteId && orden.cliente_nombre && orden.cliente_telefono) {
-            console.log('👤 Creando cliente nuevo (V3.1 - Phone ID)...');
+        // Si no tenemos ID, intentamos crear un cliente nuevo (Si hay datos mínimos)
+        if (!clienteId && orden.cliente_nombre && (orden.cliente_telefono || esVentaDirecta)) {
+            console.log('👤 Creando cliente nuevo (V3.1)...');
             const nuevoCliente = await crearCliente({
                 nombre_completo: orden.cliente_nombre,
-                telefono: orden.cliente_telefono, // OBLIGATORIO AHORA
+                telefono: orden.cliente_telefono || '000000000', // Default para venta directa si no hay
                 email: orden.cliente_email || null,
                 tipo: 'persona',
                 rut_dni: orden.cliente_rut || null
@@ -1098,30 +1099,30 @@ export async function crearOrden(orden: {
             if (nuevoCliente) clienteId = nuevoCliente.id;
         }
 
-        // Si falló todo y es urgente
-        if (!clienteId) {
+        // Si falló todo y NO es venta directa, entonces es error
+        if (!clienteId && !esVentaDirecta) {
             console.error('❌ No se pudo crear/encontrar cliente. Se requiere Nombre y Teléfono obligatorios.');
             return null;
         }
 
-        if (clienteId) {
-            // Crear el vehículo vinculado al cliente (con taller_id)
+        // Crear el vehículo vinculado al cliente (con taller_id) - Solo si no es Venta Directa o si queremos persistir el sistema
+        if (clienteId || esVentaDirecta) {
             const { data: nuevoVehiculo, error: vError } = await supabase
                 .from('vehiculos')
                 .insert([{
                     patente: patenteNormalizada,
-                    marca: orden.vehiculo_marca || 'Por definir',
-                    modelo: orden.vehiculo_modelo || 'Por definir',
-                    ano: orden.vehiculo_anio || new Date().getFullYear().toString(), // Map 'anio' -> 'ano'
+                    marca: orden.vehiculo_marca || (esVentaDirecta ? 'Venta Directa' : 'Por definir'),
+                    modelo: orden.vehiculo_modelo || (esVentaDirecta ? 'Genérico' : 'Por definir'),
+                    ano: orden.vehiculo_anio || new Date().getFullYear().toString(),
                     motor: orden.vehiculo_motor || null,
                     color: orden.vehiculo_color || '-',
-                    cliente_id: clienteId,
+                    cliente_id: clienteId || null,
                     taller_id: tallerId
                 }])
-                .select(`*, anio:ano`) // Alias for frontend consistency
+                .select(`*, anio:ano`)
                 .single();
 
-            if (vError) {
+            if (vError && !esVentaDirecta) {
                 console.error('❌ Error creando vehículo:', vError);
                 return null;
             }

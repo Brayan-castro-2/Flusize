@@ -823,27 +823,33 @@ function RecepcionContent() {
 
     const ejecutarCreacionOrden = async (): Promise<{ orderId: string } | null> => {
         const { p, serviciosForOrder, shortDescription, detalleServicios, whatsappCompleto } = buildOrdenPayload();
+        
+        const payload = {
+            patente_vehiculo: p,
+            descripcion_ingreso: shortDescription,
+            detalle_trabajos: detalleServicios,
+            creado_por: user!.id,
+            estado: 'pendiente',
+            asignado_a: user!.id,
+            cliente_nombre: clienteNombre || undefined,
+            cliente_telefono: whatsappCompleto,
+            cliente_email: email || undefined,
+            cliente_rut: clienteRut || undefined,
+            vehiculo_marca: modoRecepcion === 'venta_directa' ? 'Venta Directa' : String(marca).trim(),
+            vehiculo_modelo: modoRecepcion === 'venta_directa' ? 'Genérico' : String(modelo).trim(),
+            vehiculo_anio: modoRecepcion === 'venta_directa' ? new Date().getFullYear().toString() : String(anio).trim(),
+            vehiculo_motor: motor ? String(motor).trim() : undefined,
+            vehiculo_color: vehiculoColor ? String(vehiculoColor).trim() : '-',
+            precio_total: total || undefined,
+            fotos: fotos.length ? fotos : undefined,
+            detalles_vehiculo: (kilometrajeIngreso ? `[KM: ${kilometrajeIngreso}]\n` : '') + detallesVehiculo.trim() || undefined,
+        };
+
+        console.log('🚀 [Recepcion] Enviando orden a Supabase:', payload);
+
         try {
-            const orden = await crearOrden({
-                patente_vehiculo: p,
-                descripcion_ingreso: shortDescription,
-                detalle_trabajos: detalleServicios,
-                creado_por: user!.id,
-                estado: 'pendiente',
-                asignado_a: user!.id,
-                cliente_nombre: clienteNombre || undefined,
-                cliente_telefono: whatsappCompleto,
-                cliente_email: email || undefined,
-                cliente_rut: clienteRut || undefined,
-                vehiculo_marca: modoRecepcion === 'venta_directa' ? 'Venta Directa' : String(marca).trim(),
-                vehiculo_modelo: modoRecepcion === 'venta_directa' ? 'Genérico' : String(modelo).trim(),
-                vehiculo_anio: modoRecepcion === 'venta_directa' ? new Date().getFullYear().toString() : String(anio).trim(),
-                vehiculo_motor: motor ? String(motor).trim() : undefined,
-                vehiculo_color: vehiculoColor ? String(vehiculoColor).trim() : '-',
-                precio_total: total || undefined,
-                fotos: fotos.length ? fotos : undefined,
-                detalles_vehiculo: (kilometrajeIngreso ? `[KM: ${kilometrajeIngreso}]\n` : '') + detallesVehiculo.trim() || undefined,
-            } as any, user?.tallerId);
+            const orden = await crearOrden(payload as any, user?.tallerId);
+            console.log('✅ [Recepcion] Respuesta Supabase:', orden);
 
             if (!orden) return null;
 
@@ -1396,7 +1402,9 @@ function RecepcionContent() {
                         <div className="mt-1 text-xs text-slate-500 text-right">Presiona Enter para buscar</div>
                     </div>
                     <div>
-                        <label className="text-sm font-semibold text-slate-300">WhatsApp <span className="text-red-400">*</span></label>
+                        <label className="text-sm font-semibold text-slate-300">
+                            WhatsApp {modoRecepcion === 'taller' && <span className="text-red-400">*</span>}
+                        </label>
                         <div className="relative mt-2">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                                 <span className="text-slate-400">+56</span>
