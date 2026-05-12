@@ -207,10 +207,6 @@ const HeroSection = ({ onEmergencyClick }: { onEmergencyClick: () => void }) => 
             <div className="mb-6">
               <span className="font-black text-5xl tracking-[0.2em] text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">FLUSIZE</span>
             </div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/60 backdrop-blur-md border border-cyan-500/30 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-              <Zap className="h-4 w-4" />
-              <span className="text-sm font-bold tracking-wide">El Ecosistema B2B & B2C</span>
-            </div>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.1] mb-4 md:mb-8 drop-shadow-2xl">
