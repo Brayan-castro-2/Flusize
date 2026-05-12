@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { motion, useScroll, useTransform, useInView } from 'framer-motion';
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import FomoMap from '@/components/landing/FomoMap';
 
