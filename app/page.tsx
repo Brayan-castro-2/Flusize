@@ -459,7 +459,7 @@ const AutoCarouselBento = ({ isInView }: { isInView: boolean }) => {
 
         {/* Card Content */}
         <AnimatePresence mode="wait">
-          {tabs.map((tab) => activeTab === tab.key && (
+          {tabs.filter(tab => activeTab === tab.key).map((tab) => (
             <motion.div
               key={tab.key}
               initial={{ opacity: 0, x: tab.key === 0 ? -20 : 20 }}
