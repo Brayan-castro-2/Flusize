@@ -566,6 +566,127 @@ const StorySection = () => {
   );
 };
 
+const benefitsData = [
+  {
+    icon: Clock,
+    title: "Trazabilidad en Tiempo Real",
+    desc: <>Dejar tu auto en el taller ahora es tan transparente como pedir un delivery.<br/><br/>Revisa exactamente en qué etapa está tu vehículo en tiempo real y recibe notificaciones paso a paso desde el diagnóstico hasta que está "Listo para retiro".</>,
+    delay: 0.1
+  },
+  {
+    icon: MessageSquare,
+    title: "Transparencia y Evidencia Visual",
+    desc: <>Recibe fotos y reportes en alta resolución directo a tu celular para que veas el repuesto dañado con tus propios ojos.<br/><br/>Aprueba o rechaza trabajos adicionales con un clic. Se acabó el "yo no autoricé eso".</>,
+    delay: 0.2
+  },
+  {
+    icon: AlertTriangle,
+    title: "Tu Compañero en Emergencias",
+    desc: <>¿Quedaste en pana? Nuestro mapa interactivo te conecta con asistencia VIP 24/7.<br/><br/>Encuentra grúas, cerrajeros móviles o vulcanizaciones a domicilio en segundos cuando más lo necesitas.</>,
+    delay: 0.3
+  },
+  {
+    icon: MapPin,
+    title: "Red de Servicios de Confianza",
+    desc: <>Explora nuestro mapa para encontrar servicios automotrices certificados que operan con el estándar de transparencia Flusize en tu zona.<br/><br/>Calidad garantizada, sin sorpresas en la boleta.</>,
+    delay: 0.4
+  },
+  {
+    icon: FileSignature,
+    title: "El Carnet de Salud de tu Auto",
+    desc: <>Olvídate de guardar boletas en la guantera. Mantén el historial inmutable de servicios y contratos digitales de tu vehículo siempre a mano.<br/><br/>Ideal para llevar el control y mantener el valor de reventa de tu auto intacto.</>,
+    delay: 0.5
+  }
+];
+
+const AutoCarouselBenefits = () => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const timerRef = useRef<any>(null);
+
+  const resetTimer = (idx: number) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setActiveIndex(current => (current + 1) % benefitsData.length);
+    }, 5000);
+    setActiveIndex(idx);
+  };
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setActiveIndex(current => (current + 1) % benefitsData.length);
+    }, 5000);
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  return (
+    <>
+      {/* Desktop: Grid */}
+      <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-8 pb-8">
+        {benefitsData.map((benefit, i) => (
+          <motion.div
+            key={i}
+            className={`bg-slate-950 p-8 rounded-3xl border border-slate-800 hover:border-cyan-500/50 transition-colors shadow-xl group flex-shrink-0 ${i === 3 ? 'lg:col-span-1 lg:col-start-1 md:col-span-1' : ''} ${i === 4 ? 'lg:col-span-2 md:col-span-1' : ''}`}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: benefit.delay }}
+          >
+            <div className="w-14 h-14 bg-cyan-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all">
+              <benefit.icon className="w-7 h-7 text-cyan-400" />
+            </div>
+            <h3 className="text-xl md:text-2xl font-black text-white mb-4 tracking-tight">{benefit.title}</h3>
+            <p className="text-sm md:text-base text-slate-400 leading-relaxed font-medium">{benefit.desc}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Mobile: Auto-Carousel */}
+      <div className="md:hidden">
+        <div className="flex gap-2 mb-6">
+          {benefitsData.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => resetTimer(i)}
+              className="relative h-1.5 flex-1 rounded-full overflow-hidden bg-slate-800"
+            >
+              {activeIndex === i && (
+                <motion.div
+                  className="absolute inset-0 bg-cyan-400"
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 5, ease: 'linear' }}
+                />
+              )}
+              {activeIndex > i && (
+                 <div className="absolute inset-0 bg-cyan-400/50" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {benefitsData.filter((_, i) => i === activeIndex).map((benefit) => (
+            <motion.div
+              key={benefit.title}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-slate-950 p-8 rounded-[2rem] border border-slate-800 shadow-xl"
+            >
+              <div className="w-14 h-14 bg-cyan-500/10 rounded-2xl flex items-center justify-center mb-6">
+                <benefit.icon className="w-7 h-7 text-cyan-400" />
+              </div>
+              <h3 className="text-xl font-black text-white mb-4 tracking-tight">{benefit.title}</h3>
+              <p className="text-sm text-slate-400 leading-relaxed font-medium">{benefit.desc}</p>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </>
+  );
+};
+
 // --- DRIVER BENEFITS SECTION ---
 const DriverBenefitsSection = () => {
   return (
@@ -585,55 +706,7 @@ const DriverBenefitsSection = () => {
           </p>
         </div>
 
-        <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-8 pb-8 px-4 md:px-0 -mx-4 md:mx-0">
-          {[
-            {
-              icon: Clock,
-              title: "Trazabilidad en Tiempo Real",
-              desc: "Dejar tu auto en el taller ahora es tan transparente como pedir un delivery. Revisa exactamente en qué etapa está tu vehículo en tiempo real y recibe notificaciones paso a paso desde el diagnóstico hasta que está \"Listo para retiro\".",
-              delay: 0.1
-            },
-            {
-              icon: MessageSquare,
-              title: "Transparencia y Evidencia Visual",
-              desc: "Recibe fotos y reportes en alta resolución directo a tu celular para que veas el repuesto dañado con tus propios ojos. Aprueba o rechaza trabajos adicionales con un clic. Se acabó el \"yo no autoricé eso\".",
-              delay: 0.2
-            },
-            {
-              icon: AlertTriangle,
-              title: "Tu Compañero en Emergencias",
-              desc: "¿Quedaste en pana? Nuestro mapa interactivo te conecta con asistencia VIP 24/7. Encuentra grúas, cerrajeros móviles o vulcanizaciones a domicilio en segundos cuando más lo necesitas.",
-              delay: 0.3
-            },
-            {
-              icon: MapPin,
-              title: "Red de Servicios de Confianza",
-              desc: "Explora nuestro mapa para encontrar servicios automotrices certificados que operan con el estándar de transparencia Flusize en tu zona. Calidad garantizada, sin sorpresas en la boleta.",
-              delay: 0.4
-            },
-            {
-              icon: FileSignature,
-              title: "El Carnet de Salud de tu Auto",
-              desc: "Olvídate de guardar boletas en la guantera. Mantén el historial inmutable de servicios y contratos digitales de tu vehículo siempre a mano. Ideal para llevar el control y mantener el valor de reventa de tu auto intacto.",
-              delay: 0.5
-            }
-          ].map((benefit, i) => (
-            <motion.div
-              key={i}
-              className={`bg-slate-950 p-8 rounded-3xl border border-slate-800 hover:border-cyan-500/50 transition-colors shadow-xl group flex-shrink-0 snap-center min-w-[85vw] md:min-w-0 ${i === 3 ? 'lg:col-span-1 lg:col-start-1 md:col-span-1' : ''} ${i === 4 ? 'lg:col-span-2 md:col-span-1' : ''}`}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: benefit.delay }}
-            >
-              <div className="w-14 h-14 bg-cyan-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all">
-                <benefit.icon className="w-7 h-7 text-cyan-400" />
-              </div>
-              <h3 className="text-xl md:text-2xl font-black text-white mb-4 tracking-tight">{benefit.title}</h3>
-              <p className="text-sm md:text-base text-slate-400 leading-relaxed font-medium">{benefit.desc}</p>
-            </motion.div>
-          ))}
-        </div>
+        <AutoCarouselBenefits />
 
         <div className="mt-12 md:mt-20 flex justify-center px-4 md:px-0">
           <Link href="/mi-garage" className="w-full sm:w-auto">
