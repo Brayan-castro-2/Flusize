@@ -195,7 +195,7 @@ const HeroSection = ({ onEmergencyClick }: { onEmergencyClick: () => void }) => 
       {/* Gradient Transition to next section */}
       <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-slate-950 to-transparent z-10 pointer-events-none" />
 
-      <div className="max-w-5xl mx-auto px-4 text-center z-10 flex flex-col items-center mt-12">
+      <div className="max-w-5xl mx-auto px-4 text-center z-10 flex flex-col items-center pt-4 pb-4">
         <motion.div
           className="relative z-10 flex flex-col items-center w-full"
           initial={{ opacity: 0, y: 30 }}
@@ -213,25 +213,35 @@ const HeroSection = ({ onEmergencyClick }: { onEmergencyClick: () => void }) => 
             </div>
           </div>
 
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.1] mb-8 drop-shadow-2xl">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.1] mb-4 md:mb-8 drop-shadow-2xl">
             TODA LA VIDA DE TU VEHÍCULO, <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 drop-shadow-sm">
               EN LA PALMA DE TU MANO.
             </span>
           </h1>
 
-          <p className="text-lg md:text-2xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed drop-shadow-lg font-medium">
+          <p className="text-base md:text-2xl text-slate-300 mb-6 md:mb-12 max-w-4xl mx-auto leading-relaxed drop-shadow-lg font-medium">
             El ecosistema premium que conecta a los mejores talleres y rent-a-cars con sus clientes. <strong className="text-white">Transparencia</strong>, <strong className="text-white">historial</strong> y <strong className="text-white">control total</strong>.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-2xl mx-auto">
+            <Link href="/mi-garage" className="w-full sm:w-1/2">
+              <button className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black shadow-[0_0_40px_rgba(37,99,235,0.4)] transition-all flex items-center justify-center gap-3 text-base hover:scale-105 active:scale-95 border border-blue-400/50 uppercase tracking-tight">
+                <span className="text-xl">🚗</span> Entrar a mi Garage
+              </button>
+            </Link>
+            
             <button 
+              onClick={() => {
+                document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="w-full sm:w-1/2 px-6 py-4 bg-slate-900/50 backdrop-blur-md text-slate-200 border-2 border-slate-600 hover:border-slate-400 hover:bg-slate-800/80 hover:text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-3 text-base active:scale-95"
             >
-              <span className="text-2xl">⚙️</span> Soy Taller / Empezar
+              <span className="text-xl">⚙️</span> Soy Taller
             </button>
           </div>
           
-          <div className="mt-8 w-full max-w-md mx-auto">
+          <div className="mt-4 md:mt-8 w-full max-w-md mx-auto flex justify-center">
             <EmergencyButton onClick={onEmergencyClick} />
           </div>
         </motion.div>
@@ -329,13 +339,169 @@ const EmergencyModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
 };
 
 
+// --- AUTO CAROUSEL BENTO (Mobile Tab Switcher) ---
+const AutoCarouselBento = ({ isInView }: { isInView: boolean }) => {
+  const [activeTab, setActiveTab] = useState<0 | 1>(0);
+  const timerRef = useRef<any>(null);
+
+  const resetTimer = (tab: 0 | 1) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setActiveTab(t => t === 0 ? 1 : 0);
+    }, 4000);
+    setActiveTab(tab);
+  };
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setActiveTab(t => t === 0 ? 1 : 0);
+    }, 4000);
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  const tabs = [
+    {
+      key: 0,
+      icon: Car,
+      accent: 'cyan',
+      bg: 'bg-cyan-500/20',
+      border: 'border-cyan-500/30',
+      text: 'text-cyan-400',
+      glow: 'bg-cyan-500/10',
+      title: 'Para Conductores',
+      desc: <>Tu <strong>Garage Digital</strong>. Toma el control absoluto de la vida de tu vehículo. Transparencia que da tranquilidad.</>,
+      items: [
+        { icon: Clock, text: 'Historial histórico inmutable de mantenciones' },
+        { icon: ShieldCheck, text: 'Fotos del proceso en vivo directo a tu WhatsApp' },
+        { icon: FileSignature, text: 'Firma de contratos y presupuestos desde el celular' },
+      ],
+      cta: <Link href="/mi-garage" className="inline-flex items-center gap-2 text-cyan-400 font-bold hover:text-cyan-300 transition-colors group/link">Entrar a mi Garage <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" /></Link>,
+    },
+    {
+      key: 1,
+      icon: Building,
+      accent: 'blue',
+      bg: 'bg-blue-500/20',
+      border: 'border-blue-500/30',
+      text: 'text-blue-400',
+      glow: 'bg-blue-500/10',
+      title: 'Para Talleres y Flotas',
+      desc: <>Software de gestión de última generación. <strong>Digitaliza el 100%</strong> de tus operaciones y blinda tu rentabilidad.</>,
+      items: [
+        { icon: Activity, text: 'Control de inventario y cálculo de rentabilidad exacta' },
+        { icon: FileSignature, text: 'Generación de contratos automáticos y firma digital' },
+        { icon: Wrench, text: 'Gestión eficiente de elevadores y tiempos de mecánicos' },
+      ],
+      cta: <button onClick={() => document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' })} className="inline-flex items-center gap-2 text-blue-400 font-bold hover:text-blue-300 transition-colors group/link">Ver planes y potenciar negocio <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" /></button>,
+    },
+  ];
+
+  return (
+    <>
+      {/* Desktop: grid de 2 columnas */}
+      <div className="hidden md:grid md:grid-cols-2 gap-6 items-stretch">
+        {tabs.map((tab) => (
+          <motion.div
+            key={tab.key}
+            className={`bg-slate-900 border border-slate-800 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group hover:border-${tab.accent}-500/30 transition-colors`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{ duration: 0.6, delay: tab.key * 0.2 }}
+          >
+            <div className={`absolute top-0 right-0 w-64 h-64 ${tab.glow} rounded-full blur-[80px] -mr-20 -mt-20`} />
+            <div className="relative z-10">
+              <div className={`w-14 h-14 ${tab.bg} rounded-2xl flex items-center justify-center mb-8 border ${tab.border}`}>
+                <tab.icon className={`w-8 h-8 ${tab.text}`} />
+              </div>
+              <h3 className="text-3xl font-black text-white mb-4 tracking-tight">{tab.title}</h3>
+              <p className="text-slate-300 text-lg mb-8 leading-relaxed">{tab.desc}</p>
+              <ul className="space-y-4">
+                {tab.items.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className={`mt-1 bg-slate-800 p-1.5 rounded-lg border border-slate-700 ${tab.text} shrink-0`}>
+                      <item.icon className="w-4 h-4" />
+                    </div>
+                    <span className="text-slate-300 font-medium">{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-10">{tab.cta}</div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Mobile: tabs con auto-rotación */}
+      <div className="md:hidden">
+        {/* Tab Switcher Pills */}
+        <div className="flex gap-3 mb-6">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => resetTimer(tab.key as 0 | 1)}
+              className={`flex-1 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 border-2 ${activeTab === tab.key ? `bg-slate-800 ${tab.border} ${tab.text}` : 'bg-transparent border-slate-800 text-slate-500'}`}
+            >
+              {tab.key === 0 ? '🚗 Conductor' : '🏭 Taller'}
+            </button>
+          ))}
+        </div>
+
+        {/* Progress bar */}
+        <div className="h-0.5 bg-slate-800 rounded-full mb-6 overflow-hidden">
+          <motion.div
+            key={activeTab}
+            className={`h-full ${activeTab === 0 ? 'bg-cyan-400' : 'bg-blue-400'}`}
+            initial={{ width: '0%' }}
+            animate={{ width: '100%' }}
+            transition={{ duration: 4, ease: 'linear' }}
+          />
+        </div>
+
+        {/* Card Content */}
+        <AnimatePresence mode="wait">
+          {tabs.map((tab) => activeTab === tab.key && (
+            <motion.div
+              key={tab.key}
+              initial={{ opacity: 0, x: tab.key === 0 ? -20 : 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: tab.key === 0 ? 20 : -20 }}
+              transition={{ duration: 0.3 }}
+              className={`bg-slate-900 border-2 ${tab.border} rounded-[2rem] p-6 shadow-2xl relative overflow-hidden`}
+            >
+              <div className={`absolute top-0 right-0 w-48 h-48 ${tab.glow} rounded-full blur-[60px] -mr-10 -mt-10`} />
+              <div className="relative z-10">
+                <div className={`w-12 h-12 ${tab.bg} rounded-xl flex items-center justify-center mb-5 border ${tab.border}`}>
+                  <tab.icon className={`w-6 h-6 ${tab.text}`} />
+                </div>
+                <h3 className="text-2xl font-black text-white mb-3">{tab.title}</h3>
+                <p className="text-slate-300 text-sm mb-6 leading-relaxed">{tab.desc}</p>
+                <ul className="space-y-3">
+                  {tab.items.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <div className={`mt-0.5 bg-slate-800 p-1.5 rounded-lg border border-slate-700 ${tab.text} shrink-0`}>
+                        <item.icon className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-slate-300 font-medium text-sm">{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8">{tab.cta}</div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </>
+  );
+};
+
 // --- SECTION BENTO DUAL ---
 const SectionBentoDual = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
 
   return (
-    <section ref={ref} className="py-24 bg-slate-950 relative overflow-hidden border-b border-white/5 z-20">
+    <section ref={ref} className="py-16 md:py-24 bg-slate-950 relative overflow-hidden border-b border-white/5 z-20">
       <div className="absolute inset-0 bg-slate-950 z-0"></div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16">
@@ -353,86 +519,8 @@ const SectionBentoDual = () => {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          {/* Bloque Conductores */}
-          <motion.div 
-            className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden group hover:border-cyan-500/30 transition-colors"
-            initial={{ opacity: 0, x: -30 }}
-            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
-            <div className="relative z-10">
-              <div className="w-14 h-14 bg-cyan-500/20 rounded-2xl flex items-center justify-center mb-8 border border-cyan-500/30">
-                <Car className="w-8 h-8 text-cyan-400" />
-              </div>
-              <h3 className="text-3xl font-black text-white mb-4 tracking-tight">Para Conductores</h3>
-              <p className="text-slate-300 text-lg mb-8 leading-relaxed">
-                Tu <strong>Garage Digital</strong>. Toma el control absoluto de la vida de tu vehículo. Transparencia que da tranquilidad.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  { icon: Clock, text: "Historial histórico inmutable de mantenciones" },
-                  { icon: ShieldCheck, text: "Fotos del proceso en vivo directo a tu WhatsApp" },
-                  { icon: FileSignature, text: "Firma de contratos y presupuestos desde el celular" }
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="mt-1 bg-slate-800 p-1.5 rounded-lg border border-slate-700 text-cyan-400 shrink-0">
-                      <item.icon className="w-4 h-4" />
-                    </div>
-                    <span className="text-slate-300 font-medium">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-10">
-                <Link href="/mi-garage" className="inline-flex items-center gap-2 text-cyan-400 font-bold hover:text-cyan-300 transition-colors group/link">
-                  Entrar a mi Garage <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
-                </Link>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Bloque Talleres / Flota */}
-          <motion.div 
-            className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden group hover:border-blue-500/30 transition-colors"
-            initial={{ opacity: 0, x: 30 }}
-            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 30 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
-            <div className="relative z-10">
-              <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-8 border border-blue-500/30">
-                <Building className="w-8 h-8 text-blue-400" />
-              </div>
-              <h3 className="text-3xl font-black text-white mb-4 tracking-tight">Para Talleres y Flotas</h3>
-              <p className="text-slate-300 text-lg mb-8 leading-relaxed">
-                Software de gestión de última generación. <strong>Digitaliza el 100%</strong> de tus operaciones y blinda tu rentabilidad.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  { icon: Activity, text: "Control de inventario y cálculo de rentabilidad exacta" },
-                  { icon: FileSignature, text: "Generación de contratos automáticos y firma digital" },
-                  { icon: Wrench, text: "Gestión eficiente de elevadores y tiempos de mecánicos" }
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="mt-1 bg-slate-800 p-1.5 rounded-lg border border-slate-700 text-blue-400 shrink-0">
-                      <item.icon className="w-4 h-4" />
-                    </div>
-                    <span className="text-slate-300 font-medium">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-10">
-                <button 
-                  onClick={() => { document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' }); }}
-                  className="inline-flex items-center gap-2 text-blue-400 font-bold hover:text-blue-300 transition-colors group/link"
-                >
-                  Ver planes y potenciar negocio <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+        {/* Mobile: Tab Switcher | Desktop: grid */}
+        <AutoCarouselBento isInView={isInView} />
       </div>
     </section>
   );

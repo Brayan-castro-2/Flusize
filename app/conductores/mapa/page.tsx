@@ -287,50 +287,44 @@ function MapViewContent() {
                 />
             </div>
 
-            {/* VISTA DE LISTA (BOTTOM SHEET) */}
-            <div className={`absolute bottom-0 left-0 w-full bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-500 z-[100] flex flex-col ${isListExpanded ? 'h-[80vh]' : 'h-[15vh]'}`}>
-                {/* Drag Handle */}
-                <div 
-                    className="w-full flex justify-center py-4 cursor-pointer shrink-0"
-                    onClick={() => setIsListExpanded(!isListExpanded)}
-                >
-                    <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
-                </div>
-                
-                <div className={`flex-1 overflow-y-auto px-4 pb-24 space-y-4 ${!isListExpanded && 'pointer-events-none opacity-50'}`}>
-                    {displayedWorkshops.map(shop => (
-                        <div key={shop.id} className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex gap-4">
-                            <img src={shop.image} alt={shop.name} className="w-24 h-24 rounded-2xl object-cover shrink-0" />
-                            <div className="flex flex-col flex-1 py-1">
-                                <div className="flex justify-between items-start mb-1">
-                                    <h3 className="font-black text-slate-900 text-lg leading-tight">{shop.name}</h3>
-                                    <div className="flex items-center gap-1 text-yellow-500 text-xs font-bold bg-yellow-50 px-2 py-0.5 rounded-md shrink-0">
-                                        <Star className="w-3 h-3 fill-current" /> {shop.rating}
+            {/* VISTA DE LISTA (Full overlay, controlled by isListView) */}
+            <div className={`absolute inset-0 z-[100] bg-slate-50 flex flex-col transition-opacity duration-300 ${isListView ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                <div className="pt-40 pb-24 overflow-y-auto flex-1">
+                    <div className="max-w-xl mx-auto px-4 space-y-4">
+                        {displayedWorkshops.map(shop => (
+                            <div key={shop.id} className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex gap-4">
+                                <img src={shop.image} alt={shop.name} className="w-24 h-24 rounded-2xl object-cover shrink-0" />
+                                <div className="flex flex-col flex-1 py-1">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h3 className="font-black text-slate-900 text-lg leading-tight">{shop.name}</h3>
+                                        <div className="flex items-center gap-1 text-yellow-500 text-xs font-bold bg-yellow-50 px-2 py-0.5 rounded-md shrink-0">
+                                            <Star className="w-3 h-3 fill-current" /> {shop.rating}
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-500 font-medium line-clamp-1 mb-2">{shop.location}</p>
+                                    <div className="flex flex-wrap gap-1 mb-3">
+                                        {shop.specialties.slice(0, 2).map((s, i) => (
+                                            <span key={i} className="text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                                                {s}
+                                            </span>
+                                        ))}
+                                        {shop.specialties.length > 2 && <span className="text-[9px] font-black uppercase text-slate-400">+{shop.specialties.length - 2}</span>}
+                                    </div>
+                                    <div className="mt-auto flex justify-end">
+                                        <Button onClick={() => router.push(`/${shop.slug || shop.id}`)} size="sm" className="bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-xs font-bold px-4">
+                                            Agendar Cita
+                                        </Button>
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-500 font-medium line-clamp-1 mb-2">{shop.location}</p>
-                                <div className="flex flex-wrap gap-1 mb-3">
-                                    {shop.specialties.slice(0, 2).map((s, i) => (
-                                        <span key={i} className="text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
-                                            {s}
-                                        </span>
-                                    ))}
-                                    {shop.specialties.length > 2 && <span className="text-[9px] font-black uppercase text-slate-400">+{shop.specialties.length - 2}</span>}
-                                </div>
-                                <div className="mt-auto flex justify-end">
-                                    <Button onClick={() => router.push(`/${shop.slug || shop.id}`)} size="sm" className="bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-xs font-bold px-4">
-                                        Agendar Cita
-                                    </Button>
-                                </div>
                             </div>
-                        </div>
-                    ))}
-                    {displayedWorkshops.length === 0 && (
-                        <div className="text-center py-20">
-                            <Wrench className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                            <p className="text-slate-500 font-bold">No hay talleres para esta búsqueda</p>
-                        </div>
-                    )}
+                        ))}
+                        {displayedWorkshops.length === 0 && (
+                            <div className="text-center py-20">
+                                <Wrench className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                                <p className="text-slate-500 font-bold">No hay talleres para esta búsqueda</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -340,15 +334,15 @@ function MapViewContent() {
                     {/* Back Button */}
                     <button
                         onClick={() => router.push('/')}
-                        className="w-12 h-12 bg-white/95 backdrop-blur-xl shadow-[0_15px_35px_rgba(0,0,0,0.06)] rounded-3xl flex items-center justify-center border border-white/50 hover:bg-white hover:scale-105 active:scale-95 transition-all outline-none shrink-0"
+                        className="w-10 h-10 md:w-12 md:h-12 bg-white/95 backdrop-blur-xl shadow-[0_15px_35px_rgba(0,0,0,0.06)] rounded-full md:rounded-3xl flex items-center justify-center border border-white/50 hover:bg-white hover:scale-105 active:scale-95 transition-all outline-none shrink-0"
                     >
-                        <ChevronLeft className="text-slate-700 w-6 h-6" />
+                        <ChevronLeft className="text-slate-700 w-5 h-5 md:w-6 md:h-6" />
                     </button>
 
                     {/* Search Bar - Slim Version */}
                     <form
                         onSubmit={handleSearch}
-                        className="flex-1 bg-white/95 backdrop-blur-xl shadow-[0_15px_35px_rgba(0,0,0,0.06)] rounded-3xl flex items-center px-4 h-12 border-none transition-all focus-within:ring-2 focus-within:ring-blue-500/30"
+                        className="flex-1 bg-white/95 backdrop-blur-xl shadow-[0_15px_35px_rgba(0,0,0,0.06)] rounded-full md:rounded-3xl flex items-center px-4 h-10 md:h-12 border-none transition-all focus-within:ring-2 focus-within:ring-blue-500/30 min-w-0"
                     >
                         <Search className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
                         <input
@@ -364,9 +358,9 @@ function MapViewContent() {
                     {/* User Profile */}
                     <button
                         onClick={() => router.push('/mi-garage')}
-                        className="w-12 h-12 bg-white shadow-[0_15px_35px_rgba(0,0,0,0.06)] rounded-full flex items-center justify-center border border-white/50 hover:bg-slate-50 transition-all shrink-0"
+                        className="w-10 h-10 md:w-12 md:h-12 bg-white shadow-[0_15px_35px_rgba(0,0,0,0.06)] rounded-full flex items-center justify-center border border-white/50 hover:bg-slate-50 transition-all shrink-0"
                     >
-                        <User className="w-5 h-5 text-slate-700" />
+                        <User className="w-5 h-5 md:w-5 md:h-5 text-slate-700" />
                     </button>
                 </div>
 
@@ -438,7 +432,7 @@ function MapViewContent() {
             </div>
 
             {/* 4. BOTONES FLOTANTES IZQUIERDA (SOS Y UBICACIÓN) */}
-            <div className={`absolute bottom-[30vh] md:bottom-10 right-4 z-[500] flex flex-col items-end gap-3 transition-all duration-500 ${selectedWorkshop ? 'translate-y-[-20vh] md:translate-y-0' : ''}`}>
+            <div className={`absolute bottom-[18vh] md:bottom-10 right-4 z-[500] flex flex-col items-end gap-3 transition-all duration-500 ${selectedWorkshop ? 'translate-y-[-20vh] md:translate-y-0' : ''} ${isListExpanded ? 'opacity-0 pointer-events-none translate-y-4' : 'opacity-100'}`}>
                 {/* Geolocation Button */}
                 <button
                     onClick={(e) => {
@@ -453,10 +447,10 @@ function MapViewContent() {
                             );
                         }
                     }}
-                    className="w-14 h-14 bg-white text-blue-600 shadow-[0_15px_35px_rgba(0,0,0,0.1)] hover:bg-white hover:scale-105 flex items-center justify-center rounded-3xl transition-all active:scale-95 group border border-slate-100"
+                    className="w-12 h-12 md:w-14 md:h-14 bg-white text-blue-600 shadow-[0_15px_35px_rgba(0,0,0,0.1)] hover:bg-white hover:scale-105 flex items-center justify-center rounded-2xl md:rounded-3xl transition-all active:scale-95 group border border-slate-100"
                     title="Mi ubicación"
                 >
-                    <Locate className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    <Locate className="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform" />
                 </button>
 
                 <div className="relative">
@@ -501,16 +495,32 @@ function MapViewContent() {
                     
                     <button
                         onClick={() => setShowSOSMenu(!showSOSMenu)}
-                        className="w-16 h-16 bg-red-600 text-white shadow-[0_20px_40px_rgba(220,38,38,0.3)] hover:bg-red-700 rounded-[2rem] flex items-center justify-center transition-all active:scale-95 group relative border-4 border-white"
+                        className="w-14 h-14 md:w-16 md:h-16 bg-red-600 text-white shadow-[0_20px_40px_rgba(220,38,38,0.3)] hover:bg-red-700 rounded-full flex items-center justify-center transition-all active:scale-95 group relative border-4 border-white"
                     >
                         <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-25" />
-                        <AlertTriangle className="w-8 h-8 group-hover:scale-110 transition-transform relative z-10" />
+                        <AlertTriangle className="w-6 h-6 md:w-8 md:h-8 group-hover:scale-110 transition-transform relative z-10" />
                     </button>
                 </div>
             </div>
 
-            {/* BOTÓN FLOTANTE VER MAPA (REMOVIDO POR BOTTOM SHEET) */}
-            <div className="hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-[400] transition-transform">
+            {/* BOTÓN FLOTANTE VER LISTA / VER MAPA */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[400]">
+                <button
+                    onClick={() => setIsListView(!isListView)}
+                    className="bg-slate-900 text-white font-black text-sm px-6 py-3.5 rounded-full shadow-[0_15px_30px_rgba(0,0,0,0.2)] flex items-center gap-2 hover:scale-105 active:scale-95 transition-all border border-slate-700"
+                >
+                    {isListView ? (
+                        <>
+                            <MapPin className="w-4 h-4 text-cyan-400" />
+                            Ver Mapa
+                        </>
+                    ) : (
+                        <>
+                            <Search className="w-4 h-4 text-cyan-400" />
+                            Ver Lista
+                        </>
+                    )}
+                </button>
             </div>
 
             {/* 5. BOTTOM SHEET (EL RADAR) */}
