@@ -176,7 +176,7 @@ export default function WorkshopDetail() {
     return (
         <div className="min-h-screen bg-white text-slate-900 font-sans pb-24">
             {/* 1. HERO SECTION PREMIUM */}
-            <div className="relative h-[40vh] md:h-[50vh] w-full overflow-hidden">
+            <div className="relative h-[40vh] md:h-[50vh] w-full">
                 {/* Background Cover */}
                 <div className="absolute inset-0 w-full h-full">
                     {workshop.portada_url ? (
@@ -319,14 +319,21 @@ export default function WorkshopDetail() {
                         </div>
                     </div>
 
-                    <div className="relative h-40 w-full rounded-2xl overflow-hidden shadow-inner border border-slate-200">
-                        {/* Static map placeholder */}
-                        <img 
-                            src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-car+3b47fb(${workshop.longitud || -72.94},${workshop.latitud || -41.46})/${workshop.longitud || -72.94},${workshop.latitud || -41.46},15,0/600x400@2x?access_token=pk.eyJ1IjoiZmx1c2l6ZSIsImEiOiJjbGozeWd5ZWowaGQyM2VudjVwZzY1ZzR0In0.X_b_b-b-b-b-b-b-b-b-b-b`} 
-                            alt="Mapa de ubicación"
-                            className="w-full h-full object-cover"
+                    <div className="relative h-40 w-full rounded-2xl overflow-hidden shadow-inner border border-slate-200 bg-slate-100">
+                        {/* Static OSM iframe placeholder */}
+                        <iframe 
+                            width="100%" 
+                            height="100%" 
+                            frameBorder="0" 
+                            scrolling="no" 
+                            marginHeight={0} 
+                            marginWidth={0} 
+                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${(workshop.longitud || -72.94)-0.02}%2C${(workshop.latitud || -41.46)-0.01}%2C${(workshop.longitud || -72.94)+0.02}%2C${(workshop.latitud || -41.46)+0.01}&layer=mapnik&marker=${workshop.latitud || -41.46}%2C${workshop.longitud || -72.94}`}
+                            style={{ border: 'none', pointerEvents: 'none', filter: 'hue-rotate(180deg) invert(90%) opacity(0.8)' }}
                         />
-                        <div className="absolute bottom-3 right-3 bg-white px-3 py-1.5 rounded-full shadow-lg border border-slate-100">
+                        <div className="absolute inset-0 ring-1 ring-inset ring-slate-900/5 pointer-events-none" />
+                        <div className="absolute bottom-3 right-3 bg-white px-3 py-1.5 rounded-full shadow-lg border border-slate-100 flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 transition-colors">
+                            <MapPin className="w-3 h-3 text-blue-600" />
                             <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Abrir en Waze</span>
                         </div>
                     </div>

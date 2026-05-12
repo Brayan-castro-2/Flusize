@@ -21,7 +21,10 @@ interface Workshop {
 interface LeafletMapProps {
     workshops: Workshop[];
     onSelect: (id: string) => void;
+    onDoubleClick?: (id: string) => void;
     selectedId?: string;
+    userLocation?: { lat: number; lng: number } | null;
+    mapCommand?: { lat: number; lng: number; zoom: number; ts: number } | null;
 }
 
 // Sub-component to capture the map instance safely
@@ -46,8 +49,8 @@ const createCustomIcon = (workshop: Workshop) => {
 
     return L.divIcon({
         html: `
-            <div class="relative group">
-                <div class="w-11 h-11 bg-white rounded-2xl flex items-center justify-center shadow-[0_10px_25px_rgba(0,0,0,0.1)] border-2 ${isPremium ? 'border-amber-400' : 'border-blue-500'} transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1">
+            <div class="relative w-full h-full cursor-pointer flex flex-col items-center group">
+                <div class="w-11 h-11 bg-white rounded-2xl flex items-center justify-center shadow-[0_10px_25px_rgba(0,0,0,0.1)] border-2 ${isPremium ? 'border-amber-400' : 'border-blue-500'} transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1 pointer-events-auto">
                     <span class="text-xl">${emoji}</span>
                     ${isPremium ? `
                         <div class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-600 rounded-full border-2 border-white flex items-center justify-center shadow-lg">
@@ -64,8 +67,28 @@ const createCustomIcon = (workshop: Workshop) => {
     });
 };
 
-const LeafletMap = forwardRef(({ workshops, onSelect, selectedId }: LeafletMapProps, ref) => {
+const createUserIcon = () => {
+    return L.divIcon({
+        html: `
+            <div class="relative flex items-center justify-center w-8 h-8">
+                <div class="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
+                <div class="relative w-5 h-5 bg-blue-600 border-[3px] border-white rounded-full shadow-lg"></div>
+            </div>
+        `,
+        className: 'custom-user-icon',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+    });
+};
+
+const LeafletMap = forwardRef(({ workshops, onSelect, onDoubleClick, selectedId, userLocation, mapCommand }: LeafletMapProps, ref) => {
     const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
+
+    useEffect(() => {
+        if (mapCommand && mapInstance) {
+            mapInstance.setView([mapCommand.lat, mapCommand.lng], mapCommand.zoom, { animate: true, duration: 1.5 });
+        }
+    }, [mapCommand, mapInstance]);
 
     useImperativeHandle(ref, () => ({
         flyToLocation: (lat: number, lng: number, zoom = 16) => {
@@ -101,9 +124,17 @@ const LeafletMap = forwardRef(({ workshops, onSelect, selectedId }: LeafletMapPr
                         icon={createCustomIcon(workshop)}
                         eventHandlers={{
                             click: () => onSelect(String(workshop.id)),
+                            dblclick: () => onDoubleClick && onDoubleClick(String(workshop.id)),
                         }}
                     />
                 ))}
+
+                {userLocation && (
+                    <Marker 
+                        position={[userLocation.lat, userLocation.lng]}
+                        icon={createUserIcon()}
+                    />
+                )}
             </MapContainer>
         </div>
     );

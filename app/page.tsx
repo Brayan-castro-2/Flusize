@@ -26,7 +26,9 @@ import {
   MessageSquare,
   ChevronRight,
   Truck,
-  Building
+  Building,
+  FileSignature,
+  Activity
 } from 'lucide-react';
 
 // --- MAIN PAGE COMPONENT ---
@@ -34,6 +36,8 @@ export default function LandingPage() {
   const { scrollYProgress } = useScroll();
   const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isLoginSheetOpen, setIsLoginSheetOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'conductor' | 'taller'>('conductor');
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans overflow-x-hidden text-slate-900">
@@ -49,19 +53,27 @@ export default function LandingPage() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-100/40 blur-[150px]" />
       </div>
 
+      <Navbar onLoginClick={() => setIsLoginSheetOpen(true)} />
 
       <main>
         <HeroSection onEmergencyClick={() => setIsEmergencyOpen(true)} />
+        <SectionBentoDual />
         <StorySection />
-        <SectionB2BMagicLink />
-        <SectionB2CGarage />
-        <PricingSection />
+        <SectionInteractiveShowcase activeTab={activeTab} setActiveTab={setActiveTab} />
+        {activeTab === 'taller' ? (
+          <PricingSection />
+        ) : (
+          <DriverBenefitsSection />
+        )}
       </main>
 
       <Footer />
 
       {/* Global Emergency Modal */}
       <EmergencyModal isOpen={isEmergencyOpen} onClose={() => setIsEmergencyOpen(false)} />
+      
+      {/* Login Bottom Sheet Simulator */}
+      <LoginBottomSheet isOpen={isLoginSheetOpen} onClose={() => setIsLoginSheetOpen(false)} />
     </div>
   );
 }
@@ -69,12 +81,99 @@ export default function LandingPage() {
 
 
 
+// --- LOGIN BOTTOM SHEET ---
+const LoginBottomSheet = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  return (
+    <>
+      <div 
+        className={`fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+        onClick={onClose}
+      />
+      <div 
+        className={`fixed bottom-0 left-0 w-full bg-white z-[201] rounded-t-[2.5rem] p-6 pb-12 transform transition-transform duration-300 shadow-[0_-20px_40px_rgba(0,0,0,0.2)] flex flex-col md:w-[400px] md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:rounded-3xl ${isOpen ? 'translate-y-0 md:scale-100 md:opacity-100' : 'translate-y-full md:scale-95 md:opacity-0 md:pointer-events-none'}`}
+      >
+        <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8 md:hidden cursor-pointer" onClick={onClose} />
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Bienvenido</h3>
+            <p className="text-slate-500 font-medium mt-1">Elige cómo quieres ingresar a Flusize.</p>
+          </div>
+          <button onClick={onClose} className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-full transition-colors hidden md:block active:scale-95">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="space-y-3">
+          <Link href="/login" className="flex items-center gap-4 w-full p-4 bg-white border-2 border-slate-100 hover:border-blue-500 rounded-2xl transition-all active:scale-95 group">
+            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+              <Car className="w-6 h-6 text-blue-600 group-hover:text-white transition-colors" />
+            </div>
+            <div className="flex-1 text-left">
+              <h4 className="font-bold text-slate-900 text-lg">Soy Conductor</h4>
+              <p className="text-xs text-slate-500 font-medium">Gestiona el ADN de tu vehículo</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500" />
+          </Link>
+          
+          <Link href="/login?tab=taller" className="flex items-center gap-4 w-full p-4 bg-white border-2 border-slate-100 hover:border-cyan-500 rounded-2xl transition-all active:scale-95 group">
+            <div className="w-12 h-12 bg-cyan-50 rounded-xl flex items-center justify-center group-hover:bg-cyan-500 transition-colors">
+              <Building className="w-6 h-6 text-cyan-600 group-hover:text-white transition-colors" />
+            </div>
+            <div className="flex-1 text-left">
+              <h4 className="font-bold text-slate-900 text-lg">Soy Taller</h4>
+              <p className="text-xs text-slate-500 font-medium">Entrar al panel de administración</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-cyan-500" />
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // --- NEURAL BACKGROUND (Removed in favor of Video Background) ---
 // const NeuralBackground = () => { ... }
 
+// --- NAVBAR ---
+const Navbar = ({ onLoginClick }: { onLoginClick?: () => void }) => {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${scrolled ? 'bg-slate-950/80 backdrop-blur-md border-b border-white/10 py-4' : 'bg-transparent py-6'}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className="font-black tracking-tighter text-white text-2xl group-hover:text-cyan-400 transition-colors">FLUSIZE</span>
+          </Link>
+          
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link href="/conductores/mapa" className="hidden sm:flex items-center gap-2 text-slate-300 hover:text-cyan-400 transition-colors font-bold text-sm bg-slate-900/50 px-4 py-2 rounded-full border border-slate-700/50 hover:border-cyan-500/50">
+              <MapPin className="w-4 h-4" />
+              <span>Mapa de Servicios</span>
+            </Link>
+            <button onClick={onLoginClick} className="text-slate-300 hover:text-white transition-colors font-bold text-sm px-2 active:scale-95">
+              Ingresar
+            </button>
+            <Link href="/conductores/mapa" className="sm:hidden flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white p-2.5 rounded-xl transition-all">
+              <MapPin className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
 // --- HERO SECTION ---
 const HeroSection = ({ onEmergencyClick }: { onEmergencyClick: () => void }) => {
-
   return (
     <section className="relative pt-40 pb-32 flex flex-col items-center justify-center min-h-screen overflow-hidden">
       {/* Cinematic Video Background */}
@@ -91,60 +190,53 @@ const HeroSection = ({ onEmergencyClick }: { onEmergencyClick: () => void }) => 
       </video>
 
       {/* Dark Overlay for Contrast */}
-      <div className="absolute inset-0 bg-black/60 z-0 pointer-events-none" />
+      <div className="absolute inset-0 bg-slate-950/70 z-0 pointer-events-none" />
 
-      {/* Gradient Transition to next section - raised z-index to cover text bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-slate-50 to-transparent z-10 pointer-events-none" />
+      {/* Gradient Transition to next section */}
+      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-slate-950 to-transparent z-10 pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto px-4 text-center z-10 flex flex-col items-center">
-
+      <div className="max-w-5xl mx-auto px-4 text-center z-10 flex flex-col items-center mt-12">
         <motion.div
-          className="relative z-10 flex flex-col items-center"
+          className="relative z-10 flex flex-col items-center w-full"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 1 }}
+          transition={{ delay: 0.2, duration: 1 }}
         >
           {/* Neon Badge & Branding */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="mb-8">
+          <div className="flex flex-col items-center mb-8">
+            <div className="mb-6">
               <span className="font-black text-5xl tracking-[0.2em] text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">FLUSIZE</span>
             </div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-cyan-400/30 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/60 backdrop-blur-md border border-cyan-500/30 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
               <Zap className="h-4 w-4" />
-              <span className="text-sm font-bold tracking-wide">La Nueva Era Automotriz</span>
+              <span className="text-sm font-bold tracking-wide">El Ecosistema B2B & B2C</span>
             </div>
           </div>
 
-          <h1 className="text-5xl md:text-8xl font-black text-white tracking-tight leading-[1.1] mb-6 drop-shadow-2xl uppercase">
-            ECOSISTEMA <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 drop-shadow-sm">
-              AUTOMOTRIZ INTELIGENTE
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.1] mb-8 drop-shadow-2xl">
+            TODA LA VIDA DE TU VEHÍCULO, <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 drop-shadow-sm">
+              EN LA PALMA DE TU MANO.
             </span>
           </h1>
 
-          <p className="text-xl text-slate-200 mb-10 max-w-3xl mx-auto leading-relaxed drop-shadow-lg font-medium">
-            <strong>Confianza total</strong> para el conductor. <strong>Control absoluto</strong> para el negocio. Digitaliza tu taller al 100%, simplifica la vida de tus mecánicos y garantiza <strong>transparencia absoluta</strong>. Conecta cada servicio con <strong>tracking en tiempo real</strong> y evidencia fotográfica, creando el nexo perfecto entre la calidad de tu trabajo y la tranquilidad del cliente.
+          <p className="text-lg md:text-2xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed drop-shadow-lg font-medium">
+            El ecosistema premium que conecta a los mejores talleres y rent-a-cars con sus clientes. <strong className="text-white">Transparencia</strong>, <strong className="text-white">historial</strong> y <strong className="text-white">control total</strong>.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
-            <Link
-              href="/login"
-              className="w-full sm:w-auto"
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <button 
             >
-              <button className="w-full px-8 py-4 bg-white/10 backdrop-blur-md text-white border-2 border-white/20 hover:border-white/50 hover:bg-white/20 rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2 text-lg group">
-                <Wrench className="h-5 w-5 text-slate-300 group-hover:text-white transition-colors" /> Registrar Taller
-              </button>
-            </Link>
-            <Link href="/conductores/mapa" className="w-full sm:w-auto">
-              <button className="w-full px-8 py-4 bg-white/10 backdrop-blur-md text-white border-2 border-white/20 hover:border-white/50 hover:bg-white/20 rounded-2xl font-bold shadow-xl transition-all flex items-center justify-center gap-2 text-lg group">
-                <Car className="h-5 w-5 text-slate-300 group-hover:text-white transition-colors" /> Soy Conductor
-              </button>
-            </Link>
+              <span className="text-2xl">⚙️</span> Soy Taller / Empezar
+            </button>
+          </div>
+          
+          <div className="mt-8 w-full max-w-md mx-auto">
             <EmergencyButton onClick={onEmergencyClick} />
           </div>
         </motion.div>
       </div>
-    </section >
+    </section>
   );
 };
 
@@ -237,6 +329,115 @@ const EmergencyModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
 };
 
 
+// --- SECTION BENTO DUAL ---
+const SectionBentoDual = () => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+
+  return (
+    <section ref={ref} className="py-24 bg-slate-950 relative overflow-hidden border-b border-white/5 z-20">
+      <div className="absolute inset-0 bg-slate-950 z-0"></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+              Dos mundos. <span className="text-cyan-400">Una sola plataforma.</span>
+            </h2>
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+              Diseñado para empoderar al conductor y multiplicar la rentabilidad de los negocios automotrices.
+            </p>
+          </motion.div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          {/* Bloque Conductores */}
+          <motion.div 
+            className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden group hover:border-cyan-500/30 transition-colors"
+            initial={{ opacity: 0, x: -30 }}
+            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
+            <div className="relative z-10">
+              <div className="w-14 h-14 bg-cyan-500/20 rounded-2xl flex items-center justify-center mb-8 border border-cyan-500/30">
+                <Car className="w-8 h-8 text-cyan-400" />
+              </div>
+              <h3 className="text-3xl font-black text-white mb-4 tracking-tight">Para Conductores</h3>
+              <p className="text-slate-300 text-lg mb-8 leading-relaxed">
+                Tu <strong>Garage Digital</strong>. Toma el control absoluto de la vida de tu vehículo. Transparencia que da tranquilidad.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  { icon: Clock, text: "Historial histórico inmutable de mantenciones" },
+                  { icon: ShieldCheck, text: "Fotos del proceso en vivo directo a tu WhatsApp" },
+                  { icon: FileSignature, text: "Firma de contratos y presupuestos desde el celular" }
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="mt-1 bg-slate-800 p-1.5 rounded-lg border border-slate-700 text-cyan-400 shrink-0">
+                      <item.icon className="w-4 h-4" />
+                    </div>
+                    <span className="text-slate-300 font-medium">{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-10">
+                <Link href="/mi-garage" className="inline-flex items-center gap-2 text-cyan-400 font-bold hover:text-cyan-300 transition-colors group/link">
+                  Entrar a mi Garage <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Bloque Talleres / Flota */}
+          <motion.div 
+            className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden group hover:border-blue-500/30 transition-colors"
+            initial={{ opacity: 0, x: 30 }}
+            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 30 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>
+            <div className="relative z-10">
+              <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-8 border border-blue-500/30">
+                <Building className="w-8 h-8 text-blue-400" />
+              </div>
+              <h3 className="text-3xl font-black text-white mb-4 tracking-tight">Para Talleres y Flotas</h3>
+              <p className="text-slate-300 text-lg mb-8 leading-relaxed">
+                Software de gestión de última generación. <strong>Digitaliza el 100%</strong> de tus operaciones y blinda tu rentabilidad.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  { icon: Activity, text: "Control de inventario y cálculo de rentabilidad exacta" },
+                  { icon: FileSignature, text: "Generación de contratos automáticos y firma digital" },
+                  { icon: Wrench, text: "Gestión eficiente de elevadores y tiempos de mecánicos" }
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="mt-1 bg-slate-800 p-1.5 rounded-lg border border-slate-700 text-blue-400 shrink-0">
+                      <item.icon className="w-4 h-4" />
+                    </div>
+                    <span className="text-slate-300 font-medium">{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-10">
+                <button 
+                  onClick={() => { document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' }); }}
+                  className="inline-flex items-center gap-2 text-blue-400 font-bold hover:text-blue-300 transition-colors group/link"
+                >
+                  Ver planes y potenciar negocio <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 // --- STORY SECTION ---
 const StorySection = () => {
   return (
@@ -271,308 +472,376 @@ const StorySection = () => {
             </p>
           </div>
 
-          <div className="mt-20 flex justify-center">
-            <div className="px-8 py-3 rounded-full bg-white/5 border border-white/10 text-white/40 text-xs font-bold tracking-[0.2em] uppercase">
-              Flusize 1.0 • El respaldo del siglo XXI
-            </div>
-          </div>
         </motion.div>
       </div>
     </section>
   );
 };
 
-// --- SECTION 1: MAGIC LINK (B2B) ---
-const SectionB2BMagicLink = () => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-
+// --- DRIVER BENEFITS SECTION ---
+const DriverBenefitsSection = () => {
   return (
-    <section ref={ref} className="py-24 bg-slate-950 relative overflow-hidden border-y border-white/5">
-      {/* Background Glow */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px]" />
+    <section className="py-24 md:py-32 bg-slate-900 border-y border-slate-800 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-500/30 rounded-full blur-[120px]" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="text-center max-w-3xl mx-auto mb-16 md:mb-24">
+          <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight mb-6">
+            Por qué usar <span className="text-cyan-400">Flusize</span>
+          </h2>
+          <p className="text-xl text-cyan-400 font-bold mb-4 tracking-tight">El copiloto digital definitivo para tu vehículo.</p>
+          <p className="text-lg text-slate-400 leading-relaxed font-medium">
+            No más llamadas interminables, presupuestos dudosos ni papeleos perdidos. Todo lo que tu auto necesita en un solo ecosistema, y lo mejor: 100% gratis para ti.
+          </p>
+        </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <h2 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight leading-tight mb-8 uppercase">
-              TUS MANOS EN EL MOTOR. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
-                SU CONFIANZA EN EL CELULAR.
-              </span> <br />
-              CIERRA PRESUPUESTOS EN SEGUNDOS.
-            </h2>
-            <p className="text-lg md:text-xl text-slate-300 mb-10 leading-relaxed font-medium">
-              En la nueva era digital, la desconfianza detiene tus elevadores y cada minuto de espera es dinero que no vuelve. Rompe el ciclo y <span className="text-cyan-400 font-bold italic text-nowrap">deja que tu taller fluya</span>: entrega evidencias fotográficas inmutables que eliminan las dudas y aceleran las aprobaciones directamente en el WhatsApp del cliente. Posiciónate como un líder tecnológico, aumenta la rotación de vehículos y blinda tu reputación con honestidad respaldada por datos. Con Flusize, la transparencia es el motor de tu rentabilidad.
-            </p>
-            <ul className="space-y-6">
-              {[
-                { title: "Aprobación Instantánea", desc: "El cliente ve la falla en su pantalla y autoriza el presupuesto con un toque. Sin vueltas." },
-                { title: "Elevadores Siempre en Marcha", desc: "Elimina los tiempos muertos esperando respuestas. Si fluye la información, fluye el trabajo." },
-                { title: "Sello de Honestidad Digital", desc: "Un historial fotográfico que protege tu taller de reclamos y fideliza a tus clientes para siempre." }
-              ].map((item, i) => (
-                <li key={i} className="flex gap-4 group">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/20 group-hover:border-blue-500/40 transition-all">
-                    <CheckCircle2 className="w-5 h-5 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-bold text-lg mb-1">{item.title}</h4>
-                    <p className="text-slate-400 leading-relaxed">{item.desc}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Abstract Visualization */}
-          <motion.div
-            className="relative h-[450px] w-full rounded-[3rem] bg-slate-900 border border-white/10 shadow-2xl flex items-center justify-center overflow-hidden"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(59,130,246,0.1),_transparent_70%)]" />
-
-            {/* Nodes Animation */}
-            <div className="flex flex-col gap-8 items-center relative z-10 w-full px-10">
-
-              <motion.div
-                className="w-full max-w-sm bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-xl border border-white/5 flex items-center gap-5"
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
-                  <Wrench className="w-7 h-7 text-blue-400" />
-                </div>
-                <div>
-                  <p className="font-black text-white text-base">Evidencia Enviada</p>
-                  <p className="text-xs text-blue-400 font-bold tracking-widest uppercase">Reparación en progreso</p>
-                </div>
-              </motion.div>
-
-              {/* Connecting Line */}
-              <div className="h-16 w-1 bg-gradient-to-b from-blue-500/50 to-cyan-500/50 relative rounded-full overflow-hidden">
-                <motion.div
-                  className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-transparent via-white to-transparent"
-                  animate={{ top: ["-100%", "200%"] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                />
+        <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-8 pb-8 px-4 md:px-0 -mx-4 md:mx-0">
+          {[
+            {
+              icon: Clock,
+              title: "Trazabilidad en Tiempo Real",
+              desc: "Dejar tu auto en el taller ahora es tan transparente como pedir un delivery. Revisa exactamente en qué etapa está tu vehículo en tiempo real y recibe notificaciones paso a paso desde el diagnóstico hasta que está \"Listo para retiro\".",
+              delay: 0.1
+            },
+            {
+              icon: MessageSquare,
+              title: "Transparencia y Evidencia Visual",
+              desc: "Recibe fotos y reportes en alta resolución directo a tu celular para que veas el repuesto dañado con tus propios ojos. Aprueba o rechaza trabajos adicionales con un clic. Se acabó el \"yo no autoricé eso\".",
+              delay: 0.2
+            },
+            {
+              icon: AlertTriangle,
+              title: "Tu Compañero en Emergencias",
+              desc: "¿Quedaste en pana? Nuestro mapa interactivo te conecta con asistencia VIP 24/7. Encuentra grúas, cerrajeros móviles o vulcanizaciones a domicilio en segundos cuando más lo necesitas.",
+              delay: 0.3
+            },
+            {
+              icon: MapPin,
+              title: "Red de Servicios de Confianza",
+              desc: "Explora nuestro mapa para encontrar servicios automotrices certificados que operan con el estándar de transparencia Flusize en tu zona. Calidad garantizada, sin sorpresas en la boleta.",
+              delay: 0.4
+            },
+            {
+              icon: FileSignature,
+              title: "El Carnet de Salud de tu Auto",
+              desc: "Olvídate de guardar boletas en la guantera. Mantén el historial inmutable de servicios y contratos digitales de tu vehículo siempre a mano. Ideal para llevar el control y mantener el valor de reventa de tu auto intacto.",
+              delay: 0.5
+            }
+          ].map((benefit, i) => (
+            <motion.div
+              key={i}
+              className={`bg-slate-950 p-8 rounded-3xl border border-slate-800 hover:border-cyan-500/50 transition-colors shadow-xl group flex-shrink-0 snap-center min-w-[85vw] md:min-w-0 ${i === 3 ? 'lg:col-span-1 lg:col-start-1 md:col-span-1' : ''} ${i === 4 ? 'lg:col-span-2 md:col-span-1' : ''}`}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: benefit.delay }}
+            >
+              <div className="w-14 h-14 bg-cyan-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all">
+                <benefit.icon className="w-7 h-7 text-cyan-400" />
               </div>
+              <h3 className="text-xl md:text-2xl font-black text-white mb-4 tracking-tight">{benefit.title}</h3>
+              <p className="text-sm md:text-base text-slate-400 leading-relaxed font-medium">{benefit.desc}</p>
+            </motion.div>
+          ))}
+        </div>
 
-              <motion.div
-                className="w-full max-w-sm bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-2xl border border-cyan-500/30 flex items-center justify-between"
-                animate={{ y: [0, 8, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              >
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30">
-                    <ShieldCheck className="w-7 h-7 text-cyan-400" />
-                  </div>
-                  <div>
-                    <p className="font-black text-white text-base">Aprobación Recibida</p>
-                    <p className="text-xs text-cyan-400 font-bold tracking-widest uppercase">Cliente Autorizó</p>
-                  </div>
-                </div>
-                <div className="bg-green-500/20 p-3 rounded-2xl border border-green-500/30">
-                  <MessageCircle className="w-6 h-6 text-green-400" />
-                </div>
-              </motion.div>
-
-            </div>
-          </motion.div>
-
+        <div className="mt-12 md:mt-20 flex justify-center px-4 md:px-0">
+          <Link href="/mi-garage" className="w-full sm:w-auto">
+            <button className="w-full sm:w-auto px-8 py-4 bg-white text-slate-950 rounded-full font-black active:scale-95 hover:scale-105 transition-transform flex items-center justify-center gap-3 shadow-2xl shadow-white/20">
+              Crear mi Garage Digital - ¡Es 100% Gratis! <ArrowRight className="w-5 h-5" />
+            </button>
+          </Link>
         </div>
       </div>
     </section>
   );
 };
 
-// --- SECTION 2: MAP FOMO (B2B) ---
-const SectionB2BFOMO = () => {
+// --- SECTION INTERACTIVE SHOWCASE (Dual B2B/B2C) ---
+const SectionInteractiveShowcase = ({ activeTab, setActiveTab }: { activeTab: 'conductor' | 'taller', setActiveTab: (tab: 'conductor' | 'taller') => void }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
-  return (
-    <section ref={ref} className="py-24 bg-slate-900 border-y border-slate-800 relative overflow-hidden">
-      {/* Background removed as requested by user to keep focus on the map */}
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            transition={{ duration: 0.8 }}
-          >
-            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-6">
-              Tu competencia ya está recibiendo <span className="text-cyan-400">clientes desde nuestro mapa.</span> ¿Y tú?
-            </h2>
-            <p className="text-lg text-slate-400 leading-relaxed">
-              Al registrarte, tu taller aparece en el mapa público. Miles de conductores buscan servicios especializados diariamente y cotizan mediante un clic a WhatsApp.
-            </p>
-          </motion.div>
-        </div>
-
-        {/* Floating Map UI Abstraction */}
-        <div className="relative h-[500px] w-full max-w-5xl mx-auto mt-10">
-          <motion.div
-            className="absolute inset-0 rounded-[2rem] bg-slate-800 border border-slate-700 shadow-2xl overflow-hidden flex items-center justify-center p-8"
-            initial={{ opacity: 0, y: 50 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            {/* True Map Background (Southern Chile) */}
-            <FomoMap />
-
-            {/* Floating Pins */}
-            {[
-              { color: "bg-cyan-500", top: "35%", left: "47%", delay: 0.5, name: "AutoCenter" },
-              { color: "bg-emerald-500", top: "45%", left: "48%", delay: 1.1, name: "Mecánica Pro" },
-              { color: "bg-blue-500", top: "54%", left: "48%", delay: 0.8, name: "Frenos Express" },
-            ].map((pin, i) => (
-              <motion.div
-                key={i}
-                className="absolute flex flex-col items-center"
-                style={{ top: pin.top, left: pin.left }}
-                initial={{ opacity: 0, scale: 0, y: 20 }}
-                animate={isInView ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0, y: 20 }}
-                transition={{ duration: 0.5, delay: pin.delay, type: "spring" }}
-              >
-                <div className="bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg mb-2 border border-slate-700 flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${pin.color} animate-pulse`}></span>
-                  {pin.name}
-                </div>
-                <MapPin className={`w-8 h-8 ${pin.color.replace('bg-', 'text-')} fill-current`} />
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// --- SECTION 3: MY GARAGE (B2C) ---
-const SectionB2CGarage = () => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-
-  const milestones = [
-    { title: 'Cambio de Aceite', time: 'Hace 10 meses', icon: Droplets, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { title: 'Cambio de Frenos', time: 'Hace 6 meses', icon: Disc, color: 'text-red-500', bg: 'bg-red-500/10' },
-    { title: 'Mantención', time: 'Hace 1 año', icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-500/10' },
-    { title: 'Suspensión y Tren Delantero', time: 'Hace 1 año', icon: Wrench, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+  const trackingSteps = [
+    { label: "Recibido", active: true, done: true },
+    { label: "En Taller", active: true, done: false },
+    { label: "Listo", active: false, done: false }
   ];
 
   return (
-    <section ref={ref} className="py-32 bg-slate-900 relative overflow-hidden">
-      {/* Abstract Background Elements */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute top-1/4 left-0 w-80 h-80 bg-cyan-500/30 rounded-full blur-[100px]" />
+    <section ref={ref} className="py-24 md:py-32 bg-slate-950 relative overflow-hidden border-y border-white/5 min-h-screen">
+      {/* Background Glow */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none transition-colors duration-1000">
+        <div className={`absolute top-0 right-1/4 w-96 h-96 rounded-full blur-[120px] transition-colors duration-1000 ${activeTab === 'taller' ? 'bg-blue-600/30' : 'bg-cyan-500/30'}`} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
+        
+        {/* Toggle Switch */}
+        <div className="flex justify-center mb-16 md:mb-24">
+          <div className="bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shadow-xl inline-flex relative">
+            {/* Animated Highlight Background */}
+            <div 
+              className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-slate-800 rounded-xl border border-slate-700 shadow-sm transition-all duration-300 ease-in-out"
+              style={{ left: activeTab === 'conductor' ? '6px' : 'calc(50% + 1.5px)' }}
+            />
+            
+            <button
+              onClick={() => setActiveTab('conductor')}
+              className={`relative z-10 flex items-center justify-center gap-2 px-4 md:px-8 py-3 w-40 md:w-48 rounded-xl font-bold transition-all duration-300 ${activeTab === 'conductor' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Car className="w-5 h-5" /> <span className="hidden sm:inline">Para</span> Conductores
+            </button>
+            <button
+              onClick={() => setActiveTab('taller')}
+              className={`relative z-10 flex items-center justify-center gap-2 px-4 md:px-8 py-3 w-40 md:w-48 rounded-xl font-bold transition-all duration-300 ${activeTab === 'taller' ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Building className="w-5 h-5" /> <span className="hidden sm:inline">Para</span> Talleres
+            </button>
+          </div>
+        </div>
 
-          {/* Visual: Phone Mockup Abstraction */}
-          <motion.div
-            className="relative w-full max-w-[340px] mx-auto h-[620px] bg-slate-800 rounded-[3.5rem] border-[10px] border-slate-700 shadow-[0_0_60px_rgba(0,0,0,0.5)] p-6 overflow-hidden flex flex-col"
-            initial={{ opacity: 0, rotateY: 30, x: -50 }}
-            animate={isInView ? { opacity: 1, rotateY: 0, x: 0 } : { opacity: 0, rotateY: 30, x: -50 }}
-            transition={{ duration: 1, type: "spring" }}
+        {/* Dynamic Content Container */}
+        <div className="relative">
+          
+          {/* CONDUCTOR CONTENT */}
+          <div 
+            className={`transition-all duration-500 transform ${activeTab === 'conductor' ? 'opacity-100 translate-y-0 relative z-10' : 'opacity-0 translate-y-8 absolute inset-0 pointer-events-none z-0'}`}
           >
-            {/* Status bar mock */}
-            <div className="w-full flex justify-between items-center mb-8 px-4">
-              <span className="text-white text-xs font-black">12:00</span>
-              <div className="flex gap-1.5">
-                <div className="w-3.5 h-3.5 rounded-full bg-white/40"></div>
-                <div className="w-5 h-3.5 rounded-sm bg-white/40"></div>
-              </div>
-            </div>
-
-            <div className="bg-slate-700/40 rounded-3xl p-5 mb-6 border border-white/5 backdrop-blur-sm">
-              <h4 className="text-white font-black text-xl mb-1">Tu Vehículo</h4>
-              <p className="text-cyan-400 text-sm font-bold tracking-widest uppercase">Historial Digital</p>
-            </div>
-
-            <div className="flex-1 bg-white rounded-[2.5rem] p-6 shadow-inner overflow-hidden">
-              <h4 className="font-black text-slate-900 text-base mb-6 border-b border-slate-100 pb-2">Hitos Recientes</h4>
-
-              <div className="space-y-5">
-                {milestones.map((item, i) => (
-                  <motion.div
-                    key={i}
-                    className="flex items-center gap-4 group"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
-                    transition={{ delay: 0.5 + (i * 0.15) }}
-                  >
-                    <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                      <item.icon className={`w-5 h-5 ${item.color}`} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+              {/* Visual: Phone Mockup Abstraction */}
+              <motion.div
+                className="relative w-full max-w-[360px] mx-auto h-[600px] bg-slate-950 rounded-[3.5rem] border-[12px] border-slate-800 shadow-[0_0_80px_rgba(34,211,238,0.15)] p-5 overflow-hidden flex flex-col order-2 lg:order-1"
+                initial={{ opacity: 0, rotateY: 20, x: -50 }}
+                animate={isInView ? { opacity: 1, rotateY: 0, x: 0 } : { opacity: 0, rotateY: 20, x: -50 }}
+                transition={{ duration: 1, type: "spring" }}
+              >
+                {/* Status bar mock */}
+                <div className="w-full flex justify-between items-center mb-6 px-2">
+                  <span className="text-white text-xs font-black">09:41</span>
+                  <div className="flex gap-1.5 items-center">
+                    <div className="w-4 h-3 rounded-sm bg-white border border-white/20 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-white w-2/3"></div>
                     </div>
-                    <div className="flex-1 border-b border-slate-50 pb-2">
-                      <p className="font-bold text-slate-800 text-xs leading-tight">{item.title}</p>
-                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">{item.time}</p>
+                  </div>
+                </div>
+
+                {/* Garage Header */}
+                <div className="bg-slate-900 rounded-3xl p-5 mb-4 border border-slate-800 shadow-md">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="text-white font-black text-xl mb-0.5">Audi A3 Sportback</h4>
+                      <p className="text-slate-400 text-xs font-bold uppercase">Patente: XX-YY-99</p>
+                    </div>
+                    <div className="w-10 h-10 bg-cyan-500/20 rounded-full flex items-center justify-center text-cyan-400">
+                      <Car className="w-5 h-5" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tracking Progress Bar */}
+                <div className="bg-white rounded-[2rem] p-5 mb-4 shadow-xl">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-black text-slate-900 text-sm">Estado Actual</h4>
+                    <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">En Progreso</span>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-slate-100 z-0"></div>
+                    <div className="absolute left-4 top-2 h-1/2 w-0.5 bg-blue-500 z-0"></div>
+                    
+                    <div className="space-y-6 relative z-10">
+                      {trackingSteps.map((step, i) => (
+                        <div key={i} className="flex items-center gap-4">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-sm ${step.done ? 'bg-blue-500 text-white' : step.active ? 'bg-white border-2 border-blue-500 text-blue-500' : 'bg-white border-2 border-slate-200 text-slate-300'}`}>
+                            {step.done ? <CheckCircle2 className="w-4 h-4" /> : <div className={`w-2.5 h-2.5 rounded-full ${step.active ? 'bg-blue-500' : 'bg-slate-200'}`}></div>}
+                          </div>
+                          <div>
+                            <p className={`text-sm font-bold ${step.active || step.done ? 'text-slate-900' : 'text-slate-400'}`}>{step.label}</p>
+                            {step.active && !step.done && <p className="text-[10px] text-blue-500 font-bold mt-0.5">Mecánico trabajando...</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contrato Digital */}
+                <div className="bg-slate-900 rounded-[2rem] p-5 border border-slate-800 relative overflow-hidden group mt-auto">
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent"></div>
+                  <div className="flex justify-between items-start mb-3 relative z-10">
+                    <div className="flex items-center gap-2 text-cyan-400">
+                      <FileSignature className="w-4 h-4" />
+                      <span className="text-xs font-black uppercase tracking-wider">Contrato de Servicio</span>
+                    </div>
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  </div>
+                  
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-3 relative z-10">
+                    <p className="text-slate-300 text-xs mb-1">Presupuesto Mantención 50.000km</p>
+                    <p className="text-white font-black text-lg">$145.000 <span className="text-[10px] text-slate-500 font-normal">CLP</span></p>
+                  </div>
+                  
+                  <button className="w-full py-3 bg-cyan-600 text-white text-xs font-black rounded-xl hover:bg-cyan-500 transition-colors relative z-10">
+                    Firmar y Autorizar
+                  </button>
+                </div>
+              </motion.div>
+
+              {/* Content side */}
+              <motion.div
+                className="order-1 lg:order-2"
+                initial={{ opacity: 0, x: 50 }}
+                animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-300 mb-8 shadow-sm">
+                  <Car className="h-4 w-4" />
+                  <span className="text-sm font-bold tracking-wide">Para el Conductor</span>
+                </div>
+
+                <h2 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.9] mb-8 uppercase">
+                  TU GARAGE <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">DIGITAL.</span>
+                </h2>
+
+                <p className="text-xl md:text-2xl text-slate-400 mb-8 leading-relaxed font-medium">
+                  Sabemos lo importante que es tu auto para ti. Despídete de la incertidumbre al dejarlo en el taller. Tu historial y el estado de tus reparaciones en la palma de tu mano.
+                </p>
+
+                <ul className="space-y-6 mb-10">
+                  {[
+                    { title: "Seguimiento en Vivo", desc: "Observa en qué etapa está tu vehículo, paso a paso." },
+                    { title: "Contratos a un Toque", desc: "Firma y aprueba presupuestos directamente desde tu celular." },
+                    { title: "Evidencia Visual", desc: "Recibe fotos del estado de tus piezas. Nada de sorpresas." }
+                  ].map((item, i) => (
+                    <li key={i} className="flex gap-4 group">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                        <CheckCircle2 className="w-5 h-5 text-cyan-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-white font-bold text-lg mb-1">{item.title}</h4>
+                        <p className="text-slate-400 leading-relaxed text-sm">{item.desc}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link href="/mi-garage">
+                  <button className="px-10 py-5 bg-blue-600 text-white rounded-2xl font-black hover:scale-105 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-blue-600/20 text-lg group uppercase tracking-tight w-full md:w-auto">
+                    <Car className="w-6 h-6" />
+                    Acceder a mi Garage
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                  </button>
+                </Link>
+              </motion.div>
+            </div>
+          </div>
+          
+          {/* TALLER CONTENT */}
+          <div 
+            className={`transition-all duration-500 transform ${activeTab === 'taller' ? 'opacity-100 translate-y-0 relative z-10' : 'opacity-0 translate-y-8 absolute inset-0 pointer-events-none z-0'}`}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+              {/* Content side */}
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                animate={activeTab === 'taller' ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-300 mb-8 shadow-sm">
+                  <Building className="h-4 w-4" />
+                  <span className="text-sm font-bold tracking-wide">Para Talleres y Flotas</span>
+                </div>
+
+                <h2 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight leading-tight mb-8 uppercase">
+                  TUS MANOS EN EL MOTOR. <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                    SU CONFIANZA EN EL CELULAR.
+                  </span> <br />
+                  CIERRA PRESUPUESTOS EN SEGUNDOS.
+                </h2>
+                <p className="text-lg md:text-xl text-slate-300 mb-10 leading-relaxed font-medium">
+                  En la nueva era digital, la desconfianza detiene tus elevadores y cada minuto de espera es dinero que no vuelve. Rompe el ciclo y <span className="text-cyan-400 font-bold italic text-nowrap">deja que tu taller fluya</span>: entrega evidencias fotográficas inmutables que eliminan las dudas y aceleran las aprobaciones directamente en el WhatsApp del cliente.
+                </p>
+                <ul className="space-y-6">
+                  {[
+                    { title: "Aprobación Instantánea", desc: "El cliente ve la falla en su pantalla y autoriza el presupuesto con un toque. Sin vueltas." },
+                    { title: "Elevadores Siempre en Marcha", desc: "Elimina los tiempos muertos esperando respuestas. Si fluye la información, fluye el trabajo." },
+                    { title: "Sello de Honestidad Digital", desc: "Un historial fotográfico que protege tu taller de reclamos y fideliza a tus clientes para siempre." }
+                  ].map((item, i) => (
+                    <li key={i} className="flex gap-4 group">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/20 group-hover:border-blue-500/40 transition-all">
+                        <CheckCircle2 className="w-5 h-5 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                      </div>
+                      <div>
+                        <h4 className="text-white font-bold text-lg mb-1">{item.title}</h4>
+                        <p className="text-slate-400 leading-relaxed">{item.desc}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+
+              {/* Abstract Visualization */}
+              <motion.div
+                className="relative h-[450px] md:h-[600px] w-full rounded-[3rem] bg-slate-900 border border-white/10 shadow-2xl flex items-center justify-center overflow-hidden"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={activeTab === 'taller' ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(59,130,246,0.1),_transparent_70%)]" />
+
+                {/* Nodes Animation */}
+                <div className="flex flex-col gap-8 items-center relative z-10 w-full px-10">
+                  <motion.div
+                    className="w-full max-w-sm bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-xl border border-white/5 flex items-center gap-5"
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                      <Wrench className="w-7 h-7 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="font-black text-white text-base">Evidencia Enviada</p>
+                      <p className="text-xs text-blue-400 font-bold tracking-widest uppercase">Reparación en progreso</p>
                     </div>
                   </motion.div>
-                ))}
-              </div>
+
+                  {/* Connecting Line */}
+                  <div className="h-16 w-1 bg-gradient-to-b from-blue-500/50 to-cyan-500/50 relative rounded-full overflow-hidden">
+                    <motion.div
+                      className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-transparent via-white to-transparent"
+                      animate={{ top: ["-100%", "200%"] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    />
+                  </div>
+
+                  <motion.div
+                    className="w-full max-w-sm bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-2xl border border-cyan-500/30 flex items-center justify-between"
+                    animate={{ y: [0, 8, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30">
+                        <ShieldCheck className="w-7 h-7 text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="font-black text-white text-base">Aprobación Recibida</p>
+                        <p className="text-xs text-cyan-400 font-bold tracking-widest uppercase">Cliente Autorizó</p>
+                      </div>
+                    </div>
+                    <div className="bg-green-500/20 p-3 rounded-2xl border border-green-500/30">
+                      <MessageCircle className="w-6 h-6 text-green-400" />
+                    </div>
+                  </motion.div>
+                </div>
+              </motion.div>
             </div>
-
-            <div className="mt-6 px-4">
-              <div className="w-full h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-cyan-500"
-                  initial={{ width: 0 }}
-                  animate={isInView ? { width: "100%" } : { width: 0 }}
-                  transition={{ duration: 2, delay: 1 }}
-                />
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Content side */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-300 mb-8 shadow-sm">
-              <Car className="h-4 w-4" />
-              <span className="text-sm font-bold tracking-wide">Para el Conductor</span>
-            </div>
-
-            <h2 className="text-5xl md:text-8xl font-black text-white tracking-tight leading-[0.9] mb-8 uppercase">
-              TU CONTROL <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">HISTÓRICO.</span>
-            </h2>
-
-            <p className="text-xl md:text-2xl text-slate-400 mb-8 leading-relaxed font-medium">
-              Sabemos lo importante que es tu auto para ti. Despídete de la incertidumbre al dejarlo en el taller.
-              <Link href="/mi-garage">
-                <span className="text-cyan-400 font-black cursor-pointer hover:underline mx-2 transition-all">Mi Garage</span>
-              </Link>
-              es tu conexión directa: accede a evidencia fotográfica, diagnósticos claros y un historial inmutable.
-            </p>
-
-            <p className="text-lg md:text-xl text-slate-300 mb-10 leading-relaxed font-bold italic opacity-80 border-l-4 border-cyan-500 pl-6">
-              "Toma el mando de la información. Con Flusize, cada servicio queda registrado con evidencia inmutable. Tu historial es la garantía de valor de tu vehículo."
-            </p>
-
-            <Link href="/mi-garage">
-              <button className="px-10 py-5 bg-cyan-600 text-white rounded-2xl font-black hover:scale-105 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-cyan-600/20 text-lg group uppercase tracking-tight">
-                Acceder a mi historial
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-              </button>
-            </Link>
-          </motion.div>
-
+          </div>
+          
         </div>
       </div>
     </section>

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect, Suspense } from 'react';
+import { useState, useRef, useEffect, Suspense, useMemo } from 'react';
 import { Search, MapPin, Loader2, Wrench, Star, Calendar, Filter, User, ChevronUp, ChevronDown, Bell, CheckCircle2, AlertTriangle, ChevronLeft, X, MessageCircle, Locate } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import dynamic from 'next/dynamic';
 import { Workshop } from '@/lib/mockData';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
-import { sileo } from 'sileo';
+import { toast } from 'sonner';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -38,6 +38,7 @@ function MapViewContent() {
     const [workshops, setWorkshops] = useState<Workshop[]>([]);
     const [allWorkshops, setAllWorkshops] = useState<Workshop[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 
     const filterParam = searchParams.get('filter');
     const isEmergency = searchParams.get('emergency') === 'true';
@@ -50,6 +51,10 @@ function MapViewContent() {
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [showSOSMenu, setShowSOSMenu] = useState(false);
     const [activeCategory, setActiveCategory] = useState<string>('todos');
+    const [isListView, setIsListView] = useState(false);
+    const [isListExpanded, setIsListExpanded] = useState(false);
+    const [isEmergencyActive, setIsEmergencyActive] = useState(false);
+    const [mapCommand, setMapCommand] = useState<{ lat: number, lng: number, zoom: number, ts: number } | null>(null);
 
     const categories = [
         { label: 'Mecánica', icon: '🛠️', filter: 'mecan' },
@@ -116,9 +121,9 @@ function MapViewContent() {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         const { latitude, longitude } = position.coords;
-                        mapRef.current.flyToLocation(latitude, longitude, 15);
-                        sileo.info({
-                            title: 'Ubicación Detectada',
+                        setUserLocation({ lat: latitude, lng: longitude });
+                        setMapCommand({ lat: latitude, lng: longitude, zoom: 16, ts: Date.now() });
+                        toast.info('Ubicación Detectada', {
                             description: 'Buscando talleres especializados cerca de ti.',
                             position: "top-center"
                         });
@@ -150,8 +155,7 @@ function MapViewContent() {
                     },
                     (payload) => {
                         if (payload.new.cliente_id === user.id) {
-                            sileo.success({
-                                title: 'Estado de Orden',
+                            toast.success('Estado de Orden', {
                                 description: `Actualizado a: ${payload.new.estado.replace('_', ' ')}`,
                                 position: "top-center"
                             });
@@ -179,28 +183,22 @@ function MapViewContent() {
 
         setIsSearching(true);
         try {
-            const query = searchQuery.toLowerCase().trim();
+            const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            const query = normalize(searchQuery.trim());
             
             // Search in local workshops instead of Nominatim
             const foundWorkshop = allWorkshops.find(shop => 
-                shop.name.toLowerCase().includes(query) || 
-                shop.location.toLowerCase().includes(query) ||
-                shop.slug?.toLowerCase().includes(query) ||
-                shop.specialties.some(s => s.toLowerCase().includes(query))
+                normalize(shop.name).includes(query) || 
+                normalize(shop.location).includes(query) ||
+                (shop.slug && normalize(shop.slug).includes(query)) ||
+                shop.specialties.some(s => normalize(s).includes(query))
             );
 
             if (foundWorkshop) {
                 setSelectedWorkshop(foundWorkshop);
                 setIsSheetExpanded(true);
-                if (mapRef.current) {
-                    mapRef.current.flyToLocation(
-                        foundWorkshop.coordinates.lat, 
-                        foundWorkshop.coordinates.lng, 
-                        17
-                    );
-                }
-                sileo.success({ 
-                    title: 'Taller encontrado', 
+                setMapCommand({ lat: foundWorkshop.coordinates.lat, lng: foundWorkshop.coordinates.lng, zoom: 17, ts: Date.now() });
+                toast.success('Taller encontrado', { 
                     description: `Mostrando detalles de ${foundWorkshop.name}` 
                 });
             } else {
@@ -211,41 +209,129 @@ function MapViewContent() {
 
                 if (data && data.length > 0) {
                     const { lat, lon } = data[0];
-                    if (mapRef.current) {
-                        mapRef.current.flyToLocation(parseFloat(lat), parseFloat(lon), 16);
-                    }
-                    sileo.info({ title: 'Ubicación encontrada', description: 'Mostrando resultados cercanos a esta área.' });
+                    setMapCommand({ lat: parseFloat(lat), lng: parseFloat(lon), zoom: 16, ts: Date.now() });
+                    toast.info('Ubicación encontrada', { description: 'Mostrando resultados cercanos a esta área.' });
                 } else {
-                    sileo.info({ title: 'Sin resultados', description: 'No encontramos talleres con ese nombre o ubicación.' });
+                    toast.info('Sin resultados', { description: 'No encontramos talleres con ese nombre o ubicación.' });
                 }
             }
         } catch (error) {
             console.error("Error searching:", error);
-            sileo.error({ title: 'Error de búsqueda', description: 'No pudimos procesar la solicitud.' });
+            toast.error('Error de búsqueda', { description: 'No pudimos procesar la solicitud.' });
         } finally {
             setIsSearching(false);
         }
     };
 
+    const displayedWorkshops = useMemo(() => {
+        if (!searchQuery.trim()) return workshops;
+        const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const query = normalize(searchQuery.trim());
+        return workshops.filter(shop => 
+            normalize(shop.name).includes(query) || 
+            normalize(shop.location).includes(query) ||
+            (shop.slug && normalize(shop.slug).includes(query)) ||
+            (shop.specialties && shop.specialties.some(s => normalize(s).includes(query)))
+        );
+    }, [workshops, searchQuery]);
+
     return (
         <div className="h-[100dvh] w-full relative overflow-hidden bg-slate-100 flex flex-col font-sans">
+            {/* Efecto Modo Emergencia */}
+            <AnimatePresence>
+                {isEmergencyActive && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[9999] bg-red-500/20 pointer-events-none flex items-center justify-center backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white p-6 rounded-3xl shadow-2xl max-w-sm text-center border-2 border-red-500/50"
+                        >
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-900 mb-2">Buscando unidades...</h3>
+                            <p className="text-slate-600 font-medium text-sm">Lo sentimos, no hay unidades disponibles por el momento en tu zona.</p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* 1. Map container (Background 100%) */}
             <div className={`absolute inset-0 z-0 transition-transform duration-500`}>
                 <MapWrapper
                     ref={mapRef}
-                    workshops={workshops}
+                    workshops={displayedWorkshops}
                     selectedId={selectedWorkshop?.id ? String(selectedWorkshop.id) : undefined}
+                    userLocation={userLocation}
+                    mapCommand={mapCommand}
                     onSelect={(id: string | number) => {
                         const shop = workshops.find(s => String(s.id) === String(id));
                         if (shop) {
                             setSelectedWorkshop(shop);
                             setIsSheetExpanded(true);
-                            if (mapRef.current) {
-                                mapRef.current.flyToLocation(shop.coordinates.lat, shop.coordinates.lng, 17);
-                            }
+                            setMapCommand({ lat: shop.coordinates.lat, lng: shop.coordinates.lng, zoom: 17, ts: Date.now() });
+                        }
+                    }}
+                    onDoubleClick={(id: string | number) => {
+                        const shop = workshops.find(s => String(s.id) === String(id));
+                        if (shop) {
+                            router.push(`/${shop.slug || shop.id}`);
                         }
                     }}
                 />
+            </div>
+
+            {/* VISTA DE LISTA (BOTTOM SHEET) */}
+            <div className={`absolute bottom-0 left-0 w-full bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-500 z-[100] flex flex-col ${isListExpanded ? 'h-[80vh]' : 'h-[15vh]'}`}>
+                {/* Drag Handle */}
+                <div 
+                    className="w-full flex justify-center py-4 cursor-pointer shrink-0"
+                    onClick={() => setIsListExpanded(!isListExpanded)}
+                >
+                    <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+                </div>
+                
+                <div className={`flex-1 overflow-y-auto px-4 pb-24 space-y-4 ${!isListExpanded && 'pointer-events-none opacity-50'}`}>
+                    {displayedWorkshops.map(shop => (
+                        <div key={shop.id} className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex gap-4">
+                            <img src={shop.image} alt={shop.name} className="w-24 h-24 rounded-2xl object-cover shrink-0" />
+                            <div className="flex flex-col flex-1 py-1">
+                                <div className="flex justify-between items-start mb-1">
+                                    <h3 className="font-black text-slate-900 text-lg leading-tight">{shop.name}</h3>
+                                    <div className="flex items-center gap-1 text-yellow-500 text-xs font-bold bg-yellow-50 px-2 py-0.5 rounded-md shrink-0">
+                                        <Star className="w-3 h-3 fill-current" /> {shop.rating}
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 font-medium line-clamp-1 mb-2">{shop.location}</p>
+                                <div className="flex flex-wrap gap-1 mb-3">
+                                    {shop.specialties.slice(0, 2).map((s, i) => (
+                                        <span key={i} className="text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                                            {s}
+                                        </span>
+                                    ))}
+                                    {shop.specialties.length > 2 && <span className="text-[9px] font-black uppercase text-slate-400">+{shop.specialties.length - 2}</span>}
+                                </div>
+                                <div className="mt-auto flex justify-end">
+                                    <Button onClick={() => router.push(`/${shop.slug || shop.id}`)} size="sm" className="bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-xs font-bold px-4">
+                                        Agendar Cita
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {displayedWorkshops.length === 0 && (
+                        <div className="text-center py-20">
+                            <Wrench className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                            <p className="text-slate-500 font-bold">No hay talleres para esta búsqueda</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* 2. Floating Top Bar Area */}
@@ -270,7 +356,7 @@ function MapViewContent() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Buscar talleres, servicios..."
-                            className="bg-transparent flex-1 w-full outline-none text-[13px] font-bold text-slate-800 placeholder:text-slate-400"
+                            className="bg-transparent flex-1 w-full outline-none text-[13px] font-bold !text-slate-900 !placeholder-slate-500"
                         />
                         {isSearching && <Loader2 className="w-4 h-4 animate-spin text-blue-600 shrink-0 ml-2" />}
                     </form>
@@ -285,7 +371,7 @@ function MapViewContent() {
                 </div>
 
                 {/* 3. Filtros Rápidos (Pills) con Scroll Horizontal */}
-                <div className="max-w-xl mx-auto md:mx-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
+                <div className="max-w-xl mx-auto md:mx-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide no-scrollbar px-4 py-2 whitespace-nowrap">
                     {/* Botón "Todos" para limpiar filtros */}
                     <button
                         onClick={() => {
@@ -312,15 +398,16 @@ function MapViewContent() {
                                     return;
                                 }
 
-                                const filterStr = cat.filter.toLowerCase();
+                                const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                                const filterStr = normalize(cat.filter);
                                 const filtered = allWorkshops.filter(shop =>
                                     shop.specialties && Array.isArray(shop.specialties) && 
-                                    shop.specialties.some(s => s.toLowerCase().includes(filterStr))
+                                    shop.specialties.some(s => normalize(s).includes(filterStr))
                                 );
                                 
                                 setWorkshops(filtered);
                                 setActiveCategory(cat.filter);
-                                sileo.info({ title: `Filtrando: ${cat.label}`, description: `${filtered.length} talleres encontrados.` });
+                                toast.info(`Filtrando: ${cat.label}`, { description: `${filtered.length} talleres encontrados.` });
                             }}
                             className={`whitespace-nowrap flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-black transition-all active:scale-95 border ${
                                 activeCategory === cat.filter 
@@ -360,9 +447,8 @@ function MapViewContent() {
                             navigator.geolocation.getCurrentPosition(
                                 (position) => {
                                     const { latitude, longitude } = position.coords;
-                                    if (mapRef.current) {
-                                        mapRef.current.flyToLocation(latitude, longitude, 16);
-                                    }
+                                    setUserLocation({ lat: latitude, lng: longitude });
+                                    setMapCommand({ lat: latitude, lng: longitude, zoom: 16, ts: Date.now() });
                                 }
                             );
                         }
@@ -374,30 +460,44 @@ function MapViewContent() {
                 </button>
 
                 <div className="relative">
-                    <AnimatePresence>
-                        {showSOSMenu && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.8, x: -20 }}
-                                animate={{ opacity: 1, scale: 1, x: 0 }}
-                                exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                                className="absolute bottom-0 right-20 bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-4 shadow-[0_25px_60px_rgba(220,38,38,0.15)] border border-red-50 mb-0 w-56 space-y-2 z-[501]"
-                            >
+                    <div
+                        className={`absolute bottom-0 right-20 bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-4 shadow-[0_25px_60px_rgba(220,38,38,0.15)] border border-red-50 mb-0 w-56 space-y-2 z-[501] origin-bottom-right transition-all duration-300 ${showSOSMenu ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-0 opacity-0 pointer-events-none'}`}
+                    >
                                 <p className="text-[10px] font-black text-red-500 uppercase tracking-widest px-3 mb-2">Asistencia VIP 24/7</p>
-                                <button className="w-full text-left px-4 py-3 rounded-2xl text-slate-700 text-xs font-bold hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                <button 
+                                    onClick={() => {
+                                        setShowSOSMenu(false);
+                                        setIsEmergencyActive(true);
+                                        setTimeout(() => setIsEmergencyActive(false), 4000);
+                                    }}
+                                    className="w-full text-left px-4 py-3 rounded-2xl text-slate-700 text-xs font-bold hover:bg-red-50 flex items-center gap-3 transition-colors"
+                                >
                                     <span className="text-lg">🚜</span>
                                     Grúa 24/7
                                 </button>
-                                <button className="w-full text-left px-4 py-3 rounded-2xl text-slate-700 text-xs font-bold hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                <button 
+                                    onClick={() => {
+                                        setShowSOSMenu(false);
+                                        setIsEmergencyActive(true);
+                                        setTimeout(() => setIsEmergencyActive(false), 4000);
+                                    }}
+                                    className="w-full text-left px-4 py-3 rounded-2xl text-slate-700 text-xs font-bold hover:bg-red-50 flex items-center gap-3 transition-colors"
+                                >
                                     <span className="text-lg">🔑</span>
                                     Cerrajeros Móvil
                                 </button>
-                                <button className="w-full text-left px-4 py-3 rounded-2xl text-slate-700 text-xs font-bold hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                <button 
+                                    onClick={() => {
+                                        setShowSOSMenu(false);
+                                        setIsEmergencyActive(true);
+                                        setTimeout(() => setIsEmergencyActive(false), 4000);
+                                    }}
+                                    className="w-full text-left px-4 py-3 rounded-2xl text-slate-700 text-xs font-bold hover:bg-red-50 flex items-center gap-3 transition-colors"
+                                >
                                     <span className="text-lg">🚗</span>
                                     Vulca a Domicilio
                                 </button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    </div>
                     
                     <button
                         onClick={() => setShowSOSMenu(!showSOSMenu)}
@@ -407,6 +507,10 @@ function MapViewContent() {
                         <AlertTriangle className="w-8 h-8 group-hover:scale-110 transition-transform relative z-10" />
                     </button>
                 </div>
+            </div>
+
+            {/* BOTÓN FLOTANTE VER MAPA (REMOVIDO POR BOTTOM SHEET) */}
+            <div className="hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-[400] transition-transform">
             </div>
 
             {/* 5. BOTTOM SHEET (EL RADAR) */}
